@@ -72,13 +72,13 @@ export function ZaplashStage({ room, match, t }: StageProps) {
       </div>
 
       {/* Header Bar */}
-      <div className="flex items-center justify-between gap-4 bg-[var(--mb-surface-2)] p-4 rounded-xl border-[3px] border-black shadow-[var(--mb-shadow)]">
+      <div className="flex items-center justify-between gap-4 bg-[var(--mb-surface-2)] p-4 rounded-xl border-[3px] border-black shadow-[var(--mb-shadow)] -rotate-[0.5deg]">
         <div className="flex items-center gap-3">
-          <Pill tone="accent" className="text-base px-4 py-1.5 font-black flex items-center gap-1.5 border-2 border-black shadow-[2px_2px_0_0_#000] uppercase tracking-wider [font-family:var(--mb-font-display)]">
-            <ZapIcon className="w-4 h-4 text-[var(--mb-gold)]" />
+          <Pill tone="accent" className="text-base px-4 py-1.5 font-black flex items-center gap-1.5 border-2 border-black shadow-[2px_2px_0_0_#000] uppercase tracking-wider [font-family:var(--mb-font-display)] -rotate-1">
+            <ZapIcon className="w-5 h-5 text-[var(--mb-gold)]" />
             {t("games.zaplash.name")}
           </Pill>
-          <span className="font-black text-xl text-[var(--mb-text-dim)] uppercase tracking-wider [font-family:var(--mb-font-display)]">
+          <span className="font-black text-2xl text-[var(--mb-gold)] uppercase tracking-wider [font-family:var(--mb-font-display)]">
             {t("games.zaplash.ui.round_info", {
               round: pub.round,
               total: pub.totalRounds,
@@ -87,7 +87,7 @@ export function ZaplashStage({ room, match, t }: StageProps) {
         </div>
 
         {match.phase === "vote" && pub.currentMatchup && (
-          <Pill tone="gold" className="text-base px-4 py-1 font-black uppercase tracking-wider [font-family:var(--mb-font-display)] border-2 border-black shadow-[2px_2px_0_0_#000]">
+          <Pill tone="gold" className="text-base px-4 py-1.5 font-black uppercase tracking-wider [font-family:var(--mb-font-display)] border-2 border-black shadow-[2px_2px_0_0_#000] rotate-1">
             {t("games.zaplash.ui.matchup_progress", {
               current: pub.currentMatchupIndex + 1,
               total: pub.totalMatchups,
@@ -101,36 +101,37 @@ export function ZaplashStage({ room, match, t }: StageProps) {
         {/* WRITE PHASE */}
         {match.phase === "write" && (
           <div className="flex flex-col items-center justify-center text-center gap-8">
-            <h2 className="text-4xl md:text-6xl font-black tracking-tight uppercase [font-family:var(--mb-font-display)] mb-neon-gold -rotate-1 mb-wobble">
-              {t("games.zaplash.ui.players_writing")}
+            <h2 className="text-5xl md:text-7xl font-black tracking-tight uppercase [font-family:var(--mb-font-display)] mb-neon-gold -rotate-1 mb-wobble-fast">
+              ✍️ {t("games.zaplash.ui.players_writing")}
             </h2>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full max-w-4xl">
-              {room.seats.map((seat) => {
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-5 w-full max-w-5xl">
+              {room.seats.map((seat, i) => {
                 const isDone = pub.submittedSeats.includes(seat.seatIndex);
                 return (
                   <Panel
                     key={seat.seatIndex}
                     className={cn(
-                      "p-4 rounded-xl flex items-center justify-between border-[3px] border-black transition-all transform shadow-[var(--mb-shadow)]",
+                      "p-5 rounded-2xl flex items-center justify-between border-[3px] border-black transition-all transform shadow-[var(--mb-shadow-lg)]",
+                      i % 2 === 0 ? "-rotate-1" : "rotate-1",
                       isDone
-                        ? "bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)] rotate-1 scale-105"
-                        : "bg-[var(--mb-surface-2)] text-[var(--mb-text)]"
+                        ? "bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)] scale-105 mb-pop"
+                        : "bg-[var(--mb-surface-2)] text-white"
                     )}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
                       <WhimsicalAvatarFace avatarId={seat.avatarId} size={48} />
-                      <span className="font-black text-lg">{seat.displayName}</span>
+                      <span className="font-black text-xl truncate [font-family:var(--mb-font-display)]">{seat.displayName}</span>
                     </div>
                     <span
                       className={cn(
-                        "font-black text-xs px-3 py-1 rounded-lg uppercase tracking-wider flex items-center gap-1 border-2 border-black shadow-[2px_2px_0_0_#000] [font-family:var(--mb-font-display)]",
-                        isDone ? "bg-[var(--mb-paper)] text-[var(--mb-ink)]" : "bg-[var(--mb-surface-3)] text-[var(--mb-text-dim)]"
+                        "font-black text-xs px-3 py-1.5 rounded-lg uppercase tracking-wider flex items-center gap-1 border-2 border-black shadow-[2px_2px_0_0_#000] [font-family:var(--mb-font-display)] shrink-0 ml-2",
+                        isDone ? "bg-white text-black" : "bg-[var(--mb-surface-3)] text-[var(--mb-text-dim)]"
                       )}
                     >
                       {isDone ? (
                         <>
-                          <CheckIcon className="w-3.5 h-3.5" />
+                          <CheckIcon className="w-4 h-4 text-emerald-600" />
                           {t("games.zaplash.ui.done")}
                         </>
                       ) : (
@@ -147,11 +148,13 @@ export function ZaplashStage({ room, match, t }: StageProps) {
         {/* VOTE PHASE */}
         {match.phase === "vote" && pub.currentMatchup && (
           <div className="flex flex-col items-center text-center gap-8 max-w-5xl mx-auto">
-            <h2 className="text-3xl md:text-5xl font-black text-[var(--mb-text)] leading-tight break-words px-4 text-center [font-family:var(--mb-font-display)] tracking-tight">
-              "{pub.currentMatchup.promptText}"
-            </h2>
+            <div className="bg-[var(--mb-surface)] border-4 border-black shadow-[var(--mb-shadow-lg)] rounded-2xl p-6 w-full -rotate-[0.5deg]">
+              <h2 className="text-3xl md:text-5xl font-black text-white leading-tight break-words px-4 text-center [font-family:var(--mb-font-display)] tracking-tight">
+                "{pub.currentMatchup.promptText}"
+              </h2>
+            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full mt-2">
               {pub.currentMatchup.answers.map((ans, idx) => {
                 const label = idx === 0 ? "A" : "B";
                 return (
@@ -159,7 +162,7 @@ export function ZaplashStage({ room, match, t }: StageProps) {
                     key={idx}
                     raised
                     className={cn(
-                      "mb-flip-in p-8 rounded-2xl bg-[var(--mb-surface-2)] border-[3px] border-black shadow-[var(--mb-shadow-lg)] flex flex-col items-start gap-4 text-left relative min-h-[160px] justify-center mb-lift",
+                      "mb-flip-in p-8 rounded-2xl bg-[var(--mb-surface-2)] border-4 border-black shadow-[var(--mb-shadow-lg)] flex flex-col items-start gap-4 text-left relative min-h-[180px] justify-center mb-lift",
                       idx === 0 ? "-rotate-1" : "rotate-1"
                     )}
                     style={{ animationDelay: `${idx * 180}ms` }}
@@ -167,7 +170,7 @@ export function ZaplashStage({ room, match, t }: StageProps) {
                     <span className="absolute top-4 right-4 text-2xl font-black px-4 py-1 rounded-xl bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)] border-2 border-black shadow-[2px_2px_0_0_#000] [font-family:var(--mb-font-display)]">
                       {label}
                     </span>
-                    <p className="text-2xl md:text-3xl font-extrabold text-[var(--mb-text)] leading-snug break-words w-full">
+                    <p className="text-3xl md:text-4xl font-extrabold text-white leading-snug break-words w-full">
                       {ans.text}
                     </p>
                   </Card>
@@ -177,7 +180,7 @@ export function ZaplashStage({ room, match, t }: StageProps) {
 
             {/* Voter Status Badges */}
             <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
-              <span className="text-sm font-black uppercase tracking-wider text-[var(--mb-text-dim)] [font-family:var(--mb-font-display)] mr-2">
+              <span className="text-base font-black uppercase tracking-wider text-[var(--mb-gold)] [font-family:var(--mb-font-display)] mr-2">
                 {t("games.zaplash.ui.voted_status")}:
               </span>
               {room.seats.map((seat) => {
@@ -213,9 +216,11 @@ export function ZaplashStage({ room, match, t }: StageProps) {
             {pub.currentMatchup.zapSeat !== null && pub.currentMatchup.zapSeat !== undefined && (
               <ZapMoment key={`${pub.currentMatchupIndex}`} />
             )}
-            <h2 className="text-2xl md:text-4xl font-black text-[var(--mb-text)] leading-tight break-words px-4 text-center tracking-tight">
-              "{pub.currentMatchup.promptText}"
-            </h2>
+            <div className="bg-[var(--mb-surface)] border-4 border-black shadow-[var(--mb-shadow-lg)] rounded-2xl p-5 w-full">
+              <h2 className="text-2xl md:text-4xl font-black text-white leading-tight break-words px-4 text-center tracking-tight [font-family:var(--mb-font-display)]">
+                "{pub.currentMatchup.promptText}"
+              </h2>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full mt-2">
               {pub.currentMatchup.answers.map((ans, idx) => {
@@ -232,57 +237,57 @@ export function ZaplashStage({ room, match, t }: StageProps) {
                     key={idx}
                     raised
                     className={cn(
-                      "mb-pop p-6 rounded-2xl flex flex-col justify-between gap-6 border-[3px] border-black text-left relative min-h-[220px] transition-transform duration-500 shadow-[var(--mb-shadow-lg)]",
+                      "mb-pop p-7 rounded-2xl flex flex-col justify-between gap-6 border-4 border-black text-left relative min-h-[240px] transition-transform duration-500 shadow-[var(--mb-shadow-lg)]",
                       isZap
-                        ? "mb-shake bg-[var(--mb-gold)] text-[var(--mb-on-gold)] rotate-1 scale-[1.03]"
+                        ? "mb-shake bg-[var(--mb-gold)] text-black rotate-1 scale-[1.03]"
                         : isWinner
                         ? "bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)] -rotate-1 scale-[1.02]"
-                        : "bg-[var(--mb-surface-2)] text-[var(--mb-text)]"
+                        : "bg-[var(--mb-surface-2)] text-white"
                     )}
                     style={{ animationDelay: `${idx * 200}ms` }}
                   >
                     <div className="flex items-start justify-between">
-                      <span className="text-xl font-black px-3.5 py-1 rounded-xl bg-[var(--mb-accent)] text-[var(--mb-on-accent)] border-2 border-black shadow-[2px_2px_0_0_#000] [font-family:var(--mb-font-display)]">
+                      <span className="text-2xl font-black px-4 py-1.5 rounded-xl bg-[var(--mb-accent)] text-white border-2 border-black shadow-[2px_2px_0_0_#000] [font-family:var(--mb-font-display)]">
                         {label}
                       </span>
                       {isZap && (
-                        <span className="px-4 py-1.5 rounded-xl bg-[var(--mb-pink)] text-[var(--mb-on-pink)] font-black text-lg border-2 border-black shadow-[3px_3px_0_0_#000] flex items-center gap-1.5 uppercase [font-family:var(--mb-font-display)] mb-tada">
-                          <ZapIcon className="w-5 h-5 text-[var(--mb-on-pink)]" /> ZAP! +50
+                        <span className="px-4 py-1.5 rounded-xl bg-pink-600 text-white font-black text-xl border-2 border-black shadow-[3px_3px_0_0_#000] flex items-center gap-1.5 uppercase [font-family:var(--mb-font-display)] mb-tada mb-shake">
+                          ⚡ ZAP! +50
                         </span>
                       )}
                     </div>
 
                     <p
                       className={cn(
-                        "text-2xl md:text-3xl font-extrabold leading-snug break-words w-full",
-                        isZap ? "text-[var(--mb-on-gold)]" : isWinner ? "text-[var(--mb-on-accent-2)]" : "text-[var(--mb-text)]"
+                        "text-3xl md:text-4xl font-black leading-snug break-words w-full",
+                        isZap ? "text-black" : isWinner ? "text-[var(--mb-on-accent-2)]" : "text-white"
                       )}
                     >
                       {ans.text}
                     </p>
 
-                    <div className="flex items-center justify-between pt-4 border-t-2 border-black/30">
+                    <div className="flex items-center justify-between pt-4 border-t-2 border-black/40">
                       {writerSeat ? (
                         <div className="flex items-center gap-3">
-                          <WhimsicalAvatarFace avatarId={writerSeat.avatarId} size={40} />
+                          <WhimsicalAvatarFace avatarId={writerSeat.avatarId} size={44} />
                           <span
                             className={cn(
-                              "font-black text-lg",
-                              isZap ? "text-[var(--mb-on-gold)]" : isWinner ? "text-[var(--mb-on-accent-2)]" : "text-[var(--mb-text)]"
+                              "font-black text-xl [font-family:var(--mb-font-display)]",
+                              isZap ? "text-black" : isWinner ? "text-[var(--mb-on-accent-2)]" : "text-white"
                             )}
                           >
                             {writerSeat.displayName}
                           </span>
                         </div>
                       ) : (
-                        <span className="text-sm font-bold opacity-70">???</span>
+                        <span className="text-base font-bold opacity-70">???</span>
                       )}
 
                       <div className="flex items-center gap-3">
                         <span
                           className={cn(
-                            "text-lg font-black px-3 py-1 rounded-lg border-2 border-black shadow-[2px_2px_0_0_#000] [font-family:var(--mb-font-display)] uppercase",
-                            isZap ? "bg-[var(--mb-paper)] text-[var(--mb-ink)]" : isWinner ? "bg-[var(--mb-paper)] text-[var(--mb-ink)]" : "bg-[var(--mb-gold)] text-[var(--mb-on-gold)]"
+                            "text-xl font-black px-3.5 py-1 rounded-lg border-2 border-black shadow-[2px_2px_0_0_#000] [font-family:var(--mb-font-display)] uppercase",
+                            isZap ? "bg-white text-black" : isWinner ? "bg-white text-black" : "bg-[var(--mb-gold)] text-black"
                           )}
                         >
                           {t("games.zaplash.ui.votes_count", { count: votes })}
@@ -290,8 +295,8 @@ export function ZaplashStage({ room, match, t }: StageProps) {
                         {pts > 0 && (
                           <span
                             className={cn(
-                              "mb-tada text-2xl font-black [font-family:var(--mb-font-display)] drop-shadow-[2px_2px_0_#000]",
-                              isZap ? "text-[var(--mb-pink-deep)]" : isWinner ? "text-[var(--mb-on-accent-2)]" : "text-[var(--mb-accent-2)]"
+                              "mb-tada text-3xl font-black [font-family:var(--mb-font-display)] drop-shadow-[2px_2px_0_#000]",
+                              isZap ? "text-pink-700" : isWinner ? "text-[var(--mb-on-accent-2)]" : "text-[var(--mb-accent-2)]"
                             )}
                             style={{ animationDelay: "500ms" }}
                           >
@@ -310,8 +315,8 @@ export function ZaplashStage({ room, match, t }: StageProps) {
         {/* SCOREBOARD PHASE */}
         {match.phase === "scoreboard" && (
           <div className="flex flex-col items-center justify-center text-center gap-6 max-w-3xl mx-auto">
-            <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tight [font-family:var(--mb-font-display)] mb-neon-gold -rotate-1 mb-wobble">
-              {t("games.zaplash.ui.scoreboard_title")}
+            <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tight [font-family:var(--mb-font-display)] mb-neon-gold -rotate-1 mb-wobble-fast">
+              🏆 {t("games.zaplash.ui.scoreboard_title")}
             </h2>
 
             <ScoreBoard
@@ -329,11 +334,11 @@ export function ZaplashStage({ room, match, t }: StageProps) {
         {/* GAME OVER PHASE */}
         {isGameOver && (
           <div className="flex flex-col items-center justify-center text-center gap-6 max-w-xl mx-auto py-8">
-            <TrophyIcon className="w-20 h-20 text-[var(--mb-gold)] mb-tada drop-shadow-[4px_4px_0_#000]" />
-            <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tight [font-family:var(--mb-font-display)] mb-neon-gold rotate-1">
+            <TrophyIcon className="w-24 h-24 text-[var(--mb-gold)] mb-tada drop-shadow-[6px_6px_0_#000]" />
+            <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tight [font-family:var(--mb-font-display)] mb-neon-gold rotate-1">
               {t("games.zaplash.ui.wrap_title")}
             </h2>
-            <p className="text-xl font-bold uppercase tracking-wider text-[var(--mb-text-dim)] [font-family:var(--mb-font-display)]">
+            <p className="text-2xl font-black uppercase tracking-wider text-[var(--mb-gold)] [font-family:var(--mb-font-display)]">
               {t("games.zaplash.ui.wrap_subtitle")}
             </p>
           </div>
