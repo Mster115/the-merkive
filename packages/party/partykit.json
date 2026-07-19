@@ -1,5 +1,5 @@
 {
-  "name": "merky-box-party",
+  "name": "the-merkive-party",
   "main": "src/server.ts",
-  "serve": "public"
+  "compatibilityDate": "2026-07-19"
 }

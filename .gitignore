@@ -10,3 +10,5 @@ coverage/
 *.tsbuildinfo
 package-lock.json
 .partykit/
+market-research/
+.vercel
