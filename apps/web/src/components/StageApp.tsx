@@ -1,9 +1,12 @@
 "use client";
 import * as React from "react";
+import Image from "next/image";
 import { getGame } from "@merky/games";
 import { Card, cn, CountUp, PlayerChip, Pill, sfx, SoundToggle, TimerBar } from "@merky/ui";
 import { useT } from "@/i18n";
 import { useRoom, type UseRoomResult } from "@/client/useRoom";
+import logoImg from "@/assets/logo-purple.png";
+
 import { PodiumCard } from "./Podium";
 import { QrCode } from "./QrCode";
 import { Ticker } from "./Ticker";
@@ -57,9 +60,16 @@ function StageLobby({ room }: { room: UseRoomResult }) {
               >
                 ← Home
               </a>
-              <h1 className="text-3xl sm:text-5xl [font-family:var(--mb-font-display)] font-black italic uppercase tracking-tighter text-[var(--mb-violet)] leading-none">
-                {t("app.name")}
-              </h1>
+              <div className="flex items-center gap-2">
+                <Image
+                  src={logoImg}
+                  alt="The Merkive Logo"
+                  className="w-8 h-auto sm:w-10 object-contain drop-shadow-[2px_2px_0_#000]"
+                />
+                <h1 className="text-3xl sm:text-5xl [font-family:var(--mb-font-display)] font-black italic uppercase tracking-tighter text-[var(--mb-violet)] leading-none">
+                  {t("app.name")}
+                </h1>
+              </div>
               <span className="bg-black text-[var(--mb-accent-2)] border-2 border-[var(--mb-accent-2)] px-2.5 py-0.5 sm:px-3 sm:py-1 -rotate-2 text-xs sm:text-sm font-black uppercase tracking-widest">
                 {t("stage.live")}
               </span>

@@ -19,6 +19,11 @@ export const metadata: Metadata = {
   title: "The Merkive",
   description: "Browser party games for you and up to seven friends — one stage, everyone's phone is a controller.",
   robots: { index: true, follow: false },
+  icons: {
+    icon: "/icon.png",
+    shortcut: "/favicon.ico",
+    apple: "/icon.png",
+  },
 };
 
 export const viewport: Viewport = {

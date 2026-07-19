@@ -2,7 +2,7 @@
 import * as React from "react";
 import type { RoomView } from "@merky/game-sdk";
 import { gameList, getGame } from "@merky/games";
-import { Button, Card, cn, Pill } from "@merky/ui";
+import { Button, Card, cn, Pill, GameIcon } from "@merky/ui";
 import { useT } from "@/i18n";
 import { api, ApiCallError } from "@/client/api";
 import { SettingsFields } from "./SettingsFields";
@@ -83,7 +83,10 @@ export function LobbyControls({
                 )}
               >
                 <span className="flex items-center justify-between gap-2">
-                  <span className="font-black">{t(g.meta.nameKey)}</span>
+                  <span className="flex items-center gap-2 font-black">
+                    <GameIcon gameId={g.meta.id} className="w-5 h-5 text-[var(--mb-violet)] shrink-0" />
+                    {t(g.meta.nameKey)}
+                  </span>
                   <Pill tone={selected ? "accent" : "neutral"}>
                     {t("lobby.players.range", { min: g.meta.minPlayers, max: g.meta.maxPlayers })}
                   </Pill>

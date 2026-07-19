@@ -1,13 +1,15 @@
 "use client";
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { contentPacks, gameRegistry } from "@merky/games";
-import { Button, Card, Pill, LockIcon, Modal } from "@merky/ui";
+import { Button, Card, Pill, LockIcon, Modal, GameIcon } from "@merky/ui";
 import { useT } from "@/i18n";
 import { api, ApiCallError } from "@/client/api";
 import { getPrefs, setPrefs, setToken } from "@/client/session";
 import { AvatarPicker } from "./AvatarPicker";
 import { Ticker } from "./Ticker";
+import logoImg from "@/assets/logo-purple.png";
 
 export function HomeScreen() {
   const t = useT();
@@ -91,11 +93,19 @@ export function HomeScreen() {
         {/* Widescreen / Desktop Hero Header */}
         <header className="flex flex-col lg:flex-row items-center justify-between gap-6 mb-drop text-center lg:text-left border-b-2 border-black/40 pb-6" style={{ "--mb-i": 0 } as React.CSSProperties}>
           <div>
-            <div className="relative inline-block">
-              <div aria-hidden className="absolute -inset-3 bg-[var(--mb-pink)] opacity-20 blur-2xl -z-10" />
-              <h1 className="mb-wobble-fast text-5xl sm:text-6xl lg:text-7xl [font-family:var(--mb-font-display)] font-black italic uppercase tracking-tighter text-[var(--mb-violet)] leading-none">
-                {t("app.name")}
-              </h1>
+            <div className="flex items-center justify-center lg:justify-start gap-3 sm:gap-4">
+              <Image
+                src={logoImg}
+                alt="The Merkive Logo"
+                priority
+                className="w-12 h-auto sm:w-16 lg:w-20 object-contain shrink-0 drop-shadow-[3px_3px_0_#000]"
+              />
+              <div className="relative inline-block">
+                <div aria-hidden className="absolute -inset-3 bg-[var(--mb-pink)] opacity-20 blur-2xl -z-10" />
+                <h1 className="mb-wobble-fast text-5xl sm:text-6xl lg:text-7xl [font-family:var(--mb-font-display)] font-black italic uppercase tracking-tighter text-[var(--mb-violet)] leading-none">
+                  {t("app.name")}
+                </h1>
+              </div>
             </div>
             <p className="mt-3 block lg:inline-block bg-black px-4 py-1.5 rotate-1 lg:-rotate-1 border-2 border-[var(--mb-accent-2)] text-[var(--mb-accent-2)] font-black uppercase tracking-widest text-xs sm:text-sm">
               {t("app.tagline")}
@@ -271,9 +281,12 @@ export function HomeScreen() {
                       >
                         <div>
                           <div className="flex items-center justify-between gap-1 mb-1">
-                            <span className="font-black uppercase text-sm [font-family:var(--mb-font-display)] text-[var(--mb-text)] truncate">
-                              {t(g.meta.nameKey)}
-                            </span>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <GameIcon gameId={gameId} className="w-5 h-5 text-[var(--mb-violet)] shrink-0" />
+                              <span className="font-black uppercase text-sm [font-family:var(--mb-font-display)] text-[var(--mb-text)] truncate">
+                                {t(g.meta.nameKey)}
+                              </span>
+                            </div>
                           </div>
                           <p className="text-[11px] font-semibold text-[var(--mb-text-dim)] line-clamp-2 leading-snug">
                             {t(g.meta.descriptionKey)}

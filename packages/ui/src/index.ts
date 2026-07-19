@@ -29,5 +29,9 @@ export {
   BackpackIcon,
   CardsIcon,
   PencilIcon,
+  ZaplashIcon,
+  EightstormIcon,
+  TileTangleIcon,
+  GameIcon,
   RankBadge,
 } from "./icons";

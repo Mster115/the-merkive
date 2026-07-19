@@ -162,6 +162,54 @@ export function PencilIcon({ className = "w-5 h-5" }: { className?: string }) {
   );
 }
 
+export function ZaplashIcon({ className = "w-6 h-6" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5z" fill="var(--mb-pink)" fillOpacity="0.3" stroke="currentColor" strokeWidth="2" />
+      <path d="M13 6l-5 7.5h4.5l-1.5 5.5 6-7.5h-4.5l1.5-5.5z" fill="var(--mb-gold)" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+export function EightstormIcon({ className = "w-6 h-6" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="5" width="11" height="15" rx="2" transform="rotate(-12 8.5 12.5)" fill="var(--mb-accent)" fillOpacity="0.3" stroke="currentColor" />
+      <rect x="9" y="4" width="12" height="16" rx="2" fill="var(--mb-surface)" stroke="currentColor" strokeWidth="2" />
+      <circle cx="15" cy="9.5" r="2.2" stroke="currentColor" strokeWidth="1.8" fill="var(--mb-gold)" fillOpacity="0.4" />
+      <circle cx="15" cy="14.5" r="2.8" stroke="currentColor" strokeWidth="1.8" fill="var(--mb-gold)" fillOpacity="0.4" />
+    </svg>
+  );
+}
+
+export function TileTangleIcon({ className = "w-6 h-6" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2.5" y="6" width="7" height="12" rx="1.5" fill="var(--mb-accent-2)" fillOpacity="0.3" stroke="currentColor" strokeWidth="2" />
+      <circle cx="6" cy="12" r="1.2" fill="currentColor" stroke="none" />
+      <rect x="8.5" y="4" width="7" height="12" rx="1.5" fill="var(--mb-gold)" fillOpacity="0.3" stroke="currentColor" strokeWidth="2" />
+      <path d="M12 7.5v5" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M10.5 7.5h3" stroke="currentColor" strokeWidth="1.8" />
+      <rect x="14.5" y="8" width="7" height="12" rx="1.5" fill="var(--mb-pink)" fillOpacity="0.3" stroke="currentColor" strokeWidth="2" />
+      <circle cx="18" cy="11" r="1" fill="currentColor" stroke="none" />
+      <circle cx="18" cy="16" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function GameIcon({ gameId, className }: { gameId: string; className?: string }) {
+  switch (gameId) {
+    case "zaplash":
+      return <ZaplashIcon className={className} />;
+    case "eightstorm":
+      return <EightstormIcon className={className} />;
+    case "tiletangle":
+      return <TileTangleIcon className={className} />;
+    default:
+      return <PuzzleIcon className={className} />;
+  }
+}
+
 const RANK_STYLES = [
   { bg: "var(--mb-gold)", fg: "#3a2a00" },
   { bg: "#d7dee8", fg: "#2a3140" },
@@ -188,3 +236,4 @@ export function RankBadge({ rank, className }: { rank: number; className?: strin
     </span>
   );
 }
+
