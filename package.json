@@ -8,6 +8,9 @@
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck"
   },
+  "devDependencies": {
+    "next": "^15.1.0"
+  },
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild",
