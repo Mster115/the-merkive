@@ -90,7 +90,7 @@ export const en: Record<string, string> = {
   "ticker.status": "The Merkive status: ready to play",
   "ticker.join": "Grab a phone and join in",
   "ticker.round": "Round starting soon",
-  "ticker.stay": "Stay Merkive",
+  "ticker.stay": "Stay Merky",
   "ticker.room": "Room code: {code}",
 
   "bye.kicked": "You were kicked from the room.",

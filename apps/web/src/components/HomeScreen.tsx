@@ -285,21 +285,23 @@ export function HomeScreen() {
               {comingSoonPacks.map((pack) => (
                 <div
                   key={pack.id}
-                  className={`relative rounded-xl border-2 border-dashed border-neutral-600 bg-gradient-to-br ${pack.gradientTheme ?? "from-neutral-900 to-black"} p-4 sm:p-5 flex flex-col justify-between gap-4 opacity-90 hover:opacity-100 transition-all group shadow-[4px_4px_0_0_#000]`}
+                  className={`relative overflow-hidden rounded-xl border-2 border-dashed border-neutral-600 bg-gradient-to-br ${pack.gradientTheme ?? "from-neutral-900 to-black"} p-4 sm:p-5 pt-6 sm:pt-7 flex flex-col justify-between gap-4 opacity-90 hover:opacity-100 transition-all group shadow-[4px_4px_0_0_#000]`}
                 >
-                  {/* Top row: badge + coming soon tag */}
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <span className="bg-black/80 text-white border border-neutral-700 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider shrink-0">
+                  {/* Diagonal COMING SOON ribbon */}
+                  <div className="absolute top-3 -right-8 rotate-45 bg-[var(--mb-warn)] text-black border-y-2 border-black font-black text-[9px] uppercase tracking-widest px-10 py-0.5 text-center shadow-[0_2px_4px_rgba(0,0,0,0.3)] z-10">
+                    COMING SOON
+                  </div>
+
+                  {/* Badge */}
+                  <div>
+                    <span className="bg-black/80 text-white border border-neutral-700 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider">
                       {pack.badge ? t(pack.badge) : "VAULT"}
-                    </span>
-                    <span className="bg-[var(--mb-warn)] text-black border-2 border-black px-2 py-0.5 text-[10px] font-black uppercase tracking-wider shadow-[2px_2px_0_0_#000] shrink-0">
-                      COMING SOON
                     </span>
                   </div>
 
                   {/* Pack info */}
                   <div>
-                    <h4 className="text-lg sm:text-xl [font-family:var(--mb-font-display)] font-black italic uppercase text-neutral-200 tracking-tight leading-tight">
+                    <h4 className="text-lg sm:text-xl [font-family:var(--mb-font-display)] font-black italic uppercase text-neutral-200 tracking-tight leading-tight pr-6">
                       {t(pack.nameKey)}
                     </h4>
                     <p className="text-xs font-bold text-neutral-400 mt-1">
