@@ -281,54 +281,42 @@ export function HomeScreen() {
             </div>
 
             {/* Grid of Coming Soon Content Packs */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {comingSoonPacks.map((pack) => (
                 <div
                   key={pack.id}
-                  className={`relative overflow-hidden rounded-xl border-2 border-dashed border-neutral-600 bg-gradient-to-br ${pack.gradientTheme ?? "from-neutral-900 to-black"} p-4 flex flex-col justify-between gap-3 opacity-90 hover:opacity-100 transition-all group shadow-[4px_4px_0_0_#000]`}
+                  className={`relative rounded-xl border-2 border-dashed border-neutral-600 bg-gradient-to-br ${pack.gradientTheme ?? "from-neutral-900 to-black"} p-4 sm:p-5 flex flex-col justify-between gap-4 opacity-90 hover:opacity-100 transition-all group shadow-[4px_4px_0_0_#000]`}
                 >
-                  {/* Diagonal Warning Banner */}
-                  <div className="absolute -top-3 -right-12 rotate-12 bg-[var(--mb-warn)] text-black border-2 border-black font-black text-[10px] uppercase tracking-widest px-10 py-1 shadow-[2px_2px_0_0_#000]">
-                    COMING SOON
+                  {/* Top row: badge + coming soon tag */}
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className="bg-black/80 text-white border border-neutral-700 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider shrink-0">
+                      {pack.badge ? t(pack.badge) : "VAULT"}
+                    </span>
+                    <span className="bg-[var(--mb-warn)] text-black border-2 border-black px-2 py-0.5 text-[10px] font-black uppercase tracking-wider shadow-[2px_2px_0_0_#000] shrink-0">
+                      COMING SOON
+                    </span>
                   </div>
 
+                  {/* Pack info */}
                   <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="bg-black/80 text-white border border-neutral-700 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider">
-                        {pack.badge ? t(pack.badge) : "VAULT"}
-                      </span>
-                    </div>
-
-                    <h4 className="text-xl [font-family:var(--mb-font-display)] font-black italic uppercase text-neutral-200 tracking-tight">
+                    <h4 className="text-lg sm:text-xl [font-family:var(--mb-font-display)] font-black italic uppercase text-neutral-200 tracking-tight leading-tight">
                       {t(pack.nameKey)}
                     </h4>
-                    <p className="text-xs font-bold text-neutral-400 mt-0.5">
+                    <p className="text-xs font-bold text-neutral-400 mt-1">
                       {t(pack.taglineKey ?? pack.descriptionKey)}
                     </p>
-                    <p className="text-[11px] text-neutral-400/80 mt-1 line-clamp-2">
+                    <p className="text-[11px] text-neutral-500 mt-1.5 leading-relaxed">
                       {t(pack.descriptionKey)}
                     </p>
                   </div>
 
-                  {/* Preview Upcoming Games */}
-                  {pack.upcomingGames && pack.upcomingGames.length > 0 && (
-                    <div className="border-t border-white/10 pt-2 flex flex-col gap-1">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-neutral-400">
-                        INCLUDED TITLES (PREVIEW):
-                      </span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {pack.upcomingGames.map((ug, idx) => (
-                          <span
-                            key={idx}
-                            className="bg-black/60 text-neutral-300 border border-neutral-700 px-2 py-0.5 rounded text-[10px] font-bold"
-                            title={ug.desc}
-                          >
-                            ⚡ {ug.name}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  {/* Lock icon */}
+                  <div className="border-t border-white/10 pt-3 flex items-center gap-2">
+                    <span className="text-lg">🔒</span>
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-neutral-500">
+                      Content TBD
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
