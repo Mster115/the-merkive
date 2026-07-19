@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import type { StageProps } from "@merky/game-sdk";
-import { Card, Panel, Pill, ScoreBoard, cn, sfx, WhimsicalAvatarFace, WhimsicalPlayerChip } from "@merky/ui";
+import { Card, Panel, PencilIcon, Pill, ScoreBoard, cn, sfx, WhimsicalAvatarFace, WhimsicalPlayerChip } from "@merky/ui";
 import type { ZaplashPublicState } from "./logic";
 
 export function ZapIcon({ className = "w-5 h-5" }: { className?: string }) {
@@ -101,8 +101,8 @@ export function ZaplashStage({ room, match, t }: StageProps) {
         {/* WRITE PHASE */}
         {match.phase === "write" && (
           <div className="flex flex-col items-center justify-center text-center gap-8">
-            <h2 className="text-5xl md:text-7xl font-black tracking-tight uppercase [font-family:var(--mb-font-display)] mb-neon-gold -rotate-1 mb-wobble-fast">
-              ✍️ {t("games.zaplash.ui.players_writing")}
+            <h2 className="flex items-center justify-center gap-4 text-5xl md:text-7xl font-black tracking-tight uppercase [font-family:var(--mb-font-display)] mb-neon-gold -rotate-1 mb-wobble-fast">
+              <PencilIcon className="w-12 h-12 md:w-16 md:h-16 shrink-0" /> {t("games.zaplash.ui.players_writing")}
             </h2>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-5 w-full max-w-5xl">
@@ -252,7 +252,7 @@ export function ZaplashStage({ room, match, t }: StageProps) {
                       </span>
                       {isZap && (
                         <span className="px-4 py-1.5 rounded-xl bg-pink-600 text-white font-black text-xl border-2 border-black shadow-[3px_3px_0_0_#000] flex items-center gap-1.5 uppercase [font-family:var(--mb-font-display)] mb-tada mb-shake">
-                          ⚡ ZAP! +50
+                          <ZapIcon className="w-5 h-5 shrink-0" /> ZAP! +50
                         </span>
                       )}
                     </div>
@@ -315,8 +315,8 @@ export function ZaplashStage({ room, match, t }: StageProps) {
         {/* SCOREBOARD PHASE */}
         {match.phase === "scoreboard" && (
           <div className="flex flex-col items-center justify-center text-center gap-6 max-w-3xl mx-auto">
-            <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tight [font-family:var(--mb-font-display)] mb-neon-gold -rotate-1 mb-wobble-fast">
-              🏆 {t("games.zaplash.ui.scoreboard_title")}
+            <h2 className="flex items-center justify-center gap-4 text-5xl md:text-7xl font-black uppercase tracking-tight [font-family:var(--mb-font-display)] mb-neon-gold -rotate-1 mb-wobble-fast">
+              <TrophyIcon className="w-12 h-12 md:w-16 md:h-16 shrink-0" /> {t("games.zaplash.ui.scoreboard_title")}
             </h2>
 
             <ScoreBoard

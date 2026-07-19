@@ -151,7 +151,7 @@ export function useRoom(code: string, mode: "controller" | "stage"): UseRoomResu
     tokenRef.current = existing;
     setTokenState(existing);
     api
-      .sync(upperCode, existing)
+      .sync(upperCode, existing, mode === "stage")
       .then((snapshot) => {
         if (!cancelled) dispatch({ t: "snapshot", snapshot });
       })
@@ -172,20 +172,21 @@ export function useRoom(code: string, mode: "controller" | "stage"): UseRoomResu
     const disconnect = getTransport()({
       code: upperCode,
       token,
+      viewerOnly: mode === "stage",
       onMessage: (msg) => dispatch({ t: "message", msg }),
       onStatus: (status) => dispatch({ t: "status", status }),
     });
     return disconnect;
-  }, [upperCode, token, state.phase]);
+  }, [upperCode, token, state.phase, mode]);
 
   // Resync when a version gap or conflict was detected, and when the tab
   // wakes from sleep.
   const doResync = React.useCallback(() => {
     api
-      .sync(upperCode, tokenRef.current)
+      .sync(upperCode, tokenRef.current, mode === "stage")
       .then((snapshot) => dispatch({ t: "snapshot", snapshot }))
       .catch(() => undefined);
-  }, [upperCode]);
+  }, [upperCode, mode]);
 
   React.useEffect(() => {
     if (state.resyncNeeded) {

@@ -1,7 +1,7 @@
 /** Shell strings. Game strings live in each game module under games.<id>.*. */
 export const en: Record<string, string> = {
   "app.name": "The Merkive",
-  "app.tagline": "One room code. Eight phones. Zero chill.",
+  "app.tagline": "Where friendships come to get merked.",
 
   "home.create.title": "Start a room",
   "home.create.cta": "Create room",
@@ -14,6 +14,11 @@ export const en: Record<string, string> = {
   "home.code.placeholder": "ABCD",
   "home.avatar.label": "Pick a face",
   "home.stage.hint": "Got a TV? Open the Stage on it and everyone else joins by phone.",
+  "home.create.deviceChoice.title": "Where are you right now?",
+  "home.create.deviceChoice.player": "Playing on this device",
+  "home.create.deviceChoice.playerHint": "You'll join as a player. Everyone else grabs their own phone with the room code.",
+  "home.create.deviceChoice.stage": "This is the TV",
+  "home.create.deviceChoice.stageHint": "Shows the shared screen only. You'll join as a player from your own phone after.",
   "home.name.required": "Mandatory!",
   "home.games.title": "In The Merkive tonight",
   "home.games.ready": "Ready",

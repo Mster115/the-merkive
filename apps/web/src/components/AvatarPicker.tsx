@@ -23,8 +23,10 @@ export function AvatarPicker({
             suppressHydrationWarning
             onClick={() => onChange(a.id)}
             className={cn(
-              "rounded-full p-0.5 transition-transform focus-visible:outline-2 focus-visible:outline-[var(--mb-accent-2)]",
-              value === a.id ? "ring-4 ring-[var(--mb-accent)] scale-110" : "opacity-70 hover:opacity-100"
+              "rounded-md p-0.5 border-2 transition-transform focus-visible:outline-2 focus-visible:outline-[var(--mb-accent-2)]",
+              value === a.id
+                ? "border-[var(--mb-accent)] scale-110 shadow-[2px_2px_0_0_#000]"
+                : "border-transparent opacity-70 hover:opacity-100"
             )}
           >
             <AvatarFace avatarId={a.id} size={34} />

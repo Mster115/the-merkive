@@ -11,8 +11,8 @@ const HEARTBEAT_MS = 15_000;
 
 /**
  * Memory-mode realtime: one SSE stream per client, filtered server-side so a
- * connection only ever sees its own seat's private state. Supabase mode
- * doesn't use this route — clients subscribe to Supabase Realtime directly.
+ * connection only ever sees its own seat's private state. PartyKit mode
+ * uses WebSockets directly.
  */
 export async function GET(req: Request, { params }: RouteParams): Promise<Response> {
   const { code: rawCode } = await params;
@@ -26,7 +26,8 @@ export async function GET(req: Request, { params }: RouteParams): Promise<Respon
     return Response.json({ error: "Room not found.", code: "room_not_found" }, { status: 404 });
   }
 
-  const uid = await readIdentity(code);
+  const isStageViewer = new URL(req.url).searchParams.get("viewer") === "stage";
+  const uid = await readIdentity(code, { allowCookie: !isStageViewer });
   const seats = await store.listSeats(room.id);
   const mySeat = uid ? seats.find((s) => s.playerUid === uid)?.seatIndex : undefined;
 

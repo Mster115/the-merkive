@@ -1,6 +1,6 @@
 import * as React from "react";
 import type { ControllerProps } from "@merky/game-sdk";
-import { Button, buzz, cn, Pill } from "@merky/ui";
+import { BackpackIcon, Button, buzz, cn, LightningIcon, Pill, PuzzleIcon, ToolsIcon } from "@merky/ui";
 import type { TileTanglePrivateState, TileTanglePublicState } from "./logic";
 import type { Tile } from "./tiles";
 import { validateCommit, isValidMeld, meldValue } from "./tiles";
@@ -244,7 +244,7 @@ export const Controller: React.FC<ControllerProps> = ({
       >
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center space-x-2">
-            <span className="text-xl">⚡</span>
+            <LightningIcon className="w-5 h-5" />
             <span className="font-black uppercase text-base tracking-wider [font-family:var(--mb-font-display)]">
               {isMyTurn
                 ? t("games.tiletangle.yourTurn")
@@ -298,7 +298,7 @@ export const Controller: React.FC<ControllerProps> = ({
       <div className="flex-1 bg-[var(--mb-surface)] border-[3px] border-black shadow-[var(--mb-shadow-lg)] rounded-2xl p-4 flex flex-col justify-start space-y-3 min-h-[220px] rotate-[0.3deg]">
         <div className="flex items-center justify-between gap-2 border-b-2 border-black/40 pb-2">
           <span className="text-xs font-black uppercase text-[var(--mb-violet)] tracking-widest [font-family:var(--mb-font-display)] flex items-center gap-1.5">
-            <span>🛠️</span> {t("games.tiletangle.tableMelds")}
+            <ToolsIcon className="w-4 h-4" /> {t("games.tiletangle.tableMelds")}
           </span>
           {isMyTurn && (
             <div className="flex gap-1.5 flex-wrap">
@@ -321,7 +321,7 @@ export const Controller: React.FC<ControllerProps> = ({
 
         {localTable.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-[var(--mb-text-dim)] text-center border-[3px] border-dashed border-[var(--mb-line-dim)] rounded-xl p-6 gap-2">
-            <span className="text-3xl">🧩</span>
+            <PuzzleIcon className="w-8 h-8" />
             <p className="text-sm font-black uppercase tracking-wider text-white [font-family:var(--mb-font-display)]">
               {t("games.tiletangle.emptyTable")}
             </p>
@@ -368,7 +368,7 @@ export const Controller: React.FC<ControllerProps> = ({
       <div className="bg-[var(--mb-surface-2)] border-[3px] border-black shadow-[var(--mb-shadow)] rounded-2xl p-4 space-y-3 -rotate-[0.3deg]">
         <div className="flex items-center justify-between">
           <span className="text-xs font-black uppercase text-[var(--mb-text-dim)] tracking-wider [font-family:var(--mb-font-display)] flex items-center gap-1.5">
-            <span>🎒</span> {t("games.tiletangle.yourRack")}
+            <BackpackIcon className="w-4 h-4" /> {t("games.tiletangle.yourRack")}
           </span>
           <Pill tone="neutral">{localRack.length} TILES</Pill>
         </div>

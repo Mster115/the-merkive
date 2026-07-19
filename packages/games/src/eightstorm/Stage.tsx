@@ -47,7 +47,7 @@ export function EightstormStage({ room, match, t }: StageProps) {
       <div className="flex items-center justify-between gap-4 bg-[var(--mb-surface-2)] p-4 rounded-xl border-[3px] border-black shadow-[var(--mb-shadow)] -rotate-[0.5deg]">
         <div className="flex items-center gap-3">
           <Pill tone="accent" className="text-base px-4 py-1.5 font-black uppercase tracking-wider [font-family:var(--mb-font-display)] border-2 border-black shadow-[2px_2px_0_0_#000] -rotate-1">
-            ⚡ {t("games.eightstorm.name")}
+            <LightningIcon className="w-4 h-4" /> {t("games.eightstorm.name")}
           </Pill>
           <span className="font-black text-xl text-[var(--mb-gold)] uppercase tracking-wider [font-family:var(--mb-font-display)] flex items-center gap-2">
             <ReverseIcon
@@ -132,8 +132,8 @@ export function EightstormStage({ room, match, t }: StageProps) {
         {/* Action Ticker / Turn Focus Panel */}
         <div className="flex flex-col items-center justify-center">
           <Panel className="w-full max-w-xs p-6 rounded-2xl flex flex-col items-center text-center gap-4 bg-[var(--mb-surface-2)] border-[3px] border-black shadow-[var(--mb-shadow-lg)] relative overflow-hidden rotate-[0.5deg]">
-            <span className="text-xs font-black uppercase tracking-widest text-[var(--mb-violet)] [font-family:var(--mb-font-display)]">
-              ⚡ {t("games.eightstorm.ui.turn_label")}
+            <span className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-[var(--mb-violet)] [font-family:var(--mb-font-display)]">
+              <LightningIcon className="w-3.5 h-3.5 shrink-0" /> {t("games.eightstorm.ui.turn_label")}
             </span>
 
             <div className="flex items-center gap-3">

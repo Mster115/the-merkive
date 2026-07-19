@@ -96,7 +96,7 @@ export interface MatchUpdate {
 
 /**
  * Persistence + fanout adapter. Implementations: MemoryStore (single-process
- * dev; SSE fanout) and SupabaseStore (Postgres truth; Supabase Realtime fanout).
+ * dev; SSE fanout) and PartyKitStore (PartyKit Edge relay, prod).
  * Contains no game or lifecycle logic — that lives in the service layer.
  */
 export interface RoomStore {
@@ -138,6 +138,6 @@ export interface RoomStore {
 
   /** Fan a message out to the room's subscribers. */
   publish(code: string, msg: RoomMessage): Promise<void>;
-  /** Memory transport only (SSE); Supabase clients subscribe directly to Realtime. */
+  /** Memory transport only (SSE). */
   subscribe?(code: string, fn: (msg: RoomMessage) => void): () => void;
 }

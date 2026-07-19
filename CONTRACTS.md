@@ -8,14 +8,14 @@ modify anything outside your ownership zone.
 
 - Monorepo (pnpm): `apps/web` (Next.js 15 App Router), `packages/game-sdk`
   (plugin contract — **read `packages/game-sdk/src/types.ts` in full**),
-  `packages/games` (plugins), `packages/ui` (design system), `packages/db`
-  (Supabase migrations).
+  `packages/games` (plugins), `packages/ui` (design system), `packages/party`
+  (PartyKit Edge engine).
 - Server is authoritative. Clients POST intents to
   `/api/rooms/[code]/action`; the service loads state, calls the game's pure
   `reduce`, persists with a version CAS, and broadcasts patches.
 - Two storage/realtime adapters behind one interface
   (`apps/web/src/server/store/types.ts`): **MemoryStore** (in-process + SSE,
-  dev) and **SupabaseStore** (Postgres + Supabase Realtime, prod).
+  dev) and **PartyKitStore** (PartyKit Edge relay, prod).
 - Rooms: 4-char codes, ≤8 seats, spectators, host transfer, disconnect
   graces (player 60s → seat abandoned), timers, bot coverage of abandoned
   seats, expiry sweeper. All implemented in

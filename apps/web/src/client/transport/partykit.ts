@@ -3,7 +3,7 @@ import type { RoomTransport } from "./types";
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const HEARTBEAT_INTERVAL_MS = 20_000;
 
-export const partykitTransport: RoomTransport = ({ code, token, onMessage, onStatus }) => {
+export const partykitTransport: RoomTransport = ({ code, token, viewerOnly, onMessage, onStatus }) => {
   let stopped = false;
   let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   let ws: WebSocket | null = null;
@@ -49,10 +49,15 @@ export const partykitTransport: RoomTransport = ({ code, token, onMessage, onSta
     }
   };
 
-  postPresence(false);
-  heartbeatTimer = setInterval(() => {
-    if (!stopped) postPresence(false);
-  }, HEARTBEAT_INTERVAL_MS);
+  // A Stage display has no seat: skip presence entirely so it can never be
+  // mistaken for (or flip the connected status of) whichever seat's cookie
+  // happens to be sitting in this browser.
+  if (!viewerOnly) {
+    postPresence(false);
+    heartbeatTimer = setInterval(() => {
+      if (!stopped) postPresence(false);
+    }, HEARTBEAT_INTERVAL_MS);
+  }
 
   async function connect() {
     if (stopped) return;
@@ -97,7 +102,7 @@ export const partykitTransport: RoomTransport = ({ code, token, onMessage, onSta
   return () => {
     stopped = true;
     if (heartbeatTimer) clearInterval(heartbeatTimer);
-    postPresence(true);
+    if (!viewerOnly) postPresence(true);
     if (ws) {
       ws.close();
       ws = null;

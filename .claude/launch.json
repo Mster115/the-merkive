@@ -6,6 +6,12 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "@merky/web", "dev"],
       "port": 3000
+    },
+    {
+      "name": "web-validate",
+      "runtimeExecutable": "env",
+      "runtimeArgs": ["MB_DIST_DIR=.next-validate", "pnpm", "--filter", "@merky/web", "exec", "next", "dev", "--port", "3100"],
+      "port": 3100
     }
   ]
 }

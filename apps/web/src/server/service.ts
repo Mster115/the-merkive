@@ -118,14 +118,7 @@ export interface JoinResult {
   snapshot: ClientSnapshot;
 }
 
-export async function createRoom(
-  uid: string,
-  name: string,
-  avatarId: string
-): Promise<{ code: string } & JoinResult> {
-  const store = getStore();
-  ensureSweeper();
-
+async function allocateRoom(store: RoomStore, hostSeat: SeatIndex | null): Promise<RoomRecord> {
   let code = randomCode();
   for (let i = 0; i < 8 && (await store.getRoomByCode(code)); i++) code = randomCode();
 
@@ -134,7 +127,7 @@ export async function createRoom(
     id: crypto.randomUUID(),
     code,
     status: "lobby",
-    hostSeat: 0,
+    hostSeat,
     gameId: null,
     settings: {},
     maxPlayers: 8,
@@ -145,6 +138,19 @@ export async function createRoom(
     lastMatch: null,
   };
   await store.createRoom(room);
+  return room;
+}
+
+export async function createRoom(
+  uid: string,
+  name: string,
+  avatarId: string
+): Promise<{ code: string } & JoinResult> {
+  const store = getStore();
+  ensureSweeper();
+
+  const room = await allocateRoom(store, 0);
+  const now = Date.now();
   await store.upsertSeat({
     roomId: room.id,
     seatIndex: 0,
@@ -158,7 +164,20 @@ export async function createRoom(
     abandoned: false,
   });
   const snapshot = await snapshotForUid(store, room, uid);
-  return { code, token: uid, snapshot };
+  return { code: room.code, token: uid, snapshot };
+}
+
+/**
+ * Creates an empty room dedicated to the Stage display — nobody is seated,
+ * so it can't masquerade as a player's identity the way the Stage's shared
+ * room cookie otherwise would. Everyone, including whoever set this up,
+ * joins as a regular player afterwards via their own phone + the room code.
+ */
+export async function createStageOnlyRoom(): Promise<{ code: string }> {
+  const store = getStore();
+  ensureSweeper();
+  const room = await allocateRoom(store, null);
+  return { code: room.code };
 }
 
 export async function joinRoom(
@@ -672,7 +691,7 @@ export async function presenceClose(rawCode: string, uid: string): Promise<void>
 export function ensureSweeper(): void {
   if (globalThis.__mbSweeper) return;
   const store = getStore();
-  if (store.kind !== "memory") return; // supabase mode: cron hits /api/sweep
+  if (store.kind !== "memory") return; // PartyKit mode: edge/cron handles sweeping
   globalThis.__mbSweeper = setInterval(() => {
     void sweepAll().catch(() => undefined);
   }, SWEEP_INTERVAL_MS);

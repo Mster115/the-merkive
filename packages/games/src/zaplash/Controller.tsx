@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import type { ControllerProps } from "@merky/game-sdk";
-import { Button, buzz, Card, Panel, Pill, cn } from "@merky/ui";
+import { Button, buzz, Card, LightningIcon, Panel, PencilIcon, Pill, cn } from "@merky/ui";
 import type { ZaplashPrivateState, ZaplashPublicState } from "./logic";
 
 export function CheckIcon({ className = "w-4 h-4" }: { className?: string }) {
@@ -103,7 +103,7 @@ export function ZaplashController({ match, seat, privateState, act, t }: Control
       <Card className="flex items-center justify-between p-3.5 rounded-xl bg-[var(--mb-surface-2)] border-[3px] border-black shadow-[var(--mb-shadow)] -rotate-[0.5deg]">
         <div className="flex items-center gap-2">
           <Pill tone="accent" className="text-xs px-3 py-1 font-black uppercase tracking-wider [font-family:var(--mb-font-display)] border border-black shadow-[2px_2px_0_0_#000]">
-            ⚡ {t("games.zaplash.name")}
+<LightningIcon className="w-3.5 h-3.5" /> {t("games.zaplash.name")}
           </Pill>
         </div>
         <span className="font-black text-xs sm:text-sm text-[var(--mb-gold)] uppercase tracking-wider [font-family:var(--mb-font-display)]">
@@ -124,8 +124,8 @@ export function ZaplashController({ match, seat, privateState, act, t }: Control
       {/* WRITE PHASE */}
       {match.phase === "write" && (
         <div className="flex flex-col gap-4">
-          <h2 className="text-xl font-black text-[var(--mb-gold)] text-center uppercase tracking-wider [font-family:var(--mb-font-display)] mb-wobble-fast">
-            ✍️ {t("games.zaplash.ui.write_prompts_title")}
+          <h2 className="flex items-center justify-center gap-2 text-xl font-black text-[var(--mb-gold)] text-center uppercase tracking-wider [font-family:var(--mb-font-display)] mb-wobble-fast">
+            <PencilIcon className="w-4 h-4 shrink-0" /> {t("games.zaplash.ui.write_prompts_title")}
           </h2>
 
           {assignedPrompts.map((p, idx) => {

@@ -6,11 +6,18 @@ import { cookies, headers } from "next/headers";
  * what makes several controllers in one browser, and pass-and-play, possible)
  * falling back to a per-room httpOnly cookie so a fresh tab on the same
  * device can resume its seat.
+ *
+ * Pass `allowCookie: false` for passive/shared viewers (the Stage display)
+ * that must never resume a seat's identity — the room cookie is shared by
+ * every tab in the browser, so a Stage tab opened alongside a controller in
+ * the same browser would otherwise silently inherit that seat's identity
+ * (leaking its private hand and flipping its presence on tab close).
  */
-export async function readIdentity(code: string): Promise<string | null> {
+export async function readIdentity(code: string, opts?: { allowCookie?: boolean }): Promise<string | null> {
   const h = await headers();
   const token = h.get("x-mb-token");
   if (token) return token;
+  if (opts?.allowCookie === false) return null;
   const jar = await cookies();
   return jar.get(cookieName(code))?.value ?? null;
 }

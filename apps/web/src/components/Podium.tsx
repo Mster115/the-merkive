@@ -1,7 +1,7 @@
 "use client";
 import * as React from "react";
 import type { RoomView } from "@merky/game-sdk";
-import { Card, ConfettiBurst, ScoreBoard, sfx } from "@merky/ui";
+import { Card, ConfettiBurst, ScoreBoard, sfx, TrophyIcon } from "@merky/ui";
 import { useT } from "@/i18n";
 
 export function PodiumCard({
@@ -47,11 +47,12 @@ export function PodiumCard({
         <p
           className={
             big
-              ? "text-center text-6xl font-black mb-neon-gold mb-tada [font-family:var(--mb-font-display)]"
-              : "text-center text-2xl font-black mb-neon-gold [font-family:var(--mb-font-display)]"
+              ? "flex items-center justify-center gap-3 text-center text-6xl font-black mb-neon-gold mb-tada [font-family:var(--mb-font-display)]"
+              : "flex items-center justify-center gap-2 text-center text-2xl font-black mb-neon-gold [font-family:var(--mb-font-display)]"
           }
         >
-          🏆 {t("podium.winner", { name: winner.displayName })}
+          <TrophyIcon className={big ? "w-14 h-14 shrink-0" : "w-6 h-6 shrink-0"} />
+          {t("podium.winner", { name: winner.displayName })}
         </p>
       )}
       <ScoreBoard rows={rows} compact={!big} animated pointsLabel={t("common.pts")} />

@@ -1,7 +1,7 @@
 "use client";
 import * as React from "react";
 import Link from "next/link";
-import { Button, Card } from "@merky/ui";
+import { BootIcon, Button, Card, ClockIcon, GlitchFaceIcon } from "@merky/ui";
 import { useT } from "@/i18n";
 import type { TransportStatus } from "@/client/transport";
 
@@ -33,9 +33,7 @@ export function ErrorScreen({ code }: { code: string | null }) {
   return (
     <CenterScreen>
       <Card raised className="w-full flex flex-col gap-4 items-center">
-        <span className="text-5xl" aria-hidden>
-          🫠
-        </span>
+        <GlitchFaceIcon className="w-12 h-12 text-[var(--mb-text-dim)]" />
         <p className="font-bold">{t(`error.${code ?? "internal"}`)}</p>
         <Link href="/" className="w-full">
           <Button block variant="secondary">
@@ -52,9 +50,11 @@ export function ByeScreen({ reason }: { reason: "kicked" | "expired" | "room_clo
   return (
     <CenterScreen>
       <Card raised className="w-full flex flex-col gap-4 items-center">
-        <span className="text-5xl" aria-hidden>
-          {reason === "kicked" ? "🥾" : "⏰"}
-        </span>
+        {reason === "kicked" ? (
+          <BootIcon className="w-12 h-12 text-[var(--mb-text-dim)]" />
+        ) : (
+          <ClockIcon className="w-12 h-12 text-[var(--mb-text-dim)]" />
+        )}
         <p className="font-bold">{t(`bye.${reason}`)}</p>
         <Link href="/" className="w-full">
           <Button block variant="secondary">

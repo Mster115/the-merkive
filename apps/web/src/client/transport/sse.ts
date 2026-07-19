@@ -6,9 +6,10 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * Memory-mode transport: fetch-streamed SSE (fetch instead of EventSource so
  * the per-tab seat token can travel in a header, never in the URL).
  */
-export const sseTransport: RoomTransport = ({ code, token, onMessage, onStatus }) => {
+export const sseTransport: RoomTransport = ({ code, token, viewerOnly, onMessage, onStatus }) => {
   let stopped = false;
   let controller: AbortController | null = null;
+  const url = `/api/rooms/${encodeURIComponent(code)}/events${viewerOnly ? "?viewer=stage" : ""}`;
 
   async function run(): Promise<void> {
     let attempt = 0;
@@ -16,7 +17,7 @@ export const sseTransport: RoomTransport = ({ code, token, onMessage, onStatus }
       controller = new AbortController();
       try {
         onStatus("connecting");
-        const res = await fetch(`/api/rooms/${encodeURIComponent(code)}/events`, {
+        const res = await fetch(url, {
           headers: token ? { "x-mb-token": token } : {},
           cache: "no-store",
           signal: controller.signal,

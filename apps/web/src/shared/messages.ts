@@ -2,9 +2,8 @@ import type { GameEvent, MatchView, RoomView, SeatIndex } from "@merky/game-sdk"
 
 /**
  * Realtime fanout contract, identical across transports.
- * Memory mode: one SSE stream per client; the server filters per connection.
- * Supabase mode: "room"/"match"/broadcast "bye" go to the room's public
- * channel; "private"/targeted "bye" go to the seat channel.
+ * Memory mode: SSE stream per client.
+ * PartyKit mode: WebSocket connection per client.
  */
 export type RoomMessage =
   | { kind: "room"; room: RoomView }

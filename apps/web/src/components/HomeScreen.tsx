@@ -2,7 +2,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { contentPacks, gameRegistry } from "@merky/games";
-import { Button, Card, Pill } from "@merky/ui";
+import { Button, Card, Pill, LockIcon, Modal } from "@merky/ui";
 import { useT } from "@/i18n";
 import { api, ApiCallError } from "@/client/api";
 import { getPrefs, setPrefs, setToken } from "@/client/session";
@@ -17,6 +17,12 @@ export function HomeScreen() {
   const [code, setCode] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [showDeviceChoice, setShowDeviceChoice] = React.useState(false);
+  // React's `busy` state can lag a render behind a fast double-click/tap —
+  // the button's `disabled` attribute hasn't reached the DOM yet, so a second
+  // click can re-enter the handler while the first request is still in
+  // flight. This ref is set synchronously, closing that gap.
+  const submittingRef = React.useRef(false);
 
   React.useEffect(() => {
     const prefs = getPrefs();
@@ -27,7 +33,8 @@ export function HomeScreen() {
   const ready = name.trim().length > 0;
 
   async function handleCreate() {
-    if (!ready || busy) return;
+    if (!ready || submittingRef.current) return;
+    submittingRef.current = true;
     setBusy(true);
     setError(null);
     setPrefs(name.trim(), avatarId);
@@ -37,13 +44,30 @@ export function HomeScreen() {
       router.push(`/play/${res.code}`);
     } catch (err) {
       setError(err instanceof ApiCallError ? `error.${err.code}` : "error.internal");
+      submittingRef.current = false;
+      setBusy(false);
+    }
+  }
+
+  async function handleCreateStage() {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await api.createStageRoom();
+      router.push(`/stage/${res.code}`);
+    } catch (err) {
+      setError(err instanceof ApiCallError ? `error.${err.code}` : "error.internal");
+      submittingRef.current = false;
       setBusy(false);
     }
   }
 
   async function handleJoin(role: "player" | "spectator") {
     const cleaned = code.trim().toUpperCase();
-    if (!ready || cleaned.length !== 4 || busy) return;
+    if (!ready || cleaned.length !== 4 || submittingRef.current) return;
+    submittingRef.current = true;
     setBusy(true);
     setError(null);
     setPrefs(name.trim(), avatarId);
@@ -53,6 +77,7 @@ export function HomeScreen() {
       router.push(`/play/${cleaned}`);
     } catch (err) {
       setError(err instanceof ApiCallError ? `error.${err.code}` : "error.internal");
+      submittingRef.current = false;
       setBusy(false);
     }
   }
@@ -141,7 +166,7 @@ export function HomeScreen() {
               <h2 className="self-start -rotate-1 bg-[var(--mb-pink)] text-[var(--mb-on-pink)] border-2 border-black shadow-[2px_2px_0_0_#000] px-3 py-1 text-sm font-black uppercase tracking-wider">
                 {t("home.create.title")}
               </h2>
-              <Button size="lg" block disabled={!ready || busy} onClick={handleCreate}>
+              <Button size="lg" block disabled={!ready || busy} onClick={() => setShowDeviceChoice(true)}>
                 {t("home.create.cta")}
               </Button>
               <p className="text-xs font-bold text-[var(--mb-text-dim)]">{t("home.stage.hint")}</p>
@@ -158,7 +183,7 @@ export function HomeScreen() {
               <div className="flex gap-3">
                 <input
                   value={code}
-                  onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 4))}
+                  onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4))}
                   placeholder={t("home.code.placeholder")}
                   aria-label={t("home.code.label")}
                   autoCapitalize="characters"
@@ -288,7 +313,7 @@ export function HomeScreen() {
                   className={`relative overflow-hidden rounded-xl border-2 border-dashed border-neutral-600 bg-gradient-to-br ${pack.gradientTheme ?? "from-neutral-900 to-black"} p-4 sm:p-5 pt-6 sm:pt-7 flex flex-col justify-between gap-4 opacity-90 hover:opacity-100 transition-all group shadow-[4px_4px_0_0_#000]`}
                 >
                   {/* Diagonal COMING SOON ribbon */}
-                  <div className="absolute top-3 -right-8 rotate-45 bg-[var(--mb-warn)] text-black border-y-2 border-black font-black text-[9px] uppercase tracking-widest px-10 py-0.5 text-center shadow-[0_2px_4px_rgba(0,0,0,0.3)] z-10">
+                  <div className="absolute top-10 -right-7 rotate-45 bg-[var(--mb-warn)] text-black border-y-2 border-black font-black text-[9px] uppercase tracking-wide px-6 py-0.5 text-center whitespace-nowrap shadow-[0_2px_4px_rgba(0,0,0,0.3)] z-10">
                     COMING SOON
                   </div>
 
@@ -314,7 +339,7 @@ export function HomeScreen() {
 
                   {/* Lock icon */}
                   <div className="border-t border-white/10 pt-3 flex items-center gap-2">
-                    <span className="text-lg">🔒</span>
+                    <LockIcon className="w-[18px] h-[18px]" />
                     <span className="text-[10px] font-extrabold uppercase tracking-wider text-neutral-500">
                       Content TBD
                     </span>
@@ -325,6 +350,47 @@ export function HomeScreen() {
           </div>
         </div>
       </main>
+
+      <Modal
+        open={showDeviceChoice}
+        onClose={() => setShowDeviceChoice(false)}
+        title={t("home.create.deviceChoice.title")}
+      >
+        <div className="flex flex-col gap-3">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              setShowDeviceChoice(false);
+              void handleCreate();
+            }}
+            className="text-left rounded-md border-[3px] border-black bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)] px-4 py-3 shadow-[var(--mb-shadow)] transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50"
+          >
+            <span className="block font-black uppercase tracking-wide">
+              {t("home.create.deviceChoice.player")}
+            </span>
+            <span className="block text-xs font-bold opacity-80 mt-0.5">
+              {t("home.create.deviceChoice.playerHint")}
+            </span>
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              setShowDeviceChoice(false);
+              void handleCreateStage();
+            }}
+            className="text-left rounded-md border-[3px] border-black bg-[var(--mb-surface-2)] text-[var(--mb-text)] px-4 py-3 shadow-[var(--mb-shadow)] transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50"
+          >
+            <span className="block font-black uppercase tracking-wide">
+              {t("home.create.deviceChoice.stage")}
+            </span>
+            <span className="block text-xs font-bold text-[var(--mb-text-dim)] mt-0.5">
+              {t("home.create.deviceChoice.stageHint")}
+            </span>
+          </button>
+        </div>
+      </Modal>
 
       <Ticker
         className="fixed bottom-0 inset-x-0 z-40"

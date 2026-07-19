@@ -2,6 +2,7 @@ import * as React from "react";
 import { cn } from "./cn";
 import { AvatarFace } from "./PlayerChip";
 import { CountUp } from "./CountUp";
+import { RankBadge } from "./icons";
 
 export interface ScoreRow {
   seatIndex: number;
@@ -10,8 +11,6 @@ export interface ScoreRow {
   points: number;
   abandoned?: boolean;
 }
-
-const medals = ["🥇", "🥈", "🥉"];
 
 export function ScoreBoard({
   rows,
@@ -44,11 +43,8 @@ export function ScoreBoard({
             r.abandoned && "opacity-50 saturate-50 shadow-none"
           )}
         >
-          <span
-            className={cn("w-7 text-center font-black", animated && i === 0 && "mb-tada")}
-            aria-hidden="true"
-          >
-            {medals[i] ?? i + 1}
+          <span className={cn("w-7 flex items-center justify-center", animated && i === 0 && "mb-tada")}>
+            <RankBadge rank={i} className="w-6 h-6" />
           </span>
           <AvatarFace avatarId={r.avatarId} size={compact ? 24 : 30} />
           <span className="font-bold truncate">{r.displayName}</span>

@@ -2,6 +2,7 @@
 import * as React from "react";
 import { cn } from "./cn";
 import { sfx } from "./sfx";
+import { SpeakerOffIcon, SpeakerOnIcon } from "./icons";
 
 /** Mute/unmute for the synthesized sound kit (stage surfaces). */
 export function SoundToggle({ className, labels }: { className?: string; labels?: { on: string; off: string } }) {
@@ -20,13 +21,13 @@ export function SoundToggle({ className, labels }: { className?: string; labels?
         if (!next) sfx.play("pop");
       }}
       className={cn(
-        "inline-flex items-center justify-center w-11 h-11 rounded-md text-xl",
+        "inline-flex items-center justify-center w-11 h-11 rounded-md",
         "bg-[var(--mb-surface-2)] border-2 border-black shadow-[2px_2px_0_0_#000]",
         "active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all",
         className
       )}
     >
-      {muted ? "🔇" : "🔊"}
+      {muted ? <SpeakerOffIcon className="w-5 h-5" /> : <SpeakerOnIcon className="w-5 h-5" />}
     </button>
   );
 }

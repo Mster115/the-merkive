@@ -3,7 +3,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import type { ControllerProps, GameModule, SeatIndex } from "@merky/game-sdk";
 import { getGame } from "@merky/games";
-import { Button, Card, Modal, PlayerChip, Pill, ScoreBoard, TimerBar } from "@merky/ui";
+import { Button, Card, CloseIcon, CrownIcon, Modal, PlayerChip, Pill, ScoreBoard, TimerBar } from "@merky/ui";
 import { useT } from "@/i18n";
 import { useRoom, type UseRoomResult } from "@/client/useRoom";
 import { api } from "@/client/api";
@@ -277,7 +277,7 @@ function ControllerLobby({ room }: { room: UseRoomResult }) {
                             className="w-8 h-8 rounded bg-[var(--mb-surface)] hover:bg-[var(--mb-line)] flex items-center justify-center text-xs"
                             title={t("lobby.makeHost")}
                           >
-                            👑
+                            <CrownIcon className="w-4 h-4" />
                           </button>
                           <button
                             type="button"
@@ -288,7 +288,7 @@ function ControllerLobby({ room }: { room: UseRoomResult }) {
                             className="w-8 h-8 rounded bg-[var(--mb-surface)] hover:bg-[var(--mb-danger)] flex items-center justify-center text-xs"
                             title={t("lobby.kick")}
                           >
-                            ✕
+                            <CloseIcon className="w-3.5 h-3.5" />
                           </button>
                         </span>
                       ) : undefined

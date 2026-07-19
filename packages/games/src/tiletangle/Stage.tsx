@@ -1,6 +1,6 @@
 import * as React from "react";
 import type { StageProps } from "@merky/game-sdk";
-import { AvatarFace, Card, Pill, ScoreBoard, cn, type ScoreRow } from "@merky/ui";
+import { AvatarFace, Card, CardsIcon, LightningIcon, Pill, PuzzleIcon, ScoreBoard, cn, type ScoreRow } from "@merky/ui";
 import type { TileTanglePublicState } from "./logic";
 import { TileComponent } from "./TileComponent";
 
@@ -50,8 +50,8 @@ export const Stage: React.FC<StageProps> = ({ room, match, t }) => {
             </Pill>
           </div>
           {!match.over && (
-            <p className="text-2xl font-black text-[var(--mb-gold)] uppercase tracking-wide [font-family:var(--mb-font-display)]">
-              ⚡ {t("games.tiletangle.turnNotice", { name: activePlayerName })}
+            <p className="flex items-center gap-2 text-2xl font-black text-[var(--mb-gold)] uppercase tracking-wide [font-family:var(--mb-font-display)]">
+              <LightningIcon className="w-6 h-6 shrink-0" /> {t("games.tiletangle.turnNotice", { name: activePlayerName })}
             </p>
           )}
         </div>
@@ -59,7 +59,7 @@ export const Stage: React.FC<StageProps> = ({ room, match, t }) => {
         <div className="flex items-center space-x-4">
           {/* Draw Pile Badge */}
           <Card className="px-6 py-3 bg-[var(--mb-surface-2)] border-[3px] border-black shadow-[var(--mb-shadow)] flex items-center space-x-3 -rotate-1">
-            <span className="text-3xl">🎴</span>
+            <CardsIcon className="w-8 h-8" />
             <div>
               <div className="text-xs font-black uppercase tracking-wider text-[var(--mb-text-dim)] [font-family:var(--mb-font-display)]">
                 {t("games.tiletangle.drawPile")}
@@ -107,8 +107,8 @@ export const Stage: React.FC<StageProps> = ({ room, match, t }) => {
                   <Pill tone={hasMelded ? "accent" : "neutral"}>
                     {hasMelded ? t("games.tiletangle.hasMelded") : t("games.tiletangle.notMeldedYet")}
                   </Pill>
-                  <span className="text-sm font-black text-[var(--mb-text-dim)] [font-family:var(--mb-font-display)]">
-                    {count} 🎴
+                  <span className="flex items-center gap-1 text-sm font-black text-[var(--mb-text-dim)] [font-family:var(--mb-font-display)]">
+                    {count} <CardsIcon className="w-4 h-4" />
                   </span>
                 </div>
               </div>
@@ -121,7 +121,7 @@ export const Stage: React.FC<StageProps> = ({ room, match, t }) => {
       <div className="flex-1 bg-[var(--mb-surface)] border-4 border-black shadow-[var(--mb-shadow-lg)] rounded-2xl p-6 min-h-[380px] flex flex-col justify-start">
         <div className="flex items-center justify-between border-b-2 border-black/40 pb-3 mb-4">
           <h2 className="text-xl font-black text-[var(--mb-violet)] uppercase tracking-widest [font-family:var(--mb-font-display)] flex items-center gap-2">
-            <span>🧩</span> {t("games.tiletangle.tableMelds")}
+<PuzzleIcon className="w-5 h-5" /> {t("games.tiletangle.tableMelds")}
           </h2>
           <span className="text-xs font-black uppercase text-[var(--mb-text-dim)] [font-family:var(--mb-font-display)]">
             {pub.table.length} SETS ON TABLE
@@ -130,7 +130,7 @@ export const Stage: React.FC<StageProps> = ({ room, match, t }) => {
 
         {pub.table.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-[var(--mb-text-dim)] text-center border-3 border-dashed border-[var(--mb-line-dim)] rounded-xl p-8 gap-3">
-            <span className="text-5xl">🧩</span>
+<PuzzleIcon className="w-14 h-14" />
             <p className="text-2xl font-black uppercase tracking-wide text-white [font-family:var(--mb-font-display)]">
               {t("games.tiletangle.emptyTable")}
             </p>

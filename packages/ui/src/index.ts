@@ -13,3 +13,21 @@ export { CountUp } from "./CountUp";
 export { SoundToggle } from "./SoundToggle";
 export { sfx, type SfxName } from "./sfx";
 export { buzz } from "./haptics";
+export {
+  LockIcon,
+  CrownIcon,
+  CloseIcon,
+  TrophyIcon,
+  GlitchFaceIcon,
+  BootIcon,
+  ClockIcon,
+  SpeakerOnIcon,
+  SpeakerOffIcon,
+  LightningIcon,
+  ToolsIcon,
+  PuzzleIcon,
+  BackpackIcon,
+  CardsIcon,
+  PencilIcon,
+  RankBadge,
+} from "./icons";

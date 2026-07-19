@@ -38,14 +38,19 @@ export const api = {
   createRoom: (name: string, avatarId: string) =>
     request<{ code: string } & JoinResponse>("/api/rooms", { body: { name, avatarId } }),
 
+  createStageRoom: () => request<{ code: string }>("/api/rooms", { body: { asStage: true } }),
+
   join: (
     code: string,
     body: { name: string; avatarId: string; role: "player" | "spectator"; fresh?: boolean },
     token: string | null
   ) => request<JoinResponse>(`/api/rooms/${code}/join`, { body, token }),
 
-  sync: (code: string, token: string | null) =>
-    request<ClientSnapshot>(`/api/rooms/${code}/sync`, { method: "GET", token }),
+  sync: (code: string, token: string | null, stageViewer?: boolean) =>
+    request<ClientSnapshot>(`/api/rooms/${code}/sync${stageViewer ? "?viewer=stage" : ""}`, {
+      method: "GET",
+      token,
+    }),
 
   action: (
     code: string,

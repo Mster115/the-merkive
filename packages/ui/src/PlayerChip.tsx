@@ -1,6 +1,7 @@
 import * as React from "react";
 import { cn } from "./cn";
 import { avatarById } from "./avatars";
+import { CrownIcon } from "./icons";
 
 export function WhimsicalAvatarSVG({ id, color }: { id: string; color: string }) {
   return (
@@ -250,12 +251,7 @@ export function PlayerChip({
           aria-label={statusLabels.host}
           className="text-[var(--mb-gold)] inline-flex items-center"
         >
-          <svg viewBox="0 0 24 24" className="w-4 h-4 fill-amber-400">
-            <path d="M5 18h14l1-11-4 3-4-6-4 6-4-3 1 11z" />
-            <circle cx="5" cy="7" r="1.5" fill="#fff" />
-            <circle cx="12" cy="4" r="1.5" fill="#fff" />
-            <circle cx="19" cy="7" r="1.5" fill="#fff" />
-          </svg>
+          <CrownIcon className="w-4 h-4 fill-amber-400" />
         </span>
       )}
       {trailing != null && <span className="ml-auto pl-2">{trailing}</span>}
