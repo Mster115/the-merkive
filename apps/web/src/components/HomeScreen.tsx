@@ -93,19 +93,20 @@ export function HomeScreen() {
         {/* Widescreen / Desktop Hero Header */}
         <header className="flex flex-col lg:flex-row items-center justify-between gap-6 mb-drop text-center lg:text-left border-b-2 border-black/40 pb-6" style={{ "--mb-i": 0 } as React.CSSProperties}>
           <div>
-            <div className="flex items-center justify-center lg:justify-start gap-3 sm:gap-4">
-              <Image
-                src={logoImg}
-                alt="The Merkive Logo"
-                priority
-                className="w-12 h-auto sm:w-16 lg:w-20 object-contain shrink-0 drop-shadow-[3px_3px_0_#000]"
-              />
-              <div className="relative inline-block">
-                <div aria-hidden className="absolute -inset-3 bg-[var(--mb-pink)] opacity-20 blur-2xl -z-10" />
-                <h1 className="mb-wobble-fast text-5xl sm:text-6xl lg:text-7xl [font-family:var(--mb-font-display)] font-black italic uppercase tracking-tighter text-[var(--mb-violet)] leading-none">
-                  {t("app.name")}
-                </h1>
-              </div>
+            <div className="relative inline-block">
+              <div aria-hidden className="absolute -inset-3 bg-[var(--mb-pink)] opacity-20 blur-2xl -z-10" />
+              <h1 className="mb-wobble-fast text-5xl sm:text-6xl lg:text-7xl [font-family:var(--mb-font-display)] font-black italic uppercase tracking-tighter text-[var(--mb-violet)] leading-none flex items-center gap-x-[0.2em] flex-wrap justify-center lg:justify-start">
+                <span>THE</span>
+                <span className="inline-flex items-center">
+                  <Image
+                    src={logoImg}
+                    alt="M"
+                    priority
+                    className="inline-block h-[0.85em] w-auto object-contain -skew-x-[12deg] drop-shadow-[3px_3px_0_#000] translate-y-[-0.02em] -mr-[0.08em]"
+                  />
+                  <span>ERKIVE</span>
+                </span>
+              </h1>
             </div>
             <p className="mt-3 block lg:inline-block bg-black px-4 py-1.5 rotate-1 lg:-rotate-1 border-2 border-[var(--mb-accent-2)] text-[var(--mb-accent-2)] font-black uppercase tracking-widest text-xs sm:text-sm">
               {t("app.tagline")}
