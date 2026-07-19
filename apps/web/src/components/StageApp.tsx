@@ -60,13 +60,13 @@ function StageLobby({ room }: { room: UseRoomResult }) {
               >
                 ← Home
               </a>
-              <h1 className="text-3xl sm:text-5xl [font-family:var(--mb-font-display)] font-black italic uppercase tracking-tighter text-[var(--mb-violet)] leading-none inline-flex items-center gap-x-[0.45em]">
-                <span className="translate-y-[-0.06em]">THE</span>
-                <span className="inline-flex items-center">
+              <h1 className="text-3xl sm:text-5xl [font-family:var(--mb-font-display)] font-black italic uppercase tracking-tighter text-[var(--mb-violet)] leading-none inline-flex items-baseline">
+                <span className="mr-[0.35em] inline-block -translate-y-[0.04em]">THE</span>
+                <span className="inline-flex items-baseline">
                   <Image
                     src={logoImg}
                     alt="M"
-                    className="inline-block h-[0.85em] w-auto object-contain -skew-x-[12deg] drop-shadow-[2px_2px_0_#000] translate-y-[-0.02em] -mr-[0.08em]"
+                    className="inline-block h-[0.82em] w-auto object-contain -skew-x-[12deg] drop-shadow-[2px_2px_0_#000] align-baseline translate-y-[0.05em] mr-[0.02em]"
                   />
                   <span>ERKIVE</span>
                 </span>
