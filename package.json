@@ -1,0 +1,19 @@
+{
+  "name": "merky-box",
+  "private": true,
+  "packageManager": "pnpm@10.23.0",
+  "scripts": {
+    "dev": "pnpm --filter @merky/web dev",
+    "build": "pnpm --filter @merky/web build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "@tailwindcss/oxide",
+      "sharp",
+      "unrs-resolver"
+    ]
+  }
+}

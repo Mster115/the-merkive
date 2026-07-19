@@ -1,0 +1,12 @@
+node_modules/
+.next/
+.env
+.env.local
+.env*.local
+dist/
+coverage/
+.pnpm-store/
+.DS_Store
+*.tsbuildinfo
+package-lock.json
+.partykit/

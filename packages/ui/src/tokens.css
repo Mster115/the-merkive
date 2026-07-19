@@ -1,0 +1,77 @@
+/* The Merkive design tokens — neo-brutalist "game night" skin.
+   Contract: variable NAMES are frozen (shell + every game reads them);
+   values define the look. Borders are hard black, shadows are offset
+   slabs, color does the shouting. */
+:root {
+  --mb-bg: #0b1326;
+  --mb-bg-2: #131b2e;
+  --mb-surface: #171f33;
+  --mb-surface-2: #222a3e;
+  --mb-surface-3: #2d3449;
+
+  --mb-line: #000000;
+  --mb-line-bright: #ddb7ff;
+  --mb-line-dim: #4d4354;
+
+  --mb-text: #dbe2fd;
+  --mb-text-dim: #cfc2d6;
+  --mb-outline: #988d9f;
+
+  /* Action purple (big CTAs, selection). */
+  --mb-accent: #b76dff;
+  --mb-accent-down: #8e3fd6;
+  --mb-on-accent: #2c0051;
+  /* Go green (join, ready, ok). */
+  --mb-accent-2: #4ae176;
+  --mb-accent-2-down: #00a74b;
+  --mb-on-accent-2: #003915;
+  /* Headline lavender. */
+  --mb-violet: #ddb7ff;
+  /* Party pink (badges, section plates). */
+  --mb-pink: #ffb2b7;
+  --mb-pink-deep: #b50036;
+  --mb-on-pink: #67001b;
+
+  --mb-gold: #ffc53d;
+  --mb-on-gold: #3a2a00;
+  --mb-ok: #4ae176;
+  --mb-warn: #ffa63d;
+  --mb-danger: #ff5d5d;
+  --mb-on-danger: #40000d;
+
+  /* White plates: inputs, QR cards, score slips. */
+  --mb-paper: #ffffff;
+  --mb-ink: #000000;
+
+  --mb-radius: 0.25rem;
+  --mb-radius-lg: 0.5rem;
+  --mb-shadow: 4px 4px 0 0 #000;
+  --mb-shadow-lg: 8px 8px 0 0 #000;
+
+  /* Legacy "glow" slots now land as hard slabs so old usages stay coherent. */
+  --mb-glow-accent: 4px 4px 0 0 #000;
+  --mb-glow-cyan: 4px 4px 0 0 #000;
+  --mb-glow-gold: 4px 4px 0 0 rgb(255 197 61 / 0.85);
+  --mb-glow-ok: 3px 3px 0 0 #000;
+  --mb-glow-danger: 3px 3px 0 0 #000;
+
+  /* Legacy glass slots: flat and opaque now. */
+  --mb-glass: linear-gradient(0deg, transparent, transparent);
+  --mb-border-light: #000000;
+
+  --mb-font-display: var(--font-display, "Anybody", ui-rounded, system-ui, sans-serif);
+  --mb-font-body: var(--font-body, "Plus Jakarta Sans", system-ui, sans-serif);
+
+  --mb-ease-pop: cubic-bezier(0.22, 1.4, 0.36, 1);
+  --mb-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

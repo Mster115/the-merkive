@@ -1,0 +1,250 @@
+/* The Merkive motion + FX kit — shared by shell and every game.
+   All animation is globally disabled by the reduced-motion rule in tokens.css.
+   Class NAMES are frozen contract; the look underneath is neo-brutalist:
+   hard black borders, offset slab shadows, sticker text, marquee tickers. */
+
+@keyframes mb-pop {
+  0% { opacity: 0; transform: scale(0.6) translateY(14px); }
+  60% { opacity: 1; transform: scale(1.06) translateY(-2px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes mb-rise {
+  0% { opacity: 0; transform: translateY(22px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes mb-drop {
+  0% { opacity: 0; transform: translateY(-26px) scale(0.9); }
+  60% { opacity: 1; transform: translateY(4px) scale(1.02); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes mb-flip-in {
+  0% { opacity: 0; transform: perspective(900px) rotateY(-82deg); }
+  100% { opacity: 1; transform: perspective(900px) rotateY(0); }
+}
+@keyframes mb-deal {
+  0% { opacity: 0; transform: translate(-30px, -46px) rotate(-14deg) scale(0.7); }
+  100% { opacity: 1; transform: translate(0, 0) rotate(0) scale(1); }
+}
+@keyframes mb-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-14px) rotate(1.5deg); }
+}
+@keyframes mb-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.035); }
+}
+@keyframes mb-pulse-glow {
+  0%, 100% { filter: drop-shadow(0 0 4px rgb(183 109 255 / 0.4)); }
+  50% { filter: drop-shadow(0 0 18px rgb(183 109 255 / 0.8)); }
+}
+@keyframes mb-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-7px) rotate(-1deg); }
+  40% { transform: translateX(6px) rotate(1deg); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(3px); }
+}
+@keyframes mb-tada {
+  0% { transform: scale(1) rotate(0); }
+  15% { transform: scale(0.9) rotate(-4deg); }
+  35% { transform: scale(1.15) rotate(4deg); }
+  55% { transform: scale(1.12) rotate(-3deg); }
+  75% { transform: scale(1.08) rotate(2deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+@keyframes mb-zapflash {
+  0% { opacity: 0.95; }
+  100% { opacity: 0; }
+}
+@keyframes mb-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes mb-orbit {
+  0% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(6vw, -5vh) scale(1.15); }
+  66% { transform: translate(-5vw, 4vh) scale(0.9); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+@keyframes mb-spin-slow {
+  to { transform: rotate(360deg); }
+}
+@keyframes mb-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+.mb-pop { animation: mb-pop 0.42s var(--mb-ease-pop) both; }
+.mb-rise { animation: mb-rise 0.5s var(--mb-ease-out) both; }
+.mb-drop { animation: mb-drop 0.5s var(--mb-ease-pop) both; }
+.mb-flip-in { animation: mb-flip-in 0.5s var(--mb-ease-out) both; }
+.mb-deal { animation: mb-deal 0.38s var(--mb-ease-out) both; }
+.mb-float { animation: mb-float 5.5s ease-in-out infinite; }
+.mb-breathe { animation: mb-breathe 2.6s ease-in-out infinite; }
+.mb-pulse-glow { animation: mb-pulse-glow 1.6s ease-in-out infinite; }
+.mb-shake { animation: mb-shake 0.45s ease-in-out both; }
+.mb-tada { animation: mb-tada 0.8s var(--mb-ease-out) both; }
+.mb-blink { animation: mb-blink 1s ease-in-out infinite; }
+
+/* Staggered entrances: parent gets .mb-stagger, children animate with
+   incremental delays (works with any .mb-* entrance class on children). */
+.mb-stagger > * { animation-delay: calc(var(--mb-i, 0) * 70ms); animation-fill-mode: both; }
+
+/* Full-screen white flash for ZAP moments. */
+.mb-zapflash {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 35%, rgb(255 255 255 / 0.95), rgb(255 235 130 / 0.65) 35%, transparent 75%);
+  animation: mb-zapflash 0.5s ease-out forwards;
+}
+
+/* Shimmering text sweep (podium titles, "your turn" banners). */
+.mb-shimmer-text {
+  background: linear-gradient(
+    110deg,
+    var(--mb-text) 35%,
+    #fff 45%,
+    var(--mb-gold) 50%,
+    #fff 55%,
+    var(--mb-text) 65%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: mb-shimmer 3.2s linear infinite;
+}
+
+/* Sticker headlines: solid color riding a hard black slab.
+   (Names kept from the neon era — same slots, new attitude.) */
+.mb-neon-gold {
+  color: var(--mb-gold);
+  text-shadow: 3px 3px 0 #000, 6px 6px 0 rgb(0 0 0 / 0.35);
+}
+.mb-neon-pink {
+  color: var(--mb-pink);
+  text-shadow: 3px 3px 0 #000, 6px 6px 0 rgb(0 0 0 / 0.35);
+}
+.mb-neon-cyan {
+  color: var(--mb-accent-2);
+  text-shadow: 3px 3px 0 #000, 6px 6px 0 rgb(0 0 0 / 0.35);
+}
+
+/* Legacy glass panel: now a flat opaque plate with a hard edge. */
+.mb-glass {
+  background-color: var(--mb-surface);
+  border: 2px solid #000;
+}
+
+/* Button shine sweep on hover (desktop only). */
+.mb-shine {
+  position: relative;
+  overflow: hidden;
+}
+.mb-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 40%, rgb(255 255 255 / 0.35) 50%, transparent 60%);
+  transform: translateX(-120%);
+  transition: transform 0.05s;
+  pointer-events: none;
+}
+@media (hover: hover) {
+  .mb-shine:hover::after { transform: translateX(120%); transition: transform 0.55s ease; }
+}
+
+/* Ambient background orbs (mounted once in the app layout). */
+.mb-orb {
+  position: fixed;
+  border-radius: 9999px;
+  filter: blur(120px);
+  opacity: 0.16;
+  pointer-events: none;
+  z-index: -1;
+  animation: mb-orbit 26s ease-in-out infinite;
+}
+
+/* ------------------------------------------------------------------ */
+/* Neo-brutalist kit                                                   */
+/* ------------------------------------------------------------------ */
+
+/* Hard plates: border + slab shadow in one class. */
+.mb-hard {
+  border: 3px solid #000;
+  box-shadow: var(--mb-shadow);
+}
+.mb-hard-lg {
+  border: 4px solid #000;
+  box-shadow: var(--mb-shadow-lg);
+}
+
+/* Press: element sinks into its own shadow. Pair with .mb-hard or any
+   shadow-[var(--mb-shadow*)] utility. */
+.mb-press {
+  transition: transform 0.09s ease, box-shadow 0.09s ease;
+}
+.mb-press:active {
+  transform: translate(4px, 4px);
+  box-shadow: 0 0 0 0 #000 !important;
+}
+
+/* Hover-lift for cards: same sink, on hover (desktop only). */
+@media (hover: hover) {
+  .mb-lift {
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .mb-lift:hover {
+    transform: translate(4px, 4px);
+    box-shadow: 0 0 0 0 #000;
+  }
+}
+
+/* Wobble text: unhinged skew jitter for hero type. */
+@keyframes mb-wobble {
+  0%, 100% { transform: skew(0deg, 0deg); }
+  25% { transform: skew(-1.2deg, 0.7deg); }
+  50% { transform: skew(1.1deg, -0.6deg); }
+  75% { transform: skew(-0.6deg, 0.4deg); }
+}
+.mb-wobble {
+  animation: mb-wobble 2.4s ease-in-out infinite;
+  display: inline-block;
+}
+.mb-wobble-fast {
+  animation: mb-wobble 0.5s ease-in-out infinite;
+  display: inline-block;
+}
+
+/* Marquee ticker. Markup: .mb-marquee > .mb-marquee-track containing the
+   item row TWICE (second copy aria-hidden) so the -50% loop is seamless. */
+@keyframes mb-marquee {
+  to { transform: translateX(-50%); }
+}
+.mb-marquee {
+  overflow: hidden;
+  white-space: nowrap;
+}
+.mb-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: mb-marquee 24s linear infinite;
+  will-change: transform;
+}
+
+/* CRT scanlines overlay for phone controllers. */
+.mb-scanlines {
+  position: relative;
+}
+.mb-scanlines::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  pointer-events: none;
+  background: linear-gradient(rgb(0 0 0 / 0) 50%, rgb(0 0 0 / 0.1) 50%);
+  background-size: 100% 4px;
+}
