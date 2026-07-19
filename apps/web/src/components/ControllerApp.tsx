@@ -98,23 +98,9 @@ function JoinGate({
   const ready = name.trim().length > 0;
   const code = room.snapshot?.room.code ?? "";
 
-  async function handleJoin(role: "player" | "spectator") {
-    if (!ready || busy) return;
-    setBusy(true);
-    setError(null);
-    setPrefs(name.trim(), avatarId);
-    const res = await room.join({ name: name.trim(), avatarId, role, fresh });
-    if (res.ok) {
-      onJoined?.();
-    } else {
-      setError(`error.${res.code}`);
-      setBusy(false);
-    }
-  }
-
   return (
-    <CenterScreen className="mb-scanlines">
-      <Card raised className="w-full flex flex-col gap-4 -rotate-[0.4deg]">
+    <CenterScreen className="mb-scanlines p-4">
+      <Card raised className="w-full max-w-md flex flex-col gap-4 -rotate-[0.4deg]">
         <div className="text-center">
           <p className="inline-block bg-[var(--mb-pink-deep)] text-[var(--mb-pink)] border-2 border-black shadow-[2px_2px_0_0_#000] px-3 py-1 text-xs font-black uppercase tracking-[0.2em] -rotate-1">
             {t("home.code.label")}
@@ -175,6 +161,20 @@ function JoinGate({
       </Card>
     </CenterScreen>
   );
+
+  async function handleJoin(role: "player" | "spectator") {
+    if (!ready || busy) return;
+    setBusy(true);
+    setError(null);
+    setPrefs(name.trim(), avatarId);
+    const res = await room.join({ name: name.trim(), avatarId, role, fresh });
+    if (res.ok) {
+      onJoined?.();
+    } else {
+      setError(`error.${res.code}`);
+      setBusy(false);
+    }
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -201,8 +201,8 @@ function ControllerLobby({ room }: { room: UseRoomResult }) {
   }
 
   return (
-    <main className="mx-auto max-w-md flex flex-col gap-4 p-4 pb-24">
-      <header className="flex items-center justify-between gap-3">
+    <main className="mx-auto max-w-md lg:max-w-6xl flex flex-col gap-6 p-4 sm:p-6 pb-24">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-black/40 pb-4">
         <div className="flex items-center gap-3">
           <a
             href="/"
@@ -210,18 +210,20 @@ function ControllerLobby({ room }: { room: UseRoomResult }) {
               e.preventDefault();
               void room.leave().then(() => router.push("/"));
             }}
-            className="px-2.5 py-1 bg-[var(--mb-surface-2)] text-[var(--mb-text-dim)] hover:text-white border-2 border-black shadow-[2px_2px_0_0_#000] rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1 transition-all mb-press"
+            className="px-3 py-1.5 bg-[var(--mb-surface-2)] text-[var(--mb-text-dim)] hover:text-white border-2 border-black shadow-[2px_2px_0_0_#000] rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1 transition-all mb-press"
             title="Back to Home"
           >
             ← Home
           </a>
-          <h1 className="text-2xl font-black">{t("lobby.title")}</h1>
+          <h1 className="text-2xl sm:text-3xl [font-family:var(--mb-font-display)] font-black italic uppercase text-[var(--mb-violet)]">
+            {t("lobby.title")}
+          </h1>
         </div>
         <div className="flex items-center gap-2">
           {snap.room.spectatorCount > 0 && (
             <Pill>{t("lobby.spectators", { count: snap.room.spectatorCount })}</Pill>
           )}
-          <Pill tone="accent" className="tracking-[0.2em] text-sm">
+          <Pill tone="accent" className="tracking-[0.2em] text-base font-black px-3 py-1">
             {snap.room.code}
           </Pill>
         </div>
@@ -229,100 +231,115 @@ function ControllerLobby({ room }: { room: UseRoomResult }) {
 
       {snap.room.lastMatch && <PodiumCard lastMatch={snap.room.lastMatch} />}
 
-      <Card className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <h2 className="font-black">
-            {t("lobby.players")}{" "}
-            <span className="text-[var(--mb-text-dim)]">
-              {snap.room.seats.length}/{snap.room.maxPlayers}
-            </span>
-          </h2>
-          <button
-            type="button"
-            onClick={() => void copyLink()}
-            className="text-sm font-bold text-[var(--mb-accent-2)] underline underline-offset-4 min-h-11"
-          >
-            {copied ? t("common.copied") : t("lobby.invite")}
-          </button>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* LEFT COLUMN: Player Seat Grid & Stage/Local Join Links */}
+        <div className="lg:col-span-7 flex flex-col gap-4">
+          <Card className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <h2 className="font-black text-lg">
+                {t("lobby.players")}{" "}
+                <span className="text-[var(--mb-text-dim)]">
+                  {snap.room.seats.length}/{snap.room.maxPlayers}
+                </span>
+              </h2>
+              <button
+                type="button"
+                onClick={() => void copyLink()}
+                className="text-sm font-bold text-[var(--mb-accent-2)] underline underline-offset-4 min-h-11 hover:text-white transition-colors"
+              >
+                {copied ? t("common.copied") : t("lobby.invite")}
+              </button>
+            </div>
+
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-stagger">
+              {snap.room.seats.map((s, i) => (
+                <li key={s.seatIndex} className="mb-pop" style={{ "--mb-i": i } as React.CSSProperties}>
+                  <PlayerChip
+                    displayName={s.seatIndex === you ? `${s.displayName} ✦` : s.displayName}
+                    avatarId={s.avatarId}
+                    isHost={s.isHost}
+                    connected={s.connected}
+                    abandoned={s.abandoned}
+                    statusLabels={{
+                      offline: t("seat.offline"),
+                      abandoned: t("seat.left"),
+                      host: t("lobby.host"),
+                    }}
+                    trailing={
+                      isHost && s.seatIndex !== you ? (
+                        <span className="flex gap-1">
+                          <button
+                            type="button"
+                            aria-label={`${t("lobby.makeHost")}: ${s.displayName}`}
+                            onClick={() =>
+                              void api.transferHost(snap.room.code, room.token, s.seatIndex).catch(() => undefined)
+                            }
+                            className="w-8 h-8 rounded bg-[var(--mb-surface)] hover:bg-[var(--mb-line)] flex items-center justify-center text-xs"
+                            title={t("lobby.makeHost")}
+                          >
+                            👑
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`${t("lobby.kick")}: ${s.displayName}`}
+                            onClick={() =>
+                              void api.kick(snap.room.code, room.token, s.seatIndex).catch(() => undefined)
+                            }
+                            className="w-8 h-8 rounded bg-[var(--mb-surface)] hover:bg-[var(--mb-danger)] flex items-center justify-center text-xs"
+                            title={t("lobby.kick")}
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      ) : undefined
+                    }
+                  />
+                </li>
+              ))}
+            </ul>
+
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-t border-black/40 pt-3 text-xs font-bold text-[var(--mb-text-dim)]">
+              <span>
+                {t("lobby.stage.hint")}{" "}
+                <a
+                  href={`/stage/${snap.room.code}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[var(--mb-accent-2)] underline underline-offset-4 hover:text-white"
+                >
+                  {t("lobby.stage.open")} ↗
+                </a>
+              </span>
+              <a
+                href={`/play/${snap.room.code}?new=1`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[var(--mb-violet)] underline underline-offset-4 hover:text-white"
+              >
+                {t("lobby.addLocal")}
+              </a>
+            </div>
+          </Card>
         </div>
-        <ul className="flex flex-col gap-1.5 mb-stagger">
-          {snap.room.seats.map((s, i) => (
-            <li key={s.seatIndex} className="mb-pop" style={{ "--mb-i": i } as React.CSSProperties}>
-              <PlayerChip
-                displayName={s.seatIndex === you ? `${s.displayName} ✦` : s.displayName}
-                avatarId={s.avatarId}
-                isHost={s.isHost}
-                connected={s.connected}
-                abandoned={s.abandoned}
-                statusLabels={{
-                  offline: t("seat.offline"),
-                  abandoned: t("seat.left"),
-                  host: t("lobby.host"),
-                }}
-                trailing={
-                  isHost && s.seatIndex !== you ? (
-                    <span className="flex gap-1">
-                      <button
-                        type="button"
-                        aria-label={`${t("lobby.makeHost")}: ${s.displayName}`}
-                        onClick={() =>
-                          void api.transferHost(snap.room.code, room.token, s.seatIndex).catch(() => undefined)
-                        }
-                        className="w-9 h-9 rounded-lg bg-[var(--mb-surface)] hover:bg-[var(--mb-line)]"
-                        title={t("lobby.makeHost")}
-                      >
-                        👑
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={`${t("lobby.kick")}: ${s.displayName}`}
-                        onClick={() =>
-                          void api.kick(snap.room.code, room.token, s.seatIndex).catch(() => undefined)
-                        }
-                        className="w-9 h-9 rounded-lg bg-[var(--mb-surface)] hover:bg-[var(--mb-danger)]"
-                        title={t("lobby.kick")}
-                      >
-                        ✕
-                      </button>
-                    </span>
-                  ) : undefined
-                }
-              />
-            </li>
-          ))}
-        </ul>
-        <p className="text-xs font-bold text-[var(--mb-text-dim)]">
-          {t("lobby.stage.hint")}{" "}
-          <a
-            href={`/stage/${snap.room.code}`}
-            target="_blank"
-            rel="noreferrer"
-            className="text-[var(--mb-accent-2)] underline underline-offset-4"
-          >
-            {t("lobby.stage.open")}
-          </a>
-        </p>
-        <a
-          href={`/play/${snap.room.code}?new=1`}
-          target="_blank"
-          rel="noreferrer"
-          className="text-xs font-bold text-[var(--mb-text-dim)] underline underline-offset-4"
+
+        {/* RIGHT COLUMN: Game Selection & Lobby Controls */}
+        <div className="lg:col-span-5 flex flex-col gap-4">
+          <LobbyControls room={snap.room} token={room.token} isHost={isHost} />
+        </div>
+      </div>
+
+      <div className="flex justify-center mt-2">
+        <button
+          type="button"
+          onClick={() => {
+            void room.leave().then(() => router.push("/"));
+          }}
+          className="min-h-11 text-sm font-bold text-[var(--mb-text-dim)] hover:text-[var(--mb-danger)] underline underline-offset-4 transition-colors"
         >
-          {t("lobby.addLocal")}
-        </a>
-      </Card>
+          {t("lobby.leave")}
+        </button>
+      </div>
 
-      <LobbyControls room={snap.room} token={room.token} isHost={isHost} />
-
-      <button
-        type="button"
-        onClick={() => {
-          void room.leave().then(() => router.push("/"));
-        }}
-        className="min-h-11 text-sm font-bold text-[var(--mb-text-dim)] underline underline-offset-4"
-      >
-        {t("lobby.leave")}
-      </button>
       <ReconnectOverlay connection={room.connection} />
     </main>
   );

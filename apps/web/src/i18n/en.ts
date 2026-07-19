@@ -17,6 +17,31 @@ export const en: Record<string, string> = {
   "home.name.required": "Mandatory!",
   "home.games.title": "In The Merkive tonight",
   "home.games.ready": "Ready",
+  "home.games.coming_soon": "Coming Soon",
+  "home.games.view_desktop": "Widescreen / TV View",
+  "home.games.view_mobile": "Mobile Seat View",
+  "home.games.pack_included": "Active Pack",
+  "home.games.pack_locked": "Locked Vault",
+
+  "pack.merkining.name": "The Merk-ining",
+  "pack.merkining.tagline": "The Original Party Starter Pack",
+  "pack.merkining.desc": "The foundational triad of party chaos. Fast-paced drawing, deceptive bluffs, and intense voting.",
+  "pack.merkining.badge": "BEGINNING PACK",
+
+  "pack.space.name": "Space Merk",
+  "pack.space.tagline": "Zero Gravity, Infinite Chaos",
+  "pack.space.desc": "Intergalactic party games featuring sci-fi bluffs, alien deciphering, and orbital speed rounds.",
+  "pack.space.badge": "SEASON 2",
+
+  "pack.dark.name": "Merk After Dark",
+  "pack.dark.tagline": "Unfiltered Adults Only",
+  "pack.dark.desc": "High-spiced party prompts, raw confessions, and zero-modesty card drops for late night rooms.",
+  "pack.dark.badge": "18+ EXPLICIT",
+
+  "pack.trivia.name": "Trivia Mayhem",
+  "pack.trivia.tagline": "Brain Bashing Arena",
+  "pack.trivia.desc": "Blitz-speed general knowledge, fake trivia creation, and high stakes point wagers.",
+  "pack.trivia.badge": "EXPANSION",
 
   "lobby.title": "Lobby",
   "lobby.players": "Players",

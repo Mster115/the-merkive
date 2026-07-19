@@ -46,10 +46,10 @@ function StageLobby({ room }: { room: UseRoomResult }) {
 
   return (
     <>
-      <main className="min-h-dvh flex flex-col p-8 gap-8 pb-20">
-        <header className="flex items-start justify-between gap-6 mb-drop">
+      <main className="min-h-dvh flex flex-col p-4 sm:p-8 gap-6 sm:gap-8 pb-20">
+        <header className="flex items-start justify-between gap-4 sm:gap-6 mb-drop flex-wrap">
           <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
               <a
                 href="/"
                 className="px-3.5 py-1.5 bg-[var(--mb-surface-2)] text-[var(--mb-text-dim)] hover:text-white border-2 border-black shadow-[2px_2px_0_0_#000] rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all mb-press"
@@ -57,46 +57,46 @@ function StageLobby({ room }: { room: UseRoomResult }) {
               >
                 ← Home
               </a>
-              <h1 className="text-5xl [font-family:var(--mb-font-display)] font-black italic uppercase tracking-tighter text-[var(--mb-violet)] leading-none">
+              <h1 className="text-3xl sm:text-5xl [font-family:var(--mb-font-display)] font-black italic uppercase tracking-tighter text-[var(--mb-violet)] leading-none">
                 {t("app.name")}
               </h1>
-              <span className="bg-black text-[var(--mb-accent-2)] border-2 border-[var(--mb-accent-2)] px-3 py-1 -rotate-2 text-sm font-black uppercase tracking-widest">
+              <span className="bg-black text-[var(--mb-accent-2)] border-2 border-[var(--mb-accent-2)] px-2.5 py-0.5 sm:px-3 sm:py-1 -rotate-2 text-xs sm:text-sm font-black uppercase tracking-widest">
                 {t("stage.live")}
               </span>
             </div>
             {game && (
-              <p className="text-xl font-bold text-[var(--mb-text-dim)]">
+              <p className="text-base sm:text-xl font-bold text-[var(--mb-text-dim)]">
                 {t(game.meta.nameKey)} — {t(game.meta.descriptionKey)}
               </p>
             )}
           </div>
           <div className="flex items-center gap-3 shrink-0">
             {snap.room.spectatorCount > 0 && (
-              <Pill className="text-base">{t("lobby.spectators", { count: snap.room.spectatorCount })}</Pill>
+              <Pill className="text-sm sm:text-base">{t("lobby.spectators", { count: snap.room.spectatorCount })}</Pill>
             )}
             <SoundToggle />
           </div>
         </header>
 
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-[minmax(280px,380px)_1fr] gap-10 items-start">
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-[minmax(260px,380px)_1fr] gap-6 sm:gap-10 items-start">
           <div className="flex flex-col gap-6 items-center">
             <Card
               raised
-              className="w-full bg-white text-black -rotate-1 flex flex-col items-center gap-4 p-7 mb-pop"
+              className="w-full bg-white text-black -rotate-1 flex flex-col items-center gap-4 p-5 sm:p-7 mb-pop"
             >
-              <p className="text-2xl [font-family:var(--mb-font-display)] font-black uppercase tracking-tight leading-none">
+              <p className="text-xl sm:text-2xl [font-family:var(--mb-font-display)] font-black uppercase tracking-tight leading-none">
                 {t("lobby.scan")}
               </p>
-              <QrCode url={joinUrl} size={220} label={t("lobby.scan")} />
-              <p className="text-center text-sm font-bold text-neutral-600">
+              <QrCode url={joinUrl} size={180} label={t("lobby.scan")} />
+              <p className="text-center text-xs sm:text-sm font-bold text-neutral-600">
                 {t("lobby.code.hint", { url: shortUrl })}
               </p>
             </Card>
             <div className="text-center">
-              <p className="text-sm font-black uppercase tracking-widest text-[var(--mb-text-dim)] mb-1">
+              <p className="text-xs sm:text-sm font-black uppercase tracking-widest text-[var(--mb-text-dim)] mb-1">
                 {t("stage.join.code")}
               </p>
-              <p className="mb-wobble text-8xl [font-family:var(--mb-font-display)] font-black italic uppercase tracking-tight leading-none text-[var(--mb-accent)] drop-shadow-[8px_8px_0_rgba(0,0,0,1)]">
+              <p className="mb-wobble text-6xl sm:text-8xl [font-family:var(--mb-font-display)] font-black italic uppercase tracking-tight leading-none text-[var(--mb-accent)] drop-shadow-[8px_8px_0_rgba(0,0,0,1)]">
                 {snap.room.code}
               </p>
             </div>
