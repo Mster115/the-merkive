@@ -236,39 +236,50 @@ export const Controller: React.FC<ControllerProps> = ({
       {/* Turn Header */}
       <div
         className={cn(
-          "flex items-center justify-between gap-3 p-3.5 rounded-xl border-3 border-black shadow-[var(--mb-shadow)] transition-all duration-150",
+          "flex flex-col gap-2 p-4 rounded-xl border-[3px] border-black shadow-[var(--mb-shadow)] transition-all duration-150 -rotate-[0.5deg]",
           isMyTurn
-            ? "bg-[var(--mb-surface-2)] border-[var(--mb-accent)]"
-            : "bg-[var(--mb-surface)]"
+            ? "bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)]"
+            : "bg-[var(--mb-surface-2)] text-[var(--mb-text)]"
         )}
       >
-        <div className="flex items-center space-x-2">
-          <Pill tone={isMyTurn ? "accent" : "neutral"} className={cn(isMyTurn && "mb-breathe")}>
-            {isMyTurn ? t("games.tiletangle.yourTurn") : t("games.tiletangle.waitingFor", { name: activePlayerName })}
-          </Pill>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center space-x-2">
+            <span className="text-xl">⚡</span>
+            <span className="font-black uppercase text-base tracking-wider [font-family:var(--mb-font-display)]">
+              {isMyTurn
+                ? t("games.tiletangle.yourTurn")
+                : t("games.tiletangle.waitingFor", { name: activePlayerName })}
+            </span>
+          </div>
+
+          {!hasMelded && isMyTurn && (
+            <span
+              className={cn(
+                "text-xs font-black uppercase tracking-wider px-2 py-0.5 border-2 border-black rounded bg-black text-[var(--mb-gold)]",
+                newTilesPoints >= initialMeldPoints && "bg-[var(--mb-gold)] text-black mb-tada"
+              )}
+            >
+              {newTilesPoints}/{initialMeldPoints} PTS
+            </span>
+          )}
         </div>
 
         {!hasMelded && isMyTurn && (
-          <div className="flex flex-col items-end gap-1 min-w-32">
-            <span
-              className={cn(
-                "text-xs font-black uppercase tracking-tight [font-family:var(--mb-font-display)] transition-colors",
-                newTilesPoints >= initialMeldPoints ? "text-[var(--mb-gold)] mb-neon-gold mb-tada" : "text-[var(--mb-gold)]"
-              )}
-            >
+          <div className="flex flex-col gap-1 w-full">
+            <span className="text-[10px] font-black uppercase tracking-widest opacity-80">
               {t("games.tiletangle.initialMeldMeter", { current: newTilesPoints, target: initialMeldPoints })}
             </span>
-            <span className="w-full h-2.5 rounded-sm bg-black border border-black overflow-hidden">
-              <span
+            <div className="w-full h-3 rounded bg-black/40 border-2 border-black overflow-hidden p-0.5">
+              <div
                 className={cn(
-                  "block h-full transition-all duration-300",
+                  "h-full rounded-sm transition-all duration-300",
                   newTilesPoints >= initialMeldPoints
                     ? "bg-[var(--mb-gold)]"
-                    : "bg-[var(--mb-warn)]"
+                    : "bg-[var(--mb-pink)]"
                 )}
                 style={{ width: `${Math.min(100, (newTilesPoints / initialMeldPoints) * 100)}%` }}
               />
-            </span>
+            </div>
           </div>
         )}
       </div>
@@ -277,23 +288,23 @@ export const Controller: React.FC<ControllerProps> = ({
       {errorMsg && (
         <div
           role="alert"
-          className="mb-shake bg-[var(--mb-danger)] text-[var(--mb-on-danger)] border-2 border-black p-3 rounded-xl text-sm font-black text-center shadow-[var(--mb-shadow)] uppercase tracking-tight [font-family:var(--mb-font-display)]"
+          className="mb-shake bg-[var(--mb-danger)] text-[var(--mb-on-danger)] border-3 border-black p-3.5 rounded-xl text-sm font-black text-center shadow-[var(--mb-shadow)] uppercase tracking-tight [font-family:var(--mb-font-display)]"
         >
           {errorMsg}
         </div>
       )}
 
       {/* Main Workbench Area: Table Melds */}
-      <div className="flex-1 bg-[var(--mb-surface)] border-3 border-black shadow-[var(--mb-shadow)] rounded-2xl p-3 flex flex-col justify-start space-y-3 min-h-[220px]">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-black uppercase text-[var(--mb-text-dim)] tracking-wider [font-family:var(--mb-font-display)]">
-            {t("games.tiletangle.tableMelds")}
+      <div className="flex-1 bg-[var(--mb-surface)] border-[3px] border-black shadow-[var(--mb-shadow-lg)] rounded-2xl p-4 flex flex-col justify-start space-y-3 min-h-[220px] rotate-[0.3deg]">
+        <div className="flex items-center justify-between gap-2 border-b-2 border-black/40 pb-2">
+          <span className="text-xs font-black uppercase text-[var(--mb-violet)] tracking-widest [font-family:var(--mb-font-display)] flex items-center gap-1.5">
+            <span>🛠️</span> {t("games.tiletangle.tableMelds")}
           </span>
           {isMyTurn && (
-            <div className="flex space-x-2">
+            <div className="flex gap-1.5 flex-wrap">
               {selectedTile && (
                 <Button size="sm" variant="secondary" onClick={moveSelectedToNewMeld}>
-                  {t("games.tiletangle.newMeld")}
+                  + {t("games.tiletangle.newMeld")}
                 </Button>
               )}
               {selectedTile?.source === "table" && (
@@ -309,19 +320,25 @@ export const Controller: React.FC<ControllerProps> = ({
         </div>
 
         {localTable.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center text-[var(--mb-text-dim)] text-sm font-black uppercase tracking-wide [font-family:var(--mb-font-display)] border-2 border-dashed border-[var(--mb-line-dim)] rounded-xl p-4">
-            {t("games.tiletangle.emptyTable")}
+          <div className="flex-1 flex flex-col items-center justify-center text-[var(--mb-text-dim)] text-center border-[3px] border-dashed border-[var(--mb-line-dim)] rounded-xl p-6 gap-2">
+            <span className="text-3xl">🧩</span>
+            <p className="text-sm font-black uppercase tracking-wider text-white [font-family:var(--mb-font-display)]">
+              {t("games.tiletangle.emptyTable")}
+            </p>
+            <p className="text-xs font-bold text-[var(--mb-text-dim)]">
+              TAP TILES TO BUILD SETS & RUNS
+            </p>
           </div>
         ) : (
-          <div className="flex flex-col space-y-2">
+          <div className="flex flex-col space-y-2.5">
             {localTable.map((meld, mIdx) => (
               <div
                 key={`m-${mIdx}`}
                 onClick={() => selectedTile && moveSelectedToExistingMeld(mIdx)}
-                className={`p-2.5 rounded-xl border-2 flex flex-wrap gap-1.5 items-center transition-all ${
+                className={`p-3 rounded-xl border-2 border-black flex flex-wrap gap-2 items-center transition-all ${
                   selectedTile
-                    ? "border-[var(--mb-gold)] bg-[var(--mb-surface-3)] cursor-pointer shadow-[2px_2px_0_0_#000] mb-press"
-                    : "border-black bg-[var(--mb-surface-2)] shadow-[2px_2px_0_0_#000]"
+                    ? "border-[var(--mb-accent-2)] bg-[var(--mb-surface-3)] cursor-pointer shadow-[3px_3px_0_0_#000] mb-press"
+                    : "bg-[var(--mb-surface-2)] shadow-[2px_2px_0_0_#000]"
                 }`}
               >
                 {meld.map((tile, tIdx) => {
@@ -348,14 +365,15 @@ export const Controller: React.FC<ControllerProps> = ({
       </div>
 
       {/* Player's Rack */}
-      <div className="bg-[var(--mb-surface)] border-3 border-black shadow-[var(--mb-shadow)] rounded-2xl p-3 space-y-2">
+      <div className="bg-[var(--mb-surface-2)] border-[3px] border-black shadow-[var(--mb-shadow)] rounded-2xl p-4 space-y-3 -rotate-[0.3deg]">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-black uppercase text-[var(--mb-text-dim)] tracking-wider [font-family:var(--mb-font-display)]">
-            {t("games.tiletangle.yourRack")} ({localRack.length})
+          <span className="text-xs font-black uppercase text-[var(--mb-text-dim)] tracking-wider [font-family:var(--mb-font-display)] flex items-center gap-1.5">
+            <span>🎒</span> {t("games.tiletangle.yourRack")}
           </span>
+          <Pill tone="neutral">{localRack.length} TILES</Pill>
         </div>
 
-        <div className="flex flex-wrap gap-1.5 p-2.5 bg-[var(--mb-surface-2)] rounded-xl border-2 border-black min-h-[72px] items-center">
+        <div className="flex flex-wrap gap-2 p-3 bg-[var(--mb-surface-3)] rounded-xl border-2 border-black min-h-[80px] items-center">
           {localRack.map((tile, rIdx) => {
             const isSelected =
               selectedTile?.source === "rack" && selectedTile.tileIndex === rIdx;

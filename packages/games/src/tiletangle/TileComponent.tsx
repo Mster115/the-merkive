@@ -11,11 +11,11 @@ export interface TileComponentProps {
   className?: string;
 }
 
-const COLOR_MAP: Record<number, { name: string; textClass: string; bgClass: string; symbol: string }> = {
-  0: { name: "blue", textClass: "text-blue-700", bgClass: "bg-blue-500/10 border-blue-500/30", symbol: "●" },
-  1: { name: "red", textClass: "text-red-600", bgClass: "bg-red-500/10 border-red-500/30", symbol: "◆" },
-  2: { name: "green", textClass: "text-emerald-700", bgClass: "bg-emerald-500/10 border-emerald-500/30", symbol: "▲" },
-  3: { name: "amber", textClass: "text-amber-600", bgClass: "bg-amber-500/10 border-amber-500/30", symbol: "■" },
+const COLOR_MAP: Record<number, { name: string; textClass: string; barClass: string; symbol: string }> = {
+  0: { name: "purple", textClass: "text-[#7c3aed]", barClass: "bg-[#7c3aed]/20", symbol: "●" },
+  1: { name: "red", textClass: "text-[#dc2626]", barClass: "bg-[#dc2626]/20", symbol: "◆" },
+  2: { name: "green", textClass: "text-[#16a34a]", barClass: "bg-[#16a34a]/20", symbol: "▲" },
+  3: { name: "amber", textClass: "text-[#d97706]", barClass: "bg-[#d97706]/20", symbol: "■" },
 };
 
 export const TileComponent: React.FC<TileComponentProps> = ({
@@ -30,9 +30,9 @@ export const TileComponent: React.FC<TileComponentProps> = ({
   const colorInfo = COLOR_MAP[tile.c] ?? COLOR_MAP[0]!;
 
   const sizeClasses = {
-    sm: "w-10 h-14 text-lg rounded-md p-1 border-2 border-black",
-    md: "w-12 h-16 text-xl rounded-lg p-1.5 border-2 border-black",
-    lg: "w-16 h-22 text-3xl rounded-xl p-2 border-[3px] border-black",
+    sm: "w-11 h-15 text-xl rounded-md p-1 border-2 border-black",
+    md: "w-14 h-18 text-2xl rounded-lg p-1.5 border-[3px] border-black",
+    lg: "w-18 h-24 text-4xl rounded-xl p-2 border-4 border-black",
   }[size];
 
   const ariaLabel = isJoker ? "joker" : `${colorInfo.name} ${tile.n}`;
@@ -45,36 +45,48 @@ export const TileComponent: React.FC<TileComponentProps> = ({
       aria-label={ariaLabel}
       aria-pressed={selected}
       className={cn(
-        "relative flex flex-col items-center justify-between font-extrabold select-none transition-all duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mb-accent-2)]",
-        "bg-[var(--mb-paper)] text-black shadow-[2px_2px_0_0_#000]",
+        "relative flex flex-col items-center justify-between font-black select-none transition-all duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mb-accent-2)]",
+        isJoker
+          ? "bg-[var(--mb-surface-3)] text-[var(--mb-gold)] shadow-[2px_2px_0_0_#000]"
+          : "bg-white text-black shadow-[2px_2px_0_0_#000]",
         "[font-family:var(--mb-font-display)]",
         sizeClasses,
         selected &&
-          "ring-4 ring-[var(--mb-accent-2)] shadow-[4px_4px_0_0_#000] -translate-y-1 scale-105 z-10 border-black bg-[var(--mb-paper)]",
+          "ring-4 ring-[var(--mb-accent-2)] shadow-[4px_4px_0_0_#000] -translate-y-1.5 scale-105 z-10 border-black bg-white",
         disabled && "opacity-50 cursor-not-allowed",
-        onClick && !disabled && "cursor-pointer mb-press active:translate-x-0.5 active:translate-y-0.5 active:shadow-none hover:-translate-y-0.5",
+        onClick &&
+          !disabled &&
+          "cursor-pointer mb-press active:translate-x-0.5 active:translate-y-0.5 active:shadow-none hover:-translate-y-1",
         className
       )}
     >
       {/* Top indicator icon */}
-      <span className={cn("text-[10px] font-black leading-none opacity-90 self-start", isJoker ? "text-purple-600" : colorInfo.textClass)}>
-        {isJoker ? "★" : colorInfo.symbol}
+      <span
+        className={cn(
+          "text-[10px] font-black leading-none opacity-90 self-start tracking-wider",
+          isJoker ? "text-[var(--mb-gold)]" : colorInfo.textClass
+        )}
+      >
+        {isJoker ? "WILD" : colorInfo.symbol}
       </span>
 
       {/* Main tile content */}
       <span
         className={cn(
           "font-black tracking-tighter my-auto leading-none",
-          isJoker ? "text-purple-600 text-2xl" : colorInfo.textClass
+          isJoker ? "text-[var(--mb-gold)] text-2xl" : colorInfo.textClass
         )}
       >
         {isJoker ? "★" : tile.n}
       </span>
 
-      {/* Bottom marker */}
-      <span className={cn("text-[9px] font-black leading-none opacity-60 self-end font-mono", isJoker ? "text-purple-600" : colorInfo.textClass)}>
-        {isJoker ? "J" : colorInfo.symbol}
-      </span>
+      {/* Bottom marker bar */}
+      <div
+        className={cn(
+          "w-full h-1 rounded-full mt-0.5",
+          isJoker ? "bg-[var(--mb-gold)]/30" : colorInfo.barClass
+        )}
+      />
     </button>
   );
 };

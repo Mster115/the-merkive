@@ -1,6 +1,6 @@
 import * as React from "react";
 import type { StageProps } from "@merky/game-sdk";
-import { AvatarFace, Card, Pill, ScoreBoard, type ScoreRow } from "@merky/ui";
+import { AvatarFace, Card, Pill, ScoreBoard, cn, type ScoreRow } from "@merky/ui";
 import type { TileTanglePublicState } from "./logic";
 import { TileComponent } from "./TileComponent";
 
@@ -40,36 +40,41 @@ export const Stage: React.FC<StageProps> = ({ room, match, t }) => {
 
       {/* Top Banner */}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b-4 border-black pb-4">
-        <div>
-          <h1 className="text-5xl font-black tracking-tight text-white uppercase italic [font-family:var(--mb-font-display)] mb-neon-gold mb-wobble">
-            {t("games.tiletangle.name")}
-          </h1>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-3">
+            <h1 className="text-6xl font-black tracking-tight text-white uppercase italic [font-family:var(--mb-font-display)] mb-neon-gold mb-wobble-fast">
+              {t("games.tiletangle.name")}
+            </h1>
+            <Pill tone="accent" className="-rotate-2">
+              TILE TANGLE ACTIVE
+            </Pill>
+          </div>
           {!match.over && (
-            <p className="text-xl font-bold text-[var(--mb-gold)] mt-1 uppercase tracking-wide [font-family:var(--mb-font-display)]">
-              {t("games.tiletangle.turnNotice", { name: activePlayerName })}
+            <p className="text-2xl font-black text-[var(--mb-gold)] uppercase tracking-wide [font-family:var(--mb-font-display)]">
+              ⚡ {t("games.tiletangle.turnNotice", { name: activePlayerName })}
             </p>
           )}
         </div>
 
         <div className="flex items-center space-x-4">
           {/* Draw Pile Badge */}
-          <Card className="px-6 py-3 bg-[var(--mb-surface-2)] border-2 border-black shadow-[var(--mb-shadow)] flex items-center space-x-3 -rotate-1">
+          <Card className="px-6 py-3 bg-[var(--mb-surface-2)] border-[3px] border-black shadow-[var(--mb-shadow)] flex items-center space-x-3 -rotate-1">
             <span className="text-3xl">🎴</span>
             <div>
               <div className="text-xs font-black uppercase tracking-wider text-[var(--mb-text-dim)] [font-family:var(--mb-font-display)]">
                 {t("games.tiletangle.drawPile")}
               </div>
-              <div className="text-2xl font-black text-[var(--mb-gold)] [font-family:var(--mb-font-display)]">
-                {pub.drawPileCount}
+              <div className="text-3xl font-black text-[var(--mb-gold)] [font-family:var(--mb-font-display)]">
+                {pub.drawPileCount} TILES
               </div>
             </div>
           </Card>
         </div>
       </div>
 
-      {/* Players Row (Summary around table) */}
+      {/* Players Row (The Squad around table) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {room.seats.map((seat) => {
+        {room.seats.map((seat, i) => {
           const isTurn = seat.seatIndex === activeSeat && !match.over;
           const count = pub.rackCounts[seat.seatIndex] ?? 0;
           const hasMelded = pub.hasMelded[seat.seatIndex] ?? false;
@@ -77,23 +82,25 @@ export const Stage: React.FC<StageProps> = ({ room, match, t }) => {
           return (
             <div
               key={seat.seatIndex}
-              className={`p-4 rounded-xl border-2 border-black flex items-center space-x-4 transition-all shadow-[var(--mb-shadow)] ${
+              className={cn(
+                "p-4 rounded-xl border-[3px] border-black flex items-center space-x-4 transition-all shadow-[var(--mb-shadow)]",
+                i % 2 === 0 ? "-rotate-1" : "rotate-1",
                 isTurn
-                  ? "bg-[var(--mb-surface-2)] border-3 border-[var(--mb-accent)] shadow-[var(--mb-shadow-lg)] scale-102 rotate-1"
+                  ? "bg-[var(--mb-surface-2)] border-4 border-[var(--mb-accent-2)] shadow-[var(--mb-shadow-lg)] scale-102 mb-breathe"
                   : "bg-[var(--mb-surface)]"
-              }`}
+              )}
             >
               <div className="relative">
-                <AvatarFace avatarId={seat.avatarId} size={40} />
+                <AvatarFace avatarId={seat.avatarId} size={44} />
                 {isTurn && (
                   <span className="absolute -top-1 -right-1 flex h-4 w-4">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--mb-gold)] opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-4 w-4 bg-[var(--mb-gold)] border border-black"></span>
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--mb-accent-2)] opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-4 w-4 bg-[var(--mb-accent-2)] border-2 border-black"></span>
                   </span>
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="font-black text-lg truncate text-white [font-family:var(--mb-font-display)]">
+                <div className="font-black text-xl truncate text-white [font-family:var(--mb-font-display)]">
                   {seat.displayName}
                 </div>
                 <div className="flex items-center space-x-2 mt-1">
@@ -111,21 +118,35 @@ export const Stage: React.FC<StageProps> = ({ room, match, t }) => {
       </div>
 
       {/* Main Table View */}
-      <div className="flex-1 bg-[var(--mb-surface)] border-3 border-black shadow-[var(--mb-shadow-lg)] rounded-2xl p-6 min-h-[360px] flex flex-col justify-start">
-        <h2 className="text-xl font-black text-[var(--mb-text-dim)] mb-4 uppercase tracking-wider [font-family:var(--mb-font-display)]">
-          {t("games.tiletangle.tableMelds")}
-        </h2>
+      <div className="flex-1 bg-[var(--mb-surface)] border-4 border-black shadow-[var(--mb-shadow-lg)] rounded-2xl p-6 min-h-[380px] flex flex-col justify-start">
+        <div className="flex items-center justify-between border-b-2 border-black/40 pb-3 mb-4">
+          <h2 className="text-xl font-black text-[var(--mb-violet)] uppercase tracking-widest [font-family:var(--mb-font-display)] flex items-center gap-2">
+            <span>🧩</span> {t("games.tiletangle.tableMelds")}
+          </h2>
+          <span className="text-xs font-black uppercase text-[var(--mb-text-dim)] [font-family:var(--mb-font-display)]">
+            {pub.table.length} SETS ON TABLE
+          </span>
+        </div>
 
         {pub.table.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center text-[var(--mb-text-dim)] text-2xl font-black uppercase tracking-wide [font-family:var(--mb-font-display)] border-2 border-dashed border-[var(--mb-line-dim)] rounded-xl p-8">
-            {t("games.tiletangle.emptyTable")}
+          <div className="flex-1 flex flex-col items-center justify-center text-[var(--mb-text-dim)] text-center border-3 border-dashed border-[var(--mb-line-dim)] rounded-xl p-8 gap-3">
+            <span className="text-5xl">🧩</span>
+            <p className="text-2xl font-black uppercase tracking-wide text-white [font-family:var(--mb-font-display)]">
+              {t("games.tiletangle.emptyTable")}
+            </p>
+            <p className="text-sm font-bold text-[var(--mb-text-dim)]">
+              WAITING FOR PLAYERS TO LAY DOWN SETS & RUNS
+            </p>
           </div>
         ) : (
           <div className="flex flex-wrap gap-4 items-start content-start">
             {pub.table.map((meld, mIdx) => (
               <div
                 key={meld.id || `m-${mIdx}`}
-                className="bg-[var(--mb-surface-2)] border-2 border-black shadow-[var(--mb-shadow)] p-3 rounded-xl flex flex-wrap gap-2 items-center"
+                className={cn(
+                  "bg-[var(--mb-surface-2)] border-[3px] border-black shadow-[var(--mb-shadow)] p-3.5 rounded-xl flex flex-wrap gap-2 items-center",
+                  mIdx % 2 === 0 ? "rotate-1" : "-rotate-1"
+                )}
               >
                 {meld.tiles.map((tile, tIdx) => (
                   <TileComponent key={`${tile.id}-${tIdx}`} tile={tile} size="lg" disabled />
@@ -145,9 +166,9 @@ export const Stage: React.FC<StageProps> = ({ room, match, t }) => {
             </h2>
 
             {winnerPlayer && (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="flex justify-center">
-                  <AvatarFace avatarId={winnerPlayer.avatarId} size={60} />
+                  <AvatarFace avatarId={winnerPlayer.avatarId} size={72} />
                 </div>
                 <div className="text-3xl font-black text-white [font-family:var(--mb-font-display)] uppercase">
                   {t("games.tiletangle.winnerAnnouncement", { name: winnerPlayer.displayName })}
