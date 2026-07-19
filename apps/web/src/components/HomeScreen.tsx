@@ -96,7 +96,7 @@ export function HomeScreen() {
             <div className="relative inline-block">
               <div aria-hidden className="absolute -inset-3 bg-[var(--mb-pink)] opacity-20 blur-2xl -z-10" />
               <h1 className="mb-wobble-fast text-5xl sm:text-6xl lg:text-7xl [font-family:var(--mb-font-display)] font-black italic uppercase tracking-tighter text-[var(--mb-violet)] leading-none flex items-baseline flex-wrap justify-center lg:justify-start">
-                <span className="mr-[0.35em] inline-block -translate-y-[0.04em]">THE</span>
+                <span className="mr-[0.18em] inline-block -translate-y-[0.04em]">THE</span>
                 <span className="inline-flex items-baseline">
                   <Image
                     src={logoImg}

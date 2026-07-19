@@ -61,7 +61,7 @@ function StageLobby({ room }: { room: UseRoomResult }) {
                 ← Home
               </a>
               <h1 className="text-3xl sm:text-5xl [font-family:var(--mb-font-display)] font-black italic uppercase tracking-tighter text-[var(--mb-violet)] leading-none inline-flex items-baseline">
-                <span className="mr-[0.35em] inline-block -translate-y-[0.04em]">THE</span>
+                <span className="mr-[0.18em] inline-block -translate-y-[0.04em]">THE</span>
                 <span className="inline-flex items-baseline">
                   <Image
                     src={logoImg}
