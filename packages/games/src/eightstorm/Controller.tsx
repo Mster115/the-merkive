@@ -94,19 +94,19 @@ export function EightstormController({ room, match, seat, privateState, act, t }
       </div>
 
       {/* Top Header Card Info */}
-      <Card className="flex items-center justify-between p-3 rounded-xl bg-[var(--mb-surface)] border-2 border-black shadow-[var(--mb-shadow)]">
+      <Card className="flex items-center justify-between p-3.5 rounded-xl bg-[var(--mb-surface-2)] border-[3px] border-black shadow-[var(--mb-shadow)] -rotate-[0.5deg]">
         <div className="flex items-center gap-2">
-          <span className="text-xs uppercase font-black text-[var(--mb-text-dim)] [font-family:var(--mb-font-display)]">
+          <span className="text-xs uppercase font-black text-[var(--mb-violet)] [font-family:var(--mb-font-display)] tracking-wider">
             {t("games.eightstorm.ui.top_card")}:
           </span>
           <span
             className={cn(
-              "font-black text-sm px-3 py-1 rounded-lg border-2 border-black flex items-center gap-1.5 shadow-[2px_2px_0_0_#000] uppercase",
+              "font-black text-sm px-3 py-1 rounded-lg border-2 border-black flex items-center gap-1.5 shadow-[2px_2px_0_0_#000] uppercase [font-family:var(--mb-font-display)]",
               pub.topCard.suit === "H" || pub.topCard.suit === "D"
-                ? "bg-[var(--mb-pink)] text-[var(--mb-on-pink)]"
+                ? "bg-[#dc2626] text-white"
                 : isWildCard(pub.topCard)
-                ? "bg-[var(--mb-gold)] text-[var(--mb-on-gold)]"
-                : "bg-[var(--mb-paper)] text-[var(--mb-ink)]"
+                ? "bg-[var(--mb-gold)] text-black"
+                : "bg-white text-black"
             )}
           >
             {getCardDisplayRank(pub.topCard.rank)}
@@ -116,17 +116,17 @@ export function EightstormController({ room, match, seat, privateState, act, t }
 
         {pub.declaredSuit ? (
           <div className="flex items-center gap-2">
-            <span className="text-xs uppercase font-black text-[var(--mb-text-dim)] [font-family:var(--mb-font-display)]">
+            <span className="text-xs uppercase font-black text-[var(--mb-gold)] [font-family:var(--mb-font-display)] tracking-wider">
               {t("games.eightstorm.ui.active_suit")}:
             </span>
-            <span className="font-black text-sm text-[var(--mb-on-gold)] bg-[var(--mb-gold)] px-2.5 py-1 rounded-lg border-2 border-black shadow-[2px_2px_0_0_#000] flex items-center gap-1">
-              <SuitSVG suit={pub.declaredSuit} className="w-4 h-4 text-[var(--mb-on-gold)]" />
+            <span className="font-black text-sm text-black bg-[var(--mb-gold)] px-3 py-1 rounded-lg border-2 border-black shadow-[2px_2px_0_0_#000] flex items-center gap-1.5 [font-family:var(--mb-font-display)] uppercase">
+              <SuitSVG suit={pub.declaredSuit} className="w-4 h-4 text-black" />
               {t(`games.eightstorm.suits.${pub.declaredSuit}`)}
             </span>
           </div>
         ) : (
-          <span className="text-xs font-bold text-[var(--mb-text-dim)] flex items-center gap-1">
-            <ReverseIcon className="w-3.5 h-3.5 text-[var(--mb-violet)]" />
+          <span className="text-xs font-black uppercase tracking-wider text-[var(--mb-text-dim)] flex items-center gap-1 [font-family:var(--mb-font-display)]">
+            <ReverseIcon className="w-4 h-4 text-[var(--mb-violet)]" />
             {pub.direction === 1 ? "Clockwise" : "Reverse"}
           </span>
         )}
@@ -136,41 +136,41 @@ export function EightstormController({ room, match, seat, privateState, act, t }
       <div className="text-center">
         {isMyTurn ? (
           <div className="flex items-center justify-center gap-2">
-            <Pill tone="accent" className="text-sm px-5 py-1.5 font-black border-2 border-black shadow-[var(--mb-shadow)] flex items-center gap-1.5 mb-pop">
+            <Pill tone="accent" className="text-sm px-5 py-1.5 font-black border-2 border-black shadow-[var(--mb-shadow)] flex items-center gap-1.5 mb-pop -rotate-1">
               <LightningIcon className="w-4 h-4 text-[var(--mb-on-accent)]" />
               {t("games.eightstorm.ui.your_turn")}
             </Pill>
             {playableCards.length > 0 && (
-              <span className="text-xs font-black px-3 py-1 rounded-lg bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)] border-2 border-black shadow-[2px_2px_0_0_#000]">
-                {playableCards.length} Playable
+              <span className="text-xs font-black px-3 py-1 rounded-lg bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)] border-2 border-black shadow-[2px_2px_0_0_#000] [font-family:var(--mb-font-display)] uppercase">
+                {playableCards.length} PLAYABLE
               </span>
             )}
           </div>
         ) : (
-          <span className="text-sm font-extrabold text-[var(--mb-text-dim)] flex items-center justify-center gap-2">
+          <span className="text-sm font-black uppercase tracking-wider text-[var(--mb-text-dim)] flex items-center justify-center gap-2 [font-family:var(--mb-font-display)]">
             <span className="w-2.5 h-2.5 rounded-full bg-[var(--mb-gold)] mb-blink" />
-            {t("games.eightstorm.ui.waiting_for", { name: activeName })}
+            ⏳ {t("games.eightstorm.ui.waiting_for", { name: activeName })}
           </span>
         )}
       </div>
 
       {/* Inline Error Message */}
       {errorMsg && (
-        <div role="alert" className="p-3 text-sm font-black bg-[var(--mb-danger)] border-2 border-black text-[var(--mb-on-danger)] rounded-xl text-center shadow-[var(--mb-shadow)] mb-shake">
+        <div role="alert" className="p-3 text-sm font-black bg-[var(--mb-danger)] border-2 border-black text-[var(--mb-on-danger)] rounded-xl text-center shadow-[var(--mb-shadow)] mb-shake uppercase tracking-wider [font-family:var(--mb-font-display)]">
           {errorMsg}
         </div>
       )}
 
       {/* Action Buttons (Draw / Pass) */}
       {isMyTurn && (
-        <div className="flex gap-2">
+        <div className="flex gap-2.5">
           <Button
             variant={pub.pendingDraw > 0 ? "danger" : "secondary"}
             size="lg"
             block
             onClick={handleDraw}
             disabled={pub.drewThisTurn && pub.pendingDraw === 0}
-            className="flex-1 min-h-14 font-black tracking-wide"
+            className="flex-1 min-h-14 font-black tracking-wider uppercase [font-family:var(--mb-font-display)]"
           >
             {pub.pendingDraw > 0
               ? t("games.eightstorm.ui.draw_pending", { count: pub.pendingDraw })
@@ -182,7 +182,7 @@ export function EightstormController({ room, match, seat, privateState, act, t }
               variant="primary"
               size="lg"
               onClick={handlePass}
-              className="px-6 min-h-14 font-black"
+              className="px-6 min-h-14 font-black uppercase tracking-wider [font-family:var(--mb-font-display)]"
             >
               {t("games.eightstorm.ui.pass")}
             </Button>
@@ -194,7 +194,7 @@ export function EightstormController({ room, match, seat, privateState, act, t }
       <div className="flex-1 my-1">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-xs font-black uppercase tracking-wider text-[var(--mb-text-dim)] [font-family:var(--mb-font-display)] flex items-center gap-2">
-            <span>{t("games.eightstorm.ui.your_hand", { count: hand.length })}</span>
+            <span>🃏 {t("games.eightstorm.ui.your_hand", { count: hand.length })}</span>
             {pub.pendingDraw > 0 && isMyTurn && (
               <span className="text-[var(--mb-danger)] font-black mb-blink">
                 {t("games.eightstorm.ui.must_stack_or_draw")}
@@ -202,32 +202,32 @@ export function EightstormController({ room, match, seat, privateState, act, t }
             )}
           </h3>
 
-          <div className="flex items-center gap-1 bg-[var(--mb-surface)] p-1 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000]">
+          <div className="flex items-center gap-1 bg-[var(--mb-surface-2)] p-1 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000]">
             <button
               type="button"
               aria-pressed={viewMode === "fan"}
               onClick={() => setViewMode("fan")}
               className={cn(
-                "px-3 py-2 min-h-[44px] rounded-lg text-xs font-black transition-all flex items-center gap-1 focus-visible:outline-none mb-press",
+                "px-3 py-2 min-h-[44px] rounded-lg text-xs font-black transition-all flex items-center gap-1 focus-visible:outline-none mb-press [font-family:var(--mb-font-display)] uppercase",
                 viewMode === "fan"
                   ? "bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)] border-2 border-black shadow-[2px_2px_0_0_#000]"
                   : "text-[var(--mb-text-dim)] hover:text-white"
               )}
             >
-              <FanIcon className="w-4 h-4" /> Fan
+              <FanIcon className="w-4 h-4" /> FAN
             </button>
             <button
               type="button"
               aria-pressed={viewMode === "grid"}
               onClick={() => setViewMode("grid")}
               className={cn(
-                "px-3 py-2 min-h-[44px] rounded-lg text-xs font-black transition-all flex items-center gap-1 focus-visible:outline-none mb-press",
+                "px-3 py-2 min-h-[44px] rounded-lg text-xs font-black transition-all flex items-center gap-1 focus-visible:outline-none mb-press [font-family:var(--mb-font-display)] uppercase",
                 viewMode === "grid"
                   ? "bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)] border-2 border-black shadow-[2px_2px_0_0_#000]"
                   : "text-[var(--mb-text-dim)] hover:text-white"
               )}
             >
-              <GridIcon className="w-4 h-4" /> Grid
+              <GridIcon className="w-4 h-4" /> GRID
             </button>
           </div>
         </div>
@@ -304,10 +304,10 @@ export function EightstormController({ room, match, seat, privateState, act, t }
                   }
                 }}
                 className={cn(
-                  "flex flex-col items-center justify-center py-6 min-h-[96px] gap-2 border-2 border-black text-xl font-black rounded-xl transition-all shadow-[var(--mb-shadow)] mb-press",
+                  "flex flex-col items-center justify-center py-6 min-h-[96px] gap-2 border-[3px] border-black text-xl font-black rounded-xl transition-all shadow-[var(--mb-shadow)] mb-press",
                   isRed
-                    ? "bg-[var(--mb-pink)] text-[var(--mb-on-pink)] hover:bg-[var(--mb-pink)]"
-                    : "bg-[var(--mb-paper)] text-[var(--mb-ink)] hover:bg-[var(--mb-paper)]"
+                    ? "bg-[#dc2626] text-white hover:bg-[#dc2626]"
+                    : "bg-white text-black hover:bg-white"
                 )}
               >
                 <SuitSVG suit={suit} className="w-12 h-12" />

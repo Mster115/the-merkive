@@ -79,9 +79,9 @@ export function CardView({ card, selected, disabled, onClick, className, size = 
 
   const sizeClasses = {
     sm: "w-14 h-22 p-1.5 text-xs rounded-lg border-2 min-h-[44px]",
-    md: "w-22 h-34 p-2 text-sm rounded-xl border-2 min-h-[44px]",
-    lg: "w-32 h-48 p-3 text-base rounded-2xl border-[3px] min-h-[44px]",
-    xl: "w-44 h-64 p-4 text-xl rounded-3xl border-4 min-h-[44px]",
+    md: "w-22 h-34 p-2.5 text-sm rounded-xl border-[3px] min-h-[44px]",
+    lg: "w-32 h-48 p-3.5 text-base rounded-2xl border-4 min-h-[44px]",
+    xl: "w-44 h-64 p-5 text-xl rounded-3xl border-4 min-h-[44px]",
   }[size];
 
   const iconSizeClass = {
@@ -99,7 +99,7 @@ export function CardView({ card, selected, disabled, onClick, className, size = 
   }[size];
 
   const actionLabel = getCardActionLabel(card.rank, card.suit);
-  const textColor = isRed ? "text-[var(--mb-pink-deep)]" : "text-[var(--mb-ink)]";
+  const textColor = isRed ? "text-[#dc2626]" : "text-black";
 
   return (
     <button
@@ -108,14 +108,14 @@ export function CardView({ card, selected, disabled, onClick, className, size = 
       onClick={onClick}
       aria-label={actionLabel}
       className={cn(
-        "flex flex-col justify-between select-none relative font-black transition-all duration-150 transform text-left overflow-hidden bg-[var(--mb-paper)] border-black shadow-[var(--mb-shadow)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--mb-accent)]",
+        "flex flex-col justify-between select-none relative font-black transition-all duration-150 transform text-left overflow-hidden bg-white border-black shadow-[2px_2px_0_0_#000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--mb-accent-2)]",
         "[font-family:var(--mb-font-display)]",
         sizeClasses,
         textColor,
         disabled
           ? "opacity-40 grayscale cursor-not-allowed scale-95 shadow-none"
-          : "cursor-pointer mb-lift active:translate-x-1 active:translate-y-1 active:shadow-none",
-        selected && "ring-4 ring-[var(--mb-accent)] -translate-y-2 shadow-[var(--mb-shadow-lg)] border-black",
+          : "cursor-pointer mb-press active:translate-x-0.5 active:translate-y-0.5 active:shadow-none hover:-translate-y-1.5",
+        selected && "ring-4 ring-[var(--mb-accent-2)] -translate-y-3 shadow-[4px_4px_0_0_#000] border-black bg-white z-20",
         className
       )}
     >
@@ -126,32 +126,32 @@ export function CardView({ card, selected, disabled, onClick, className, size = 
       </div>
 
       {/* Center Action Symbol / Icon */}
-      <div className="self-center text-center my-auto z-10 flex flex-col items-center justify-center gap-0.5">
+      <div className="self-center text-center my-auto z-10 flex flex-col items-center justify-center gap-1">
         {card.rank === "A" ? (
           <>
-            <ReverseIcon className={cn(iconSizeClass, "text-[var(--mb-accent)]")} />
-            <span className="text-[0.55em] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--mb-violet)] text-[var(--mb-ink)] border-2 border-black shadow-[1px_1px_0_0_#000]">
+            <ReverseIcon className={cn(iconSizeClass, "text-[var(--mb-violet)]")} />
+            <span className="text-[0.6em] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--mb-violet)] text-white border-2 border-black shadow-[1px_1px_0_0_#000]">
               REVERSE
             </span>
           </>
         ) : card.rank === "J" ? (
           <>
             <SkipIcon className={cn(iconSizeClass, "text-[var(--mb-pink-deep)]")} />
-            <span className="text-[0.55em] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--mb-pink)] text-[var(--mb-on-pink)] border-2 border-black shadow-[1px_1px_0_0_#000]">
+            <span className="text-[0.6em] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--mb-pink)] text-black border-2 border-black shadow-[1px_1px_0_0_#000]">
               SKIP
             </span>
           </>
         ) : card.rank === "2" ? (
           <>
             <LightningIcon className={cn(iconSizeClass, "text-[var(--mb-gold)]")} />
-            <span className="text-[0.6em] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--mb-gold)] text-[var(--mb-on-gold)] border-2 border-black shadow-[1px_1px_0_0_#000]">
+            <span className="text-[0.65em] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--mb-danger)] text-white border-2 border-black shadow-[1px_1px_0_0_#000]">
               +2 DRAW
             </span>
           </>
         ) : isWild ? (
           <>
             <StarIcon className={cn(iconSizeClass, "text-[var(--mb-gold)]")} />
-            <span className="text-[0.55em] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--mb-gold)] text-[var(--mb-on-gold)] border-2 border-black shadow-[1px_1px_0_0_#000]">
+            <span className="text-[0.6em] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--mb-gold)] text-black border-2 border-black shadow-[1px_1px_0_0_#000]">
               {card.rank === "JOKER" ? "JOKER" : "WILD 8"}
             </span>
           </>
