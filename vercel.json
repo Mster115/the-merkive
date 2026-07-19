@@ -3,5 +3,5 @@
   "framework": "nextjs",
   "buildCommand": "pnpm --filter @merky/web build",
   "outputDirectory": "apps/web/.next",
-  "installCommand": "corepack pnpm install"
+  "installCommand": "pnpm install --no-frozen-lockfile"
 }
