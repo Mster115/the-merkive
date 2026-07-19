@@ -36,8 +36,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${display.variable} ${body.variable}`}>
-      <body>
+    <html lang="en" className={`${display.variable} ${body.variable}`} suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <div aria-hidden="true" className="mb-orb w-[42vw] h-[42vw] left-[-12vw] top-[-14vw] bg-[#b76dff]" />
         <div
           aria-hidden="true"

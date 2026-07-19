@@ -139,14 +139,14 @@ export function HomeScreen() {
               className="flex flex-col gap-4 mb-rise -rotate-[0.6deg]"
               style={{ "--mb-i": 1 } as React.CSSProperties}
             >
-              <label className="flex flex-col gap-1.5">
-                <span className="text-xs font-black uppercase tracking-widest text-[var(--mb-violet)] flex justify-between items-center">
+              <label className="flex flex-col gap-1.5" suppressHydrationWarning>
+                <span className="text-xs font-black uppercase tracking-widest text-[var(--mb-violet)] flex justify-between items-center" suppressHydrationWarning>
                   <span>{t("home.name.label")}</span>
                   <span className="text-[10px] opacity-60 text-[var(--mb-text-dim)] font-normal uppercase tracking-normal">
                     Used across all games
                   </span>
                 </span>
-                <span className="relative">
+                <span className="relative" suppressHydrationWarning>
                   <input
                     value={name}
                     onChange={(e) => setName(e.target.value)}

@@ -9,6 +9,7 @@ export function Card({
 }: React.HTMLAttributes<HTMLDivElement> & { raised?: boolean; glass?: boolean }) {
   return (
     <div
+      suppressHydrationWarning
       className={cn(
         "rounded-lg bg-[var(--mb-surface)] p-5 border-[3px] border-black shadow-[var(--mb-shadow)]",
         raised && "border-4 shadow-[var(--mb-shadow-lg)]",
@@ -25,6 +26,7 @@ export function Card({
 export function Panel({ className, ...rest }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
+      suppressHydrationWarning
       className={cn(
         "rounded-md bg-[var(--mb-surface-2)] p-4 border-2 border-black",
         className
