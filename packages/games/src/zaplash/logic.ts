@@ -7,7 +7,7 @@ import type {
   ReduceError,
   SeatIndex,
 } from "@merky/game-sdk";
-import { ZAPLASH_CORE_PROMPTS } from "./packs";
+import { ZAPLASH_CORE_PROMPTS, ZAPLASH_SAFETY_QUIPS } from "./packs";
 
 export interface PromptAssignment {
   promptIndex: number;
@@ -29,6 +29,33 @@ export interface MatchupState {
   votesPerAnswer?: [number, number];
   pointsAwarded?: [number, number];
   zapSeat?: SeatIndex | null;
+  /** Both writers submitted the exact same text (case/whitespace-insensitive) — 0 points, no vote. */
+  jinx?: boolean;
+}
+
+export interface FinaleAnswer {
+  seat: SeatIndex;
+  text: string;
+}
+
+export interface FinaleResult {
+  seat: SeatIndex;
+  text: string;
+  votes: number;
+  /** 0-indexed placement; tied vote counts share a rank. */
+  rank: number;
+  points: number;
+}
+
+export interface FinaleState {
+  promptText: string;
+  submittedSeats: SeatIndex[];
+  /** Populated once writing closes — shuffled, missing/blank answers dropped. */
+  answers: FinaleAnswer[];
+  votedSeats: SeatIndex[];
+  /** voterSeat -> targetSeat */
+  votes: Record<number, SeatIndex>;
+  results: FinaleResult[] | null;
 }
 
 export interface ZaplashPublicState {
@@ -47,11 +74,14 @@ export interface ZaplashPublicState {
   /** Running cumulative totals — the platform's scores contract needs totals,
    * and reduce never receives prior scores, so the game carries its own. */
   _totals: Partial<Record<SeatIndex, number>>;
+  /** The climactic final round, once the last regular round's scoreboard has passed. */
+  finale: FinaleState | null;
 }
 
 export interface ZaplashPrivateState {
   prompts: Array<{ index: number; text: string }>;
   answers: Record<number, string>;
+  finaleAnswer?: string;
 }
 
 export interface ZaplashSettings {
@@ -60,6 +90,7 @@ export interface ZaplashSettings {
   voteSeconds: number;
   zapBonus: boolean;
   packId: string;
+  lightningRound: boolean;
 }
 
 export function shuffle<T>(array: T[], rng: () => number): T[] {
@@ -83,6 +114,7 @@ export function getSettings(ctx: GameContext): ZaplashSettings {
     voteSeconds: typeof ctx.settings.voteSeconds === "number" ? ctx.settings.voteSeconds : 25,
     zapBonus: Boolean(ctx.settings.zapBonus ?? true),
     packId: typeof ctx.settings.packId === "string" ? ctx.settings.packId : "zaplash-core",
+    lightningRound: Boolean(ctx.settings.lightningRound ?? true),
   };
 }
 
@@ -95,6 +127,15 @@ function getPromptPool(ctx: GameContext): string[] {
   return ZAPLASH_CORE_PROMPTS;
 }
 
+function pickSafetyQuip(ctx: GameContext): string {
+  const idx = Math.floor(ctx.rng() * ZAPLASH_SAFETY_QUIPS.length);
+  return ZAPLASH_SAFETY_QUIPS[idx] ?? ZAPLASH_SAFETY_QUIPS[0]!;
+}
+
+function activeSeatsOf(ctx: GameContext): SeatIndex[] {
+  return ctx.seats.filter((s) => !s.abandoned).map((s) => s.seatIndex);
+}
+
 function startRound(
   ctx: GameContext,
   round: number,
@@ -104,7 +145,7 @@ function startRound(
   carriedTotals: Partial<Record<SeatIndex, number>>
 ): ReduceResult {
   const settings = getSettings(ctx);
-  const activeSeats = ctx.seats.filter((s) => !s.abandoned).map((s) => s.seatIndex);
+  const activeSeats = activeSeatsOf(ctx);
   const N = activeSeats.length;
 
   let pool = [...existingPool];
@@ -166,6 +207,7 @@ function startRound(
     _roundVotes: {},
     _roundAnswers: {},
     _totals: carriedTotals,
+    finale: null,
   };
 
   const writeMs = settings.writeSeconds * 1000;
@@ -186,13 +228,56 @@ export function initZaplash(ctx: GameContext): ReduceResult {
   return startRound(ctx, 1, settings.rounds, initialPool, [], {});
 }
 
+function applyWriteAnswer(
+  ctx: GameContext,
+  state: GameStateIn,
+  pub: ZaplashPublicState,
+  seat: SeatIndex,
+  promptIndex: number,
+  text: string
+): ReduceResult {
+  const priv = (state.privateState[seat] as ZaplashPrivateState | undefined) ?? {
+    prompts: [],
+    answers: {},
+  };
+  const newAnswers = { ...priv.answers, [promptIndex]: text };
+  const newPriv: ZaplashPrivateState = { ...priv, answers: newAnswers };
+
+  const finishedBoth = priv.prompts.length > 0 && priv.prompts.every((p) => newAnswers[p.index] !== undefined);
+  const newSubmitted = [...pub.submittedSeats];
+  if (finishedBoth && !newSubmitted.includes(seat)) {
+    newSubmitted.push(seat);
+  }
+
+  const updatedPrivateState = { ...state.privateState, [seat]: newPriv };
+  const activeSeats = activeSeatsOf(ctx);
+  const allDone = activeSeats.every((s) => newSubmitted.includes(s));
+
+  const nextPub: ZaplashPublicState = {
+    ...pub,
+    submittedSeats: newSubmitted,
+  };
+
+  if (allDone) {
+    return advanceToVote(ctx, { ...state, publicState: nextPub, privateState: updatedPrivateState });
+  }
+
+  return {
+    publicState: nextPub,
+    privateState: { [seat]: newPriv },
+    phase: "write",
+    events: [{ type: "answer_submitted", payload: { seat, promptIndex } }],
+  };
+}
+
 function buildMatchups(
   ctx: GameContext,
   pub: ZaplashPublicState,
   privateStateMap: Partial<Record<SeatIndex, unknown>>
 ): MatchupState[] {
-  const activeSeats = ctx.seats.filter((s) => !s.abandoned).map((s) => s.seatIndex);
+  const activeSeats = activeSeatsOf(ctx);
   const matchups: MatchupState[] = [];
+  const norm = (s: string) => s.trim().toLowerCase();
 
   for (const pa of pub._roundPrompts) {
     const [w0, w1] = pa.writers;
@@ -211,6 +296,8 @@ function buildMatchups(
       continue;
     }
 
+    const isJinx = text0 !== "…" && text1 !== "…" && norm(text0) === norm(text1);
+
     const order = ctx.rng() < 0.5 ? [0, 1] : [1, 0];
     const firstIdx = order[0]!;
     const secondIdx = order[1]!;
@@ -226,10 +313,50 @@ function buildMatchups(
       answers: [{ text: firstText }, { text: secondText }],
       writers: [firstWriter, secondWriter],
       votedSeats: [],
+      jinx: isJinx,
     });
   }
 
   return matchups;
+}
+
+function revealJinx(
+  ctx: GameContext,
+  pub: ZaplashPublicState,
+  matchups: MatchupState[],
+  matchupIdx: number
+): ReduceResult {
+  const current = matchups[matchupIdx]!;
+  const [w0, w1] = current.writers;
+
+  const revealMatchup: MatchupState = {
+    ...current,
+    answers: [
+      { text: current.answers[0]?.text ?? "", writerSeat: w0 },
+      { text: current.answers[1]?.text ?? "", writerSeat: w1 },
+    ],
+    votesPerAnswer: [0, 0],
+    pointsAwarded: [0, 0],
+    zapSeat: null,
+  };
+
+  const revealPub: ZaplashPublicState = {
+    ...pub,
+    currentMatchupIndex: matchupIdx,
+    totalMatchups: matchups.length,
+    currentMatchup: revealMatchup,
+    _roundMatchups: matchups,
+  };
+
+  const revealMs = 6000;
+
+  return {
+    publicState: revealPub,
+    phase: "reveal",
+    scores: pub._totals,
+    events: [{ type: "jinx", payload: { matchupIndex: matchupIdx } }],
+    timer: { endsAt: ctx.now + revealMs, kind: "reveal", durationMs: revealMs },
+  };
 }
 
 function startNextMatchup(
@@ -258,6 +385,11 @@ function startNextMatchup(
   }
 
   const current = matchups[matchupIdx]!;
+
+  if (current.jinx) {
+    return revealJinx(ctx, pub, matchups, matchupIdx);
+  }
+
   const voteMs = settings.voteSeconds * 1000;
 
   const voteMatchupPublic: MatchupState = {
@@ -362,6 +494,179 @@ function startReveal(ctx: GameContext, state: GameStateIn): ReduceResult {
   };
 }
 
+/* ------------------------------------------------------------------ */
+/* Lightning Round — the climactic finale after the last regular round */
+/* ------------------------------------------------------------------ */
+
+function finishMatch(pub: ZaplashPublicState): ReduceResult {
+  return {
+    publicState: pub,
+    phase: "game_over",
+    scores: pub._totals,
+    events: [{ type: "game_over" }],
+    timer: null,
+    matchOver: true,
+  };
+}
+
+function startFinaleWrite(ctx: GameContext, pub: ZaplashPublicState): ReduceResult | null {
+  const settings = getSettings(ctx);
+  const activeSeats = activeSeatsOf(ctx);
+  if (activeSeats.length < 2) return null;
+
+  let pool = [...pub._promptPool];
+  if (pool.length === 0) {
+    pool = shuffle(getPromptPool(ctx), ctx.rng);
+  }
+  const shuffledPool = shuffle(pool, ctx.rng);
+  const promptText = shuffledPool[0] ?? "The worst possible thing to say right now: _____";
+  const remainingPool = shuffledPool.slice(1);
+  const used = [...pub._usedPrompts, promptText];
+
+  const finale: FinaleState = {
+    promptText,
+    submittedSeats: [],
+    answers: [],
+    votedSeats: [],
+    votes: {},
+    results: null,
+  };
+
+  const writeMs = settings.writeSeconds * 1000;
+
+  return {
+    publicState: {
+      ...pub,
+      _promptPool: remainingPool,
+      _usedPrompts: used,
+      finale,
+    },
+    phase: "finale_write",
+    scores: pub._totals,
+    events: [{ type: "finale_started" }],
+    timer: { endsAt: ctx.now + writeMs, kind: "finale_write", durationMs: writeMs },
+  };
+}
+
+function finalizeFinaleAnswer(
+  ctx: GameContext,
+  state: GameStateIn,
+  pub: ZaplashPublicState,
+  seat: SeatIndex,
+  text: string
+): ReduceResult {
+  const finale = pub.finale!;
+  const priv = (state.privateState[seat] as ZaplashPrivateState | undefined) ?? {
+    prompts: [],
+    answers: {},
+  };
+  const newPriv: ZaplashPrivateState = { ...priv, finaleAnswer: text };
+
+  const newSubmitted = finale.submittedSeats.includes(seat)
+    ? finale.submittedSeats
+    : [...finale.submittedSeats, seat];
+  const nextFinale: FinaleState = { ...finale, submittedSeats: newSubmitted };
+  const nextPub: ZaplashPublicState = { ...pub, finale: nextFinale };
+
+  const updatedPrivateState = { ...state.privateState, [seat]: newPriv };
+  const activeSeats = activeSeatsOf(ctx);
+  const allDone = activeSeats.every((s) => newSubmitted.includes(s));
+
+  if (allDone) {
+    return advanceToFinaleVote(ctx, { ...state, publicState: nextPub, privateState: updatedPrivateState });
+  }
+
+  return {
+    publicState: nextPub,
+    privateState: { [seat]: newPriv },
+    phase: "finale_write",
+    events: [{ type: "finale_answer_submitted", payload: { seat } }],
+  };
+}
+
+function advanceToFinaleVote(ctx: GameContext, state: GameStateIn): ReduceResult {
+  const pub = state.publicState as ZaplashPublicState;
+  const finale = pub.finale!;
+  const settings = getSettings(ctx);
+  const activeSeats = activeSeatsOf(ctx);
+
+  const rawEntries: FinaleAnswer[] = [];
+  for (const seat of activeSeats) {
+    const priv = state.privateState[seat] as ZaplashPrivateState | undefined;
+    const text = priv?.finaleAnswer?.trim();
+    if (text && text.length > 0) {
+      rawEntries.push({ seat, text });
+    }
+  }
+  const shuffledEntries = shuffle(rawEntries, ctx.rng);
+
+  if (shuffledEntries.length < 2) {
+    const nextFinale: FinaleState = { ...finale, answers: shuffledEntries };
+    return finaleReveal(ctx, { ...state, publicState: { ...pub, finale: nextFinale } });
+  }
+
+  const nextFinale: FinaleState = { ...finale, answers: shuffledEntries };
+  const nextPub: ZaplashPublicState = { ...pub, finale: nextFinale };
+  const voteMs = settings.voteSeconds * 1000;
+
+  return {
+    publicState: nextPub,
+    phase: "finale_vote",
+    events: [{ type: "finale_voting_started" }],
+    timer: { endsAt: ctx.now + voteMs, kind: "finale_vote", durationMs: voteMs },
+  };
+}
+
+function finaleReveal(ctx: GameContext, state: GameStateIn): ReduceResult {
+  const pub = state.publicState as ZaplashPublicState;
+  const finale = pub.finale!;
+
+  const counts: Record<number, number> = {};
+  for (const target of Object.values(finale.votes)) {
+    counts[target] = (counts[target] ?? 0) + 1;
+  }
+
+  const awardMedals = finale.answers.length >= 2;
+  const medalBonus = [500, 300, 150];
+
+  const withVotes = finale.answers.map((a) => ({ seat: a.seat, text: a.text, votes: counts[a.seat] ?? 0 }));
+  const sorted = [...withVotes].sort((a, b) => b.votes - a.votes || a.seat - b.seat);
+
+  const results: FinaleResult[] = [];
+  const updatedScores: Partial<Record<SeatIndex, number>> = { ...(pub._totals ?? {}) };
+
+  let rank = 0;
+  for (let i = 0; i < sorted.length; i++) {
+    const entry = sorted[i]!;
+    if (i > 0 && sorted[i - 1]!.votes !== entry.votes) {
+      rank = i;
+    }
+    const bonus = awardMedals && rank < 3 ? medalBonus[rank]! : 0;
+    const points = entry.votes * 100 + bonus;
+    results.push({ seat: entry.seat, text: entry.text, votes: entry.votes, rank, points });
+    updatedScores[entry.seat] = (updatedScores[entry.seat] ?? 0) + points;
+  }
+
+  const nextFinale: FinaleState = { ...finale, results };
+  const nextPub: ZaplashPublicState = { ...pub, finale: nextFinale, _totals: updatedScores };
+
+  const events: GameEvent[] = [{ type: "finale_reveal" }];
+  const winner = results.find((r) => r.rank === 0);
+  if (winner && winner.points > 0) {
+    events.push({ type: "finale_winner", payload: { seat: winner.seat } });
+  }
+
+  const revealMs = 9000;
+
+  return {
+    publicState: nextPub,
+    phase: "finale_reveal",
+    scores: updatedScores,
+    events,
+    timer: { endsAt: ctx.now + revealMs, kind: "finale_reveal", durationMs: revealMs },
+  };
+}
+
 export function reduceZaplash(
   ctx: GameContext,
   state: GameStateIn,
@@ -406,34 +711,36 @@ export function reduceZaplash(
       return { error: "Answer must be 120 characters or fewer", code: "too_long" };
     }
 
-    const newAnswers = { ...priv.answers, [promptIndex]: trimmed };
-    const newPriv: ZaplashPrivateState = { ...priv, answers: newAnswers };
+    return applyWriteAnswer(ctx, state, pub, seat, promptIndex, trimmed);
+  }
 
-    const finishedBoth = priv.prompts.length > 0 && priv.prompts.every((p) => newAnswers[p.index] !== undefined);
-    const newSubmitted = [...pub.submittedSeats];
-    if (finishedBoth && !newSubmitted.includes(seat)) {
-      newSubmitted.push(seat);
+  if (action.type === "use_safety_quip") {
+    if (state.phase !== "write") {
+      return { error: "Not in write phase", code: "bad_phase" };
     }
 
-    const updatedPrivateState = { ...state.privateState, [seat]: newPriv };
-    const activeSeats = ctx.seats.filter((s) => !s.abandoned).map((s) => s.seatIndex);
-    const allDone = activeSeats.every((s) => newSubmitted.includes(s));
-
-    const nextPub: ZaplashPublicState = {
-      ...pub,
-      submittedSeats: newSubmitted,
-    };
-
-    if (allDone) {
-      return advanceToVote(ctx, { ...state, publicState: nextPub, privateState: updatedPrivateState });
+    const payload = action.payload as { promptIndex?: number } | undefined;
+    const promptIndex = payload?.promptIndex;
+    if (typeof promptIndex !== "number") {
+      return { error: "Prompt index required", code: "bad_prompt" };
     }
 
-    return {
-      publicState: nextPub,
-      privateState: { [seat]: newPriv },
-      phase: "write",
-      events: [{ type: "answer_submitted", payload: { seat, promptIndex } }],
+    const seat = action.seat as SeatIndex;
+    const priv = (state.privateState[seat] as ZaplashPrivateState | undefined) ?? {
+      prompts: [],
+      answers: {},
     };
+
+    const assigned = priv.prompts.some((p) => p.index === promptIndex);
+    if (!assigned) {
+      return { error: "Not your prompt", code: "not_your_prompt" };
+    }
+
+    if (priv.answers[promptIndex] !== undefined) {
+      return { error: "Already submitted answer for this prompt", code: "already_submitted" };
+    }
+
+    return applyWriteAnswer(ctx, state, pub, seat, promptIndex, pickSafetyQuip(ctx));
   }
 
   if (action.type === "vote") {
@@ -483,7 +790,7 @@ export function reduceZaplash(
       },
     };
 
-    const activeSeats = ctx.seats.filter((s) => !s.abandoned).map((s) => s.seatIndex);
+    const activeSeats = activeSeatsOf(ctx);
     const eligibleVoters = activeSeats.filter((s) => s !== w0 && s !== w1);
     const allVoted = eligibleVoters.every((s) => newVotedSeats.includes(s));
 
@@ -495,6 +802,96 @@ export function reduceZaplash(
       publicState: nextPub,
       phase: "vote",
       events: [{ type: "voted", payload: { seat } }],
+    };
+  }
+
+  if (action.type === "submit_finale_answer") {
+    if (state.phase !== "finale_write") {
+      return { error: "Not in finale writing phase", code: "bad_phase" };
+    }
+    if (!pub.finale) {
+      return { error: "No active finale", code: "no_finale" };
+    }
+
+    const seat = action.seat as SeatIndex;
+    if (pub.finale.submittedSeats.includes(seat)) {
+      return { error: "Already submitted", code: "already_submitted" };
+    }
+
+    const payload = action.payload as { text?: string } | undefined;
+    const trimmed = (payload?.text ?? "").trim();
+    if (trimmed.length === 0) {
+      return { error: "Answer cannot be empty", code: "empty_answer" };
+    }
+    if (trimmed.length > 120) {
+      return { error: "Answer must be 120 characters or fewer", code: "too_long" };
+    }
+
+    return finalizeFinaleAnswer(ctx, state, pub, seat, trimmed);
+  }
+
+  if (action.type === "use_finale_safety_quip") {
+    if (state.phase !== "finale_write") {
+      return { error: "Not in finale writing phase", code: "bad_phase" };
+    }
+    if (!pub.finale) {
+      return { error: "No active finale", code: "no_finale" };
+    }
+
+    const seat = action.seat as SeatIndex;
+    if (pub.finale.submittedSeats.includes(seat)) {
+      return { error: "Already submitted", code: "already_submitted" };
+    }
+
+    return finalizeFinaleAnswer(ctx, state, pub, seat, pickSafetyQuip(ctx));
+  }
+
+  if (action.type === "finale_vote") {
+    if (state.phase !== "finale_vote") {
+      return { error: "Not in finale voting phase", code: "bad_phase" };
+    }
+    if (!pub.finale) {
+      return { error: "No active finale", code: "no_finale" };
+    }
+
+    const seat = action.seat as SeatIndex;
+    const seatObj = ctx.seats.find((s) => s.seatIndex === seat);
+    if (seatObj?.abandoned) {
+      return { error: "Not eligible to vote", code: "not_eligible" };
+    }
+    if (pub.finale.votedSeats.includes(seat)) {
+      return { error: "Already voted", code: "already_voted" };
+    }
+
+    const payload = action.payload as { targetSeat?: number } | undefined;
+    const targetSeat = payload?.targetSeat;
+    if (typeof targetSeat !== "number") {
+      return { error: "Invalid vote target", code: "invalid_choice" };
+    }
+    if (targetSeat === seat) {
+      return { error: "Cannot vote for yourself", code: "self_vote" };
+    }
+    const targetEntry = pub.finale.answers.find((a) => a.seat === targetSeat);
+    if (!targetEntry) {
+      return { error: "Invalid vote target", code: "invalid_choice" };
+    }
+
+    const newVotes: Record<number, SeatIndex> = { ...pub.finale.votes, [seat]: targetSeat as SeatIndex };
+    const newVotedSeats = [...pub.finale.votedSeats, seat];
+    const nextFinale: FinaleState = { ...pub.finale, votes: newVotes, votedSeats: newVotedSeats };
+    const nextPub: ZaplashPublicState = { ...pub, finale: nextFinale };
+
+    const activeSeats = activeSeatsOf(ctx);
+    const allVoted = activeSeats.every((s) => newVotedSeats.includes(s));
+
+    if (allVoted) {
+      return finaleReveal(ctx, { ...state, publicState: nextPub });
+    }
+
+    return {
+      publicState: nextPub,
+      phase: "finale_vote",
+      events: [{ type: "finale_voted", payload: { seat } }],
     };
   }
 
@@ -530,14 +927,23 @@ export function onTickZaplash(ctx: GameContext, state: GameStateIn): ReduceResul
         pub._totals ?? {}
       );
     }
-    return {
-      publicState: pub,
-      phase: "game_over",
-      scores: pub._totals,
-      events: [{ type: "game_over" }],
-      timer: null,
-      matchOver: true,
-    };
+    if (settings.lightningRound) {
+      const finaleResult = startFinaleWrite(ctx, pub);
+      if (finaleResult) return finaleResult;
+    }
+    return finishMatch(pub);
+  }
+
+  if (state.phase === "finale_write") {
+    return advanceToFinaleVote(ctx, state);
+  }
+
+  if (state.phase === "finale_vote") {
+    return finaleReveal(ctx, state);
+  }
+
+  if (state.phase === "finale_reveal") {
+    return finishMatch(pub);
   }
 
   return null;
@@ -547,7 +953,7 @@ export function awaitedSeatsZaplash(ctx: GameContext, state: GameStateIn): SeatI
   const pub = state.publicState as ZaplashPublicState | null;
   if (!pub) return [];
 
-  const activeSeats = ctx.seats.filter((s) => !s.abandoned).map((s) => s.seatIndex);
+  const activeSeats = activeSeatsOf(ctx);
 
   if (state.phase === "write") {
     return activeSeats.filter((s) => !pub.submittedSeats.includes(s));
@@ -557,6 +963,14 @@ export function awaitedSeatsZaplash(ctx: GameContext, state: GameStateIn): SeatI
     const [w0, w1] = pub.currentMatchup.writers;
     const eligible = activeSeats.filter((s) => s !== w0 && s !== w1);
     return eligible.filter((s) => !pub.currentMatchup!.votedSeats.includes(s));
+  }
+
+  if (state.phase === "finale_write" && pub.finale) {
+    return activeSeats.filter((s) => !pub.finale!.submittedSeats.includes(s));
+  }
+
+  if (state.phase === "finale_vote" && pub.finale) {
+    return activeSeats.filter((s) => !pub.finale!.votedSeats.includes(s));
   }
 
   return [];

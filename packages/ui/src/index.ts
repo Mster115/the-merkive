@@ -12,6 +12,7 @@ export { ConfettiBurst } from "./Confetti";
 export { CountUp } from "./CountUp";
 export { SoundToggle } from "./SoundToggle";
 export { sfx, type SfxName } from "./sfx";
+export { bgm, BgmEngine, DEFAULT_BGM_TRACKS } from "./bgm";
 export { buzz } from "./haptics";
 export {
   LockIcon,
@@ -32,6 +33,8 @@ export {
   ZaplashIcon,
   EightstormIcon,
   TileTangleIcon,
+  MerkissionerIcon,
+  MerkwaveIcon,
   GameIcon,
   RankBadge,
 } from "./icons";

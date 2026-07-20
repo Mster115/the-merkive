@@ -3,7 +3,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { contentPacks, gameRegistry } from "@merky/games";
-import { Button, Card, Pill, LockIcon, Modal, GameIcon } from "@merky/ui";
+import { Button, Card, Pill, LockIcon, Modal, GameIcon, SoundToggle } from "@merky/ui";
 import { useT } from "@/i18n";
 import { api, ApiCallError } from "@/client/api";
 import { getPrefs, setPrefs, setToken } from "@/client/session";
@@ -113,20 +113,23 @@ export function HomeScreen() {
             </p>
           </div>
 
-          {/* Quick Stats / TV Launcher banner on wide viewports */}
-          <div className="hidden lg:flex items-center gap-3 bg-[var(--mb-surface-2)] border-3 border-black shadow-[4px_4px_0_0_#000] p-3 rounded-lg -rotate-1">
-            <div className="flex flex-col text-right">
-              <span className="text-xs font-black uppercase text-[var(--mb-accent-2)] tracking-wider">
-                Party Mode Live
-              </span>
-              <span className="text-xs font-bold text-[var(--mb-text-dim)]">
-                Dynamic Phone & TV Experience
+          <div className="flex items-center gap-3">
+            {/* Quick Stats / TV Launcher banner on wide viewports */}
+            <div className="hidden lg:flex items-center gap-3 bg-[var(--mb-surface-2)] border-3 border-black shadow-[4px_4px_0_0_#000] p-3 rounded-lg -rotate-1">
+              <div className="flex flex-col text-right">
+                <span className="text-xs font-black uppercase text-[var(--mb-accent-2)] tracking-wider">
+                  Party Mode Live
+                </span>
+                <span className="text-xs font-bold text-[var(--mb-text-dim)]">
+                  Dynamic Phone & TV Experience
+                </span>
+              </div>
+              <div className="h-8 w-[2px] bg-black" />
+              <span className="px-3 py-1.5 bg-[var(--mb-accent)] text-[var(--mb-on-accent)] font-black text-xs uppercase tracking-wider border-2 border-black shadow-[2px_2px_0_0_#000]">
+                Multi-Device Ready
               </span>
             </div>
-            <div className="h-8 w-[2px] bg-black" />
-            <span className="px-3 py-1.5 bg-[var(--mb-accent)] text-[var(--mb-on-accent)] font-black text-xs uppercase tracking-wider border-2 border-black shadow-[2px_2px_0_0_#000]">
-              Multi-Device Ready
-            </span>
+            <SoundToggle />
           </div>
         </header>
 

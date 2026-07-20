@@ -197,6 +197,29 @@ export function TileTangleIcon({ className = "w-6 h-6" }: { className?: string }
   );
 }
 
+export function MerkissionerIcon({ className = "w-6 h-6" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="7" y="3" width="10" height="7" rx="1" fill="var(--mb-danger)" fillOpacity="0.35" stroke="currentColor" strokeWidth="2" />
+      <path d="M4.5 10h15" stroke="currentColor" strokeWidth="2" />
+      <path d="M8 15c1.2-1.6 3-1.2 4 0 1-1.2 2.8-1.6 4 0-1 1.4-2.8 1.8-4 .6-1.2 1.2-3 .8-4-.6z" fill="var(--mb-gold)" fillOpacity="0.5" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="16.5" cy="19.5" r="2" stroke="currentColor" strokeWidth="1.6" fill="var(--mb-paper)" fillOpacity="0.25" />
+      <path d="M14.6 19.5H7" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
+export function MerkwaveIcon({ className = "w-6 h-6" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 18a9 9 0 0 1 18 0z" fill="var(--mb-accent)" fillOpacity="0.3" stroke="currentColor" strokeWidth="2" />
+      <path d="M12 18 8.4 10.6" stroke="var(--mb-gold)" strokeWidth="2.4" />
+      <circle cx="12" cy="18" r="1.6" fill="currentColor" stroke="none" />
+      <path d="M5.2 14.4l1.7 1M18.8 14.4l-1.7 1M12 9.2v2" stroke="currentColor" strokeWidth="1.4" />
+    </svg>
+  );
+}
+
 export function GameIcon({ gameId, className }: { gameId: string; className?: string }) {
   switch (gameId) {
     case "zaplash":
@@ -205,6 +228,10 @@ export function GameIcon({ gameId, className }: { gameId: string; className?: st
       return <EightstormIcon className={className} />;
     case "tiletangle":
       return <TileTangleIcon className={className} />;
+    case "merkissioner":
+      return <MerkissionerIcon className={className} />;
+    case "merkwave":
+      return <MerkwaveIcon className={className} />;
     default:
       return <PuzzleIcon className={className} />;
   }
