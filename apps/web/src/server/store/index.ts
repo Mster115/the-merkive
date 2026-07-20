@@ -10,8 +10,14 @@ declare global {
 
 export function getStore(): RoomStore {
   if (!globalThis.__mbStore) {
-    const upstashUrl = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
-    const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+    const upstashUrl =
+      process.env.UPSTASH_REDIS_REST_URL ||
+      process.env.KV_REST_API_URL ||
+      process.env.REDIS_REST_API_URL;
+    const upstashToken =
+      process.env.UPSTASH_REDIS_REST_TOKEN ||
+      process.env.KV_REST_API_TOKEN ||
+      process.env.REDIS_REST_API_TOKEN;
     const usePartyKit = process.env.PARTYKIT_HOST || process.env.NEXT_PUBLIC_PARTYKIT_HOST;
 
     if (upstashUrl && upstashToken && process.env.MB_MODE !== "memory") {
