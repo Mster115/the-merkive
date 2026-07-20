@@ -144,24 +144,34 @@ export function useRoom(code: string, mode: "controller" | "stage"): UseRoomResu
 
   const upperCode = code.toUpperCase();
 
-  // Initial identity + snapshot.
+  // Initial identity + snapshot (with retry for cold lambdas / room creation propagation).
   React.useEffect(() => {
     let cancelled = false;
+    let timerId: ReturnType<typeof setTimeout> | undefined;
     const existing = mode === "controller" ? getToken(upperCode) : null;
     tokenRef.current = existing;
     setTokenState(existing);
-    api
-      .sync(upperCode, existing, mode === "stage")
-      .then((snapshot) => {
+
+    const fetchSync = async (attemptsLeft = 3) => {
+      try {
+        const snapshot = await api.sync(upperCode, existing, mode === "stage");
         if (!cancelled) dispatch({ t: "snapshot", snapshot });
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) {
-          dispatch({ t: "error", code: err instanceof ApiCallError ? err.code : "internal" });
+      } catch (err: unknown) {
+        if (cancelled) return;
+        const errCode = err instanceof ApiCallError ? err.code : "internal";
+        if (errCode === "room_not_found" && attemptsLeft > 0) {
+          timerId = setTimeout(() => void fetchSync(attemptsLeft - 1), 300);
+        } else {
+          dispatch({ t: "error", code: errCode });
         }
-      });
+      }
+    };
+
+    void fetchSync();
+
     return () => {
       cancelled = true;
+      if (timerId) clearTimeout(timerId);
     };
   }, [upperCode, mode]);
 
