@@ -31,6 +31,8 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   block?: boolean;
   /** Skip the built-in tap haptic/click. */
   silent?: boolean;
+  /** Disable diagonal shine overlay on hover. */
+  noShine?: boolean;
 }
 
 export function Button({
@@ -38,11 +40,14 @@ export function Button({
   size = "md",
   block,
   silent,
+  noShine = false,
   className,
   type = "button",
   onClick,
   ...rest
 }: ButtonProps) {
+  const disableShine = noShine || variant === "secondary";
+
   return (
     <button
       type={type}
@@ -54,8 +59,9 @@ export function Button({
         onClick?.(e);
       }}
       className={cn(
-        "mb-shine inline-flex items-center justify-center gap-2 font-black uppercase tracking-wide select-none",
-        "transition-all duration-100 will-change-transform",
+        !disableShine && "mb-shine",
+        "inline-flex items-center justify-center gap-2 font-black uppercase tracking-wide select-none",
+        "transition-all duration-100 will-change-transform hover:brightness-105",
         "disabled:opacity-40 disabled:saturate-50 disabled:pointer-events-none",
         "focus-visible:outline-4 focus-visible:outline-[var(--mb-violet)] focus-visible:outline-offset-2",
         "[font-family:var(--mb-font-display)]",

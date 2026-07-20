@@ -9,6 +9,11 @@ export interface TileComponentProps {
   size?: "sm" | "md" | "lg";
   disabled?: boolean;
   className?: string;
+  draggable?: boolean;
+  onDragStart?: (e: React.DragEvent) => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDrop?: (e: React.DragEvent) => void;
+  onDragEnd?: (e: React.DragEvent) => void;
 }
 
 const COLOR_MAP: Record<number, { name: string; textClass: string; barClass: string; symbol: string }> = {
@@ -25,6 +30,11 @@ export const TileComponent: React.FC<TileComponentProps> = ({
   size = "md",
   disabled,
   className,
+  draggable,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
 }) => {
   const isJoker = Boolean(tile.joker);
   const colorInfo = COLOR_MAP[tile.c] ?? COLOR_MAP[0]!;
@@ -42,6 +52,11 @@ export const TileComponent: React.FC<TileComponentProps> = ({
       type="button"
       onClick={onClick}
       disabled={disabled}
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
       aria-label={ariaLabel}
       aria-pressed={selected}
       className={cn(

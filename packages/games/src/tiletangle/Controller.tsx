@@ -36,16 +36,26 @@ export const Controller: React.FC<ControllerProps> = ({
   } | null>(null);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
 
-  // Re-sync workbench when server state / version updates
+  const [draggedRackIndex, setDraggedRackIndex] = React.useState<number | null>(null);
+
+  // Re-sync workbench when server state / version updates (preserving hand customization)
   const serverTable = React.useMemo(() => pub?.table.map((m) => m.tiles) ?? [], [pub?.table]);
   const serverRack = React.useMemo(() => priv?.rack ?? [], [priv?.rack]);
 
   React.useEffect(() => {
     setLocalTable(serverTable);
-    setLocalRack(serverRack);
     setPlacedTileIds([]);
     setSelectedTile(null);
     setErrorMsg(null);
+
+    setLocalRack((prevRack) => {
+      if (prevRack.length === 0) return serverRack;
+      const serverIds = new Set(serverRack.map((t) => t.id));
+      const preserved = prevRack.filter((t) => serverIds.has(t.id));
+      const preservedIds = new Set(preserved.map((t) => t.id));
+      const newTiles = serverRack.filter((t) => !preservedIds.has(t.id));
+      return [...preserved, ...newTiles];
+    });
   }, [match.version, serverTable, serverRack]);
 
   if (!pub || !priv) {
@@ -60,13 +70,70 @@ export const Controller: React.FC<ControllerProps> = ({
     setErrorMsg(null);
   };
 
+  const handleSort789 = () => {
+    const sorted = [...localRack].sort((a, b) => {
+      if (a.joker) return 1;
+      if (b.joker) return -1;
+      if (a.n !== b.n) return a.n - b.n;
+      return a.c - b.c;
+    });
+    setLocalRack(sorted);
+    setSelectedTile(null);
+    buzz(15);
+  };
+
+  const handleSortColor = () => {
+    const sorted = [...localRack].sort((a, b) => {
+      if (a.joker) return 1;
+      if (b.joker) return -1;
+      if (a.c !== b.c) return a.c - b.c;
+      return a.n - b.n;
+    });
+    setLocalRack(sorted);
+    setSelectedTile(null);
+    buzz(15);
+  };
+
+  const handleMoveRackTile = (dir: "left" | "right") => {
+    if (!selectedTile || selectedTile.source !== "rack") return;
+    const oldIdx = selectedTile.tileIndex;
+    const newIdx = dir === "left" ? oldIdx - 1 : oldIdx + 1;
+    if (newIdx < 0 || newIdx >= localRack.length) return;
+
+    const nextRack = [...localRack];
+    const [moved] = nextRack.splice(oldIdx, 1);
+    if (!moved) return;
+    nextRack.splice(newIdx, 0, moved);
+
+    setLocalRack(nextRack);
+    setSelectedTile({ source: "rack", tileIndex: newIdx, tile: moved });
+    buzz(10);
+  };
+
   const handleTileSelect = (
     tile: Tile,
     source: "rack" | "table",
     tileIndex: number,
     meldIndex?: number
   ) => {
-    if (!isMyTurn) return;
+    if (source === "table" && !isMyTurn) return;
+
+    // Tap-to-reorder in rack (works anytime, turn or waiting)
+    if (selectedTile?.source === "rack" && source === "rack") {
+      if (selectedTile.tileIndex === tileIndex) {
+        setSelectedTile(null);
+        return;
+      }
+      const oldIdx = selectedTile.tileIndex;
+      const nextRack = [...localRack];
+      const [moved] = nextRack.splice(oldIdx, 1);
+      if (!moved) return;
+      nextRack.splice(tileIndex, 0, moved);
+      setLocalRack(nextRack);
+      setSelectedTile({ source: "rack", tileIndex, tile: moved });
+      buzz(10);
+      return;
+    }
 
     if (
       selectedTile &&
@@ -74,7 +141,6 @@ export const Controller: React.FC<ControllerProps> = ({
       selectedTile.tileIndex === tileIndex &&
       selectedTile.meldIndex === meldIndex
     ) {
-      // Deselect
       setSelectedTile(null);
       return;
     }
@@ -366,11 +432,38 @@ export const Controller: React.FC<ControllerProps> = ({
 
       {/* Player's Rack */}
       <div className="bg-[var(--mb-surface-2)] border-[3px] border-black shadow-[var(--mb-shadow)] rounded-2xl p-4 space-y-3 -rotate-[0.3deg]">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <span className="text-xs font-black uppercase text-[var(--mb-text-dim)] tracking-wider [font-family:var(--mb-font-display)] flex items-center gap-1.5">
-            <BackpackIcon className="w-4 h-4" /> {t("games.tiletangle.yourRack")}
+            <BackpackIcon className="w-4 h-4" /> {t("games.tiletangle.yourRack")} ({localRack.length})
           </span>
-          <Pill tone="neutral">{localRack.length} TILES</Pill>
+          <div className="flex items-center gap-1.5">
+            {selectedTile?.source === "rack" && (
+              <>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={selectedTile.tileIndex === 0}
+                  onClick={() => handleMoveRackTile("left")}
+                >
+                  {t("games.tiletangle.moveLeft")}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={selectedTile.tileIndex === localRack.length - 1}
+                  onClick={() => handleMoveRackTile("right")}
+                >
+                  {t("games.tiletangle.moveRight")}
+                </Button>
+              </>
+            )}
+            <Button size="sm" variant="ghost" onClick={handleSort789}>
+              {t("games.tiletangle.sort789")}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={handleSortColor}>
+              {t("games.tiletangle.sortColor")}
+            </Button>
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-2 p-3 bg-[var(--mb-surface-3)] rounded-xl border-2 border-black min-h-[80px] items-center">
@@ -385,7 +478,24 @@ export const Controller: React.FC<ControllerProps> = ({
                 size="md"
                 selected={isSelected}
                 onClick={() => handleTileSelect(tile, "rack", rIdx)}
-                disabled={!isMyTurn}
+                draggable
+                onDragStart={(e) => {
+                  setDraggedRackIndex(rIdx);
+                  e.dataTransfer.effectAllowed = "move";
+                }}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (draggedRackIndex === null || draggedRackIndex === rIdx) return;
+                  const nextRack = [...localRack];
+                  const [moved] = nextRack.splice(draggedRackIndex, 1);
+                  if (!moved) return;
+                  nextRack.splice(rIdx, 0, moved);
+                  setLocalRack(nextRack);
+                  setSelectedTile({ source: "rack", tileIndex: rIdx, tile: moved });
+                  setDraggedRackIndex(null);
+                  buzz(15);
+                }}
               />
             );
           })}

@@ -186,6 +186,7 @@ export function HomeScreen() {
                   size="sm"
                   block
                   disabled={busy}
+                  className="hover:border-[var(--mb-accent-2)] hover:scale-[1.01] hover:shadow-[3px_3px_0_0_#000] transition-all cursor-pointer"
                   onClick={() => void handleCreateStage()}
                 >
                   📺 THIS IS THE TV / DISPLAY ONLY

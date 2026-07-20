@@ -1,7 +1,7 @@
 /** Shell strings. Game strings live in each game module under games.<id>.*. */
 export const en: Record<string, string> = {
   "app.name": "The Merkive",
-  "app.tagline": "Where friendships come to get merked.",
+  "app.tagline": "Looks like tonight's getting a bit merky...",
 
   "home.create.title": "Start a room",
   "home.create.cta": "Create room",
