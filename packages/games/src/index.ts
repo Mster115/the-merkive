@@ -2,6 +2,7 @@ import type { GameModule } from "@merky/game-sdk";
 import { zaplash } from "./zaplash";
 import { tiletangle } from "./tiletangle";
 import { eightstorm } from "./eightstorm";
+import { secretmerk } from "./secretmerk";
 
 export interface ContentPack {
   id: string;
@@ -19,6 +20,7 @@ export const gameRegistry: Record<string, GameModule> = {
   [zaplash.meta.id]: zaplash,
   [tiletangle.meta.id]: tiletangle,
   [eightstorm.meta.id]: eightstorm,
+  [secretmerk.meta.id]: secretmerk,
 };
 
 export const gameList: GameModule[] = Object.values(gameRegistry);
@@ -31,7 +33,7 @@ export const contentPacks: ContentPack[] = [
     taglineKey: "pack.merkining.tagline",
     badge: "pack.merkining.badge",
     isComingSoon: false,
-    gameIds: ["zaplash", "tiletangle", "eightstorm"],
+    gameIds: ["zaplash", "tiletangle", "eightstorm", "secretmerk"],
     gradientTheme: "from-purple-950/80 via-indigo-900/60 to-pink-950/80 border-[var(--mb-accent)]",
   },
   {

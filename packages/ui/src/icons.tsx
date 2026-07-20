@@ -197,6 +197,16 @@ export function TileTangleIcon({ className = "w-6 h-6" }: { className?: string }
   );
 }
 
+export function SecretMerkIcon({ className = "w-6 h-6" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" fill="var(--mb-danger)" fillOpacity="0.3" stroke="currentColor" strokeWidth="2" />
+      <path d="M9 10a3 3 0 0 1 6 0c0 1.6-1.5 2.5-2.5 3.5v.5" stroke="currentColor" strokeWidth="2" />
+      <circle cx="12" cy="17" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 export function GameIcon({ gameId, className }: { gameId: string; className?: string }) {
   switch (gameId) {
     case "zaplash":
@@ -205,6 +215,8 @@ export function GameIcon({ gameId, className }: { gameId: string; className?: st
       return <EightstormIcon className={className} />;
     case "tiletangle":
       return <TileTangleIcon className={className} />;
+    case "secretmerk":
+      return <SecretMerkIcon className={className} />;
     default:
       return <PuzzleIcon className={className} />;
   }
