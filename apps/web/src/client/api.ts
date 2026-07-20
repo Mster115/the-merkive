@@ -12,26 +12,46 @@ export class ApiCallError extends Error {
 
 async function request<T>(
   url: string,
-  opts: { method?: string; token?: string | null; body?: unknown } = {}
+  opts: { method?: string; token?: string | null; body?: unknown; retries?: number } = {}
 ): Promise<T> {
-  const res = await fetch(url, {
-    method: opts.method ?? "POST",
-    headers: {
-      "content-type": "application/json",
-      ...(opts.token ? { "x-mb-token": opts.token } : {}),
-    },
-    body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
-    cache: "no-store",
-  });
-  const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-  if (!res.ok && !(res.status === 422 && typeof data.ok === "boolean")) {
-    throw new ApiCallError(
-      typeof data.code === "string" ? data.code : "internal",
-      typeof data.error === "string" ? data.error : "Request failed",
-      res.status
-    );
+  const maxAttempts = opts.retries ?? (url.includes("/sync") || url.includes("/join") || url.includes("/action") ? 3 : 1);
+  let attempt = 0;
+
+  while (attempt < maxAttempts) {
+    attempt++;
+    try {
+      const res = await fetch(url, {
+        method: opts.method ?? "POST",
+        headers: {
+          "content-type": "application/json",
+          ...(opts.token ? { "x-mb-token": opts.token } : {}),
+        },
+        body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
+        cache: "no-store",
+      });
+      const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+      if (!res.ok && !(res.status === 422 && typeof data.ok === "boolean")) {
+        const code = typeof data.code === "string" ? data.code : "internal";
+        if (code === "room_not_found" && attempt < maxAttempts) {
+          await new Promise((r) => setTimeout(r, 250 * attempt));
+          continue;
+        }
+        throw new ApiCallError(
+          code,
+          typeof data.error === "string" ? data.error : "Request failed",
+          res.status
+        );
+      }
+      return data as T;
+    } catch (err) {
+      if (attempt < maxAttempts && err instanceof ApiCallError && err.code === "room_not_found") {
+        await new Promise((r) => setTimeout(r, 250 * attempt));
+        continue;
+      }
+      throw err;
+    }
   }
-  return data as T;
+  throw new ApiCallError("internal", "Request failed", 500);
 }
 
 export const api = {

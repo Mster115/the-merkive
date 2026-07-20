@@ -100,7 +100,7 @@ export interface MatchUpdate {
  * Contains no game or lifecycle logic — that lives in the service layer.
  */
 export interface RoomStore {
-  readonly kind: "memory" | "partykit";
+  readonly kind: "memory" | "partykit" | "upstash";
 
   createRoom(room: RoomRecord): Promise<void>;
   getRoomByCode(code: string): Promise<RoomRecord | null>;
