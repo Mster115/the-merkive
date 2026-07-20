@@ -9,6 +9,7 @@ import {
 } from "./logic";
 import { Stage } from "./Stage";
 import { Controller } from "./Controller";
+import { TileTangleLobbyOptions } from "./LobbyOptions";
 
 export const tiletangle = defineGame({
   meta: {
@@ -20,27 +21,8 @@ export const tiletangle = defineGame({
     supportsSpectators: true,
     supportsMidGameJoin: true,
     tags: ["tiles", "turn-based", "brainy"],
-    defaultSettings: { turnSeconds: 90, initialMeldPoints: 30 },
-    settingFields: [
-      {
-        key: "turnSeconds",
-        labelKey: "games.tiletangle.setting.turnSeconds",
-        type: "number",
-        default: 90,
-        min: 30,
-        max: 180,
-        step: 15,
-      },
-      {
-        key: "initialMeldPoints",
-        labelKey: "games.tiletangle.setting.initialMeldPoints",
-        type: "number",
-        default: 30,
-        min: 20,
-        max: 40,
-        step: 5,
-      },
-    ],
+    defaultSettings: { turnSeconds: 90, initialMeldPoints: 30, extraJokers: false, freeDrawOnPass: true },
+    settingFields: [],
   },
   i18n: {
     en: {
@@ -88,5 +70,6 @@ export const tiletangle = defineGame({
   ui: {
     Stage,
     Controller,
+    LobbyOptions: TileTangleLobbyOptions,
   },
 });

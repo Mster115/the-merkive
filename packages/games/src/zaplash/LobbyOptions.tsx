@@ -167,6 +167,36 @@ export function ZaplashLobbyOptions({ settings, onChange, disabled, t }: LobbyOp
             ))}
           </div>
         </Panel>
+
+        {/* Voting Seconds */}
+        <Panel className="p-3.5 rounded-xl bg-[var(--mb-surface-2)] border-[3px] border-black shadow-[var(--mb-shadow)] flex items-center justify-between flex-wrap gap-2">
+          <span className="text-xs font-black text-white uppercase tracking-wider [font-family:var(--mb-font-display)] flex items-center gap-1">
+            <ClockIcon className="w-3.5 h-3.5 text-[var(--mb-pink)]" />
+            Vote Time
+          </span>
+          <div className="flex items-center gap-1.5">
+            {[15, 25, 40].map((s) => {
+              const voteSeconds = typeof settings.voteSeconds === "number" ? settings.voteSeconds : 25;
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  disabled={disabled}
+                  aria-pressed={voteSeconds === s}
+                  onClick={() => !disabled && onChange({ voteSeconds: s })}
+                  className={cn(
+                    "min-w-[44px] min-h-[44px] rounded-lg text-xs font-black flex items-center justify-center border-2 border-black shadow-[2px_2px_0_0_#000] mb-press active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mb-pink)] [font-family:var(--mb-font-display)]",
+                    voteSeconds === s
+                      ? "bg-[var(--mb-pink)] text-[var(--mb-on-pink)]"
+                      : "bg-[var(--mb-surface-3)] text-[var(--mb-text-dim)] hover:text-white"
+                  )}
+                >
+                  {s}s
+                </button>
+              );
+            })}
+          </div>
+        </Panel>
       </div>
     </div>
   );

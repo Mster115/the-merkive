@@ -100,7 +100,14 @@ export function LobbyControls({
         </div>
       </div>
 
-      {game && game.meta.settingFields.length > 0 && (
+      {game && LobbyOptions ? (
+        <LobbyOptions
+          settings={{ ...game.meta.defaultSettings, ...room.settings }}
+          disabled={busy}
+          t={t}
+          onChange={(patch) => void call(() => api.settings(room.code, token, { settings: patch }))}
+        />
+      ) : game && game.meta.settingFields.length > 0 ? (
         <div>
           <h3 className="text-sm font-bold text-[var(--mb-text-dim)] uppercase tracking-wider mb-2">
             {t("lobby.settings.title")}
@@ -112,16 +119,7 @@ export function LobbyControls({
             onChange={(patch) => void call(() => api.settings(room.code, token, { settings: patch }))}
           />
         </div>
-      )}
-
-      {game && LobbyOptions && (
-        <LobbyOptions
-          settings={{ ...game.meta.defaultSettings, ...room.settings }}
-          disabled={busy}
-          t={t}
-          onChange={(patch) => void call(() => api.settings(room.code, token, { settings: patch }))}
-        />
-      )}
+      ) : null}
 
       <Button
         size="lg"
