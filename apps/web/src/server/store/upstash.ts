@@ -229,7 +229,31 @@ export class UpstashStore implements RoomStore {
     await this.redis(["RPUSH", `packs:${pack.gameId}`, JSON.stringify(pack)]);
   }
 
+  private subscribers = new Map<string, Set<(msg: RoomMessage) => void>>();
+
   async publish(code: string, msg: RoomMessage): Promise<void> {
-    await this.redis(["PUBLISH", `room:${code.toUpperCase()}`, JSON.stringify(msg)]).catch(() => undefined);
+    const key = code.toUpperCase();
+    const subs = this.subscribers.get(key);
+    if (subs) {
+      for (const fn of subs) {
+        try {
+          fn(msg);
+        } catch {
+          // ignore subscriber errors
+        }
+      }
+    }
+    await this.redis(["PUBLISH", `room:${key}`, JSON.stringify(msg)]).catch(() => undefined);
+  }
+
+  subscribe(code: string, fn: (msg: RoomMessage) => void): () => void {
+    const key = code.toUpperCase();
+    const subs = this.subscribers.get(key) ?? new Set();
+    subs.add(fn);
+    this.subscribers.set(key, subs);
+    return () => {
+      subs.delete(fn);
+      if (subs.size === 0) this.subscribers.delete(key);
+    };
   }
 }
