@@ -159,7 +159,7 @@ export function HomeScreen() {
                   {!ready && (
                     <span
                       aria-hidden
-                      className="absolute -top-2.5 -right-2 rotate-6 bg-[var(--mb-danger)] text-[var(--mb-on-danger)] border-2 border-black px-2 py-0.5 text-[10px] font-black uppercase tracking-wider"
+                      className="absolute -bottom-2.5 -right-2 rotate-6 bg-[var(--mb-danger)] text-[var(--mb-on-danger)] border-2 border-black px-2 py-0.5 text-[10px] font-black uppercase tracking-wider z-10"
                     >
                       {t("home.name.required")}
                     </span>
@@ -177,9 +177,20 @@ export function HomeScreen() {
               <h2 className="self-start -rotate-1 bg-[var(--mb-pink)] text-[var(--mb-on-pink)] border-2 border-black shadow-[2px_2px_0_0_#000] px-3 py-1 text-sm font-black uppercase tracking-wider">
                 {t("home.create.title")}
               </h2>
-              <Button size="lg" block disabled={!ready || busy} onClick={() => setShowDeviceChoice(true)}>
-                {t("home.create.cta")}
-              </Button>
+              <div className="flex flex-col gap-2">
+                <Button size="lg" block disabled={!ready || busy} onClick={() => void handleCreate()}>
+                  {t("home.create.cta")}
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  block
+                  disabled={busy}
+                  onClick={() => void handleCreateStage()}
+                >
+                  📺 THIS IS THE TV / DISPLAY ONLY
+                </Button>
+              </div>
               <p className="text-xs font-bold text-[var(--mb-text-dim)]">{t("home.stage.hint")}</p>
             </Card>
 
