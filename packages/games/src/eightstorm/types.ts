@@ -18,12 +18,16 @@ export interface EightstormPublicState {
   drawPileCount: number;
   lastPlay: LastPlaySummary | null;
   outSeat: SeatIndex | null;
-  _drawPile: Card[];
-  _discardPile: Card[];
 }
 
 export interface EightstormPrivateState {
   hand: Card[];
+}
+
+/** Server-only: concrete deck order/composition. Never sent to any client. */
+export interface EightstormSecret {
+  drawPile: Card[];
+  discardPile: Card[];
 }
 
 export interface EightstormSettings {

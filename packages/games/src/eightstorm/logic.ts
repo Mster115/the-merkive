@@ -9,7 +9,12 @@ import type {
 } from "@merky/game-sdk";
 import type { Card, DeclareSuit, Suit } from "./cards";
 import { cardPointValue, createDeck, isLegalPlay, isWildCard, SUITS } from "./cards";
-import type { EightstormPrivateState, EightstormPublicState, EightstormSettings } from "./types";
+import type {
+  EightstormPrivateState,
+  EightstormPublicState,
+  EightstormSecret,
+  EightstormSettings,
+} from "./types";
 
 export function shuffle<T>(array: T[], rng: () => number): T[] {
   const copy = [...array];
@@ -130,15 +135,15 @@ export function initEightstorm(ctx: GameContext): ReduceResult {
     drawPileCount: drawPile.length,
     lastPlay: null,
     outSeat: null,
-    _drawPile: drawPile,
-    _discardPile: discardPile,
   };
 
+  const secretState: EightstormSecret = { drawPile, discardPile };
   const turnMs = settings.turnSeconds * 1000;
 
   return {
     publicState,
     privateState,
+    secretState,
     phase: "turn",
     events: [{ type: "game_started" }],
     timer: { endsAt: ctx.now + turnMs, kind: "turn", durationMs: turnMs },
@@ -164,6 +169,10 @@ export function reduceEightstorm(
   const activeSeat = action.seat as SeatIndex;
   const settings = getSettings(ctx);
   const priv = (state.privateState[activeSeat] as EightstormPrivateState | undefined) ?? { hand: [] };
+  const secret: EightstormSecret = (state.secretState as EightstormSecret | undefined) ?? {
+    drawPile: [],
+    discardPile: [],
+  };
   const turnMs = settings.turnSeconds * 1000;
 
   if (action.type === "play") {
@@ -193,7 +202,7 @@ export function reduceEightstorm(
     }
 
     const newHand = [...priv.hand.slice(0, cardIndex), ...priv.hand.slice(cardIndex + 1)];
-    const newDiscard = [...pub._discardPile, card];
+    const newDiscard = [...secret.discardPile, card];
     const newHandCounts = { ...pub.handCounts, [activeSeat]: newHand.length };
 
     if (newHand.length === 0) {
@@ -216,12 +225,12 @@ export function reduceEightstorm(
         handCounts: newHandCounts,
         lastPlay: { seat: activeSeat, action: "play", cardId: card.id },
         outSeat: activeSeat,
-        _discardPile: newDiscard,
       };
 
       return {
         publicState: winPub,
         privateState: { [activeSeat]: { hand: newHand } },
+        secretState: { ...secret, discardPile: newDiscard },
         phase: "game_over",
         scores: { [activeSeat]: opponentSum },
         events: [
@@ -263,12 +272,12 @@ export function reduceEightstorm(
       drewThisTurn: false,
       handCounts: newHandCounts,
       lastPlay: { seat: activeSeat, action: "play", cardId: card.id },
-      _discardPile: newDiscard,
     };
 
     return {
       publicState: nextPub,
       privateState: { [activeSeat]: { hand: newHand } },
+      secretState: { ...secret, discardPile: newDiscard },
       phase: "turn",
       events: [{ type: "card_played", payload: { seat: activeSeat, cardId: card.id } }],
       timer: { endsAt: ctx.now + turnMs, kind: "turn", durationMs: turnMs },
@@ -282,8 +291,8 @@ export function reduceEightstorm(
 
     const countToDraw = pub.pendingDraw > 0 ? pub.pendingDraw : 1;
     const { drawn, newDrawPile, newDiscardPile } = drawFromPile(
-      pub._drawPile,
-      pub._discardPile,
+      secret.drawPile,
+      secret.discardPile,
       countToDraw,
       ctx.rng
     );
@@ -296,11 +305,10 @@ export function reduceEightstorm(
         drewThisTurn: false,
         pendingDraw: 0,
         lastPlay: { seat: activeSeat, action: "pass" },
-        _drawPile: newDrawPile,
-        _discardPile: newDiscardPile,
       };
       return {
         publicState: passPub,
+        secretState: { drawPile: newDrawPile, discardPile: newDiscardPile },
         phase: "turn",
         events: [{ type: "passed", payload: { seat: activeSeat } }],
         timer: { endsAt: ctx.now + turnMs, kind: "turn", durationMs: turnMs },
@@ -320,13 +328,12 @@ export function reduceEightstorm(
         handCounts: newHandCounts,
         drawPileCount: newDrawPile.length,
         lastPlay: { seat: activeSeat, action: "draw" },
-        _drawPile: newDrawPile,
-        _discardPile: newDiscardPile,
       };
 
       return {
         publicState: nextPub,
         privateState: { [activeSeat]: { hand: newHand } },
+        secretState: { drawPile: newDrawPile, discardPile: newDiscardPile },
         phase: "turn",
         events: [{ type: "cards_drawn", payload: { seat: activeSeat, count: drawn.length } }],
         timer: { endsAt: ctx.now + turnMs, kind: "turn", durationMs: turnMs },
@@ -339,13 +346,12 @@ export function reduceEightstorm(
       handCounts: newHandCounts,
       drawPileCount: newDrawPile.length,
       lastPlay: { seat: activeSeat, action: "draw" },
-      _drawPile: newDrawPile,
-      _discardPile: newDiscardPile,
     };
 
     return {
       publicState: nextPub,
       privateState: { [activeSeat]: { hand: newHand } },
+      secretState: { drawPile: newDrawPile, discardPile: newDiscardPile },
       phase: "turn",
       events: [{ type: "cards_drawn", payload: { seat: activeSeat, count: drawn.length } }],
       timer: { endsAt: ctx.now + turnMs, kind: "turn", durationMs: turnMs },
@@ -398,16 +404,19 @@ export function onTickEightstorm(ctx: GameContext, state: GameStateIn): ReduceRe
   const intermediateState: GameStateIn = {
     publicState: drawRes.publicState,
     privateState: drawRes.privateState ? { ...state.privateState, ...drawRes.privateState } : state.privateState,
+    secretState: drawRes.secretState !== undefined ? drawRes.secretState : state.secretState,
     phase: drawRes.phase,
   };
 
   const passRes = reduceEightstorm(ctx, intermediateState, { type: "pass", seat });
   if (isReduceError(passRes)) return drawRes;
   // The platform applies exactly one ReduceResult per tick, so the drawn
-  // card's private-hand patch must survive the chained pass.
+  // card's private-hand patch (and any pile change from the draw) must
+  // survive the chained pass.
   return {
     ...passRes,
     privateState: { ...(drawRes.privateState ?? {}), ...(passRes.privateState ?? {}) },
+    secretState: passRes.secretState !== undefined ? passRes.secretState : drawRes.secretState,
     events: [...drawRes.events, ...passRes.events],
   };
 }

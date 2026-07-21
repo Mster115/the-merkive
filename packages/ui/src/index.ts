@@ -34,7 +34,7 @@ export {
   EightstormIcon,
   TileTangleIcon,
   MerkissionerIcon,
-  MerkwaveIcon,
+  YouGotItIcon,
   GameIcon,
   RankBadge,
 } from "./icons";

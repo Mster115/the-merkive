@@ -21,11 +21,36 @@ export function ClockIcon({ className = "w-5 h-5" }: { className?: string }) {
   );
 }
 
+interface PackInfo {
+  id: string;
+  title?: string;
+  titleKey?: string;
+  nsfw?: boolean;
+}
+
 export function ZaplashLobbyOptions({ settings, onChange, disabled, t }: LobbyOptionsProps) {
   const rounds = typeof settings.rounds === "number" ? settings.rounds : 2;
   const writeSeconds = typeof settings.writeSeconds === "number" ? settings.writeSeconds : 90;
   const zapBonus = Boolean(settings.zapBonus ?? true);
+  const lightningRound = Boolean(settings.lightningRound ?? true);
   const packId = typeof settings.packId === "string" ? settings.packId : "zaplash-core";
+
+  const [packs, setPacks] = React.useState<PackInfo[]>([]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    fetch("/api/packs?gameId=zaplash")
+      .then((res) => (res.ok ? res.json() : []))
+      .then((list: unknown) => {
+        if (!cancelled && Array.isArray(list)) setPacks(list as PackInfo[]);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const packOptions: PackInfo[] = packs.length > 0 ? packs : [{ id: packId, title: packId }];
 
   return (
     <div className="flex flex-col gap-4 max-w-xl mx-auto select-none p-1">
@@ -75,43 +100,73 @@ export function ZaplashLobbyOptions({ settings, onChange, disabled, t }: LobbyOp
           </span>
         </button>
 
+        {/* Lightning Round Finale Toggle */}
+        <button
+          type="button"
+          disabled={disabled}
+          aria-pressed={lightningRound}
+          onClick={() => !disabled && onChange({ lightningRound: !lightningRound })}
+          className={cn(
+            "p-4 min-h-[56px] rounded-xl border-[3px] border-black flex items-center justify-between text-left col-span-1 sm:col-span-2 mb-press shadow-[var(--mb-shadow)] active:translate-x-1 active:translate-y-1 active:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mb-pink)]",
+            lightningRound
+              ? "bg-[var(--mb-pink)] text-[var(--mb-on-pink)]"
+              : "bg-[var(--mb-surface-2)] text-[var(--mb-text-dim)] opacity-70"
+          )}
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className={cn(
+                "w-10 h-10 rounded-lg border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0_0_#000]",
+                lightningRound ? "bg-[var(--mb-paper)] text-[var(--mb-ink)]" : "bg-[var(--mb-surface-3)] text-[var(--mb-text-dim)]"
+              )}
+            >
+              <ZapIcon className="w-6 h-6 text-current" />
+            </div>
+            <div>
+              <p className={cn("font-black text-sm uppercase tracking-wider [font-family:var(--mb-font-display)]", lightningRound ? "text-[var(--mb-on-pink)]" : "text-white")}>
+                {t("games.zaplash.settings.lightningRound")}
+              </p>
+              <span className={cn("text-xs font-bold", lightningRound ? "text-[var(--mb-on-pink)]/80" : "text-[var(--mb-text-dim)]")}>
+                One shared prompt, everyone votes, big bonus points
+              </span>
+            </div>
+          </div>
+          <span className={cn("text-lg font-black shrink-0 ml-2 uppercase [font-family:var(--mb-font-display)]", lightningRound ? "text-[var(--mb-on-pink)]" : "text-[var(--mb-text-dim)]")}>
+            {lightningRound ? "ON" : "OFF"}
+          </span>
+        </button>
+
         {/* Content Pack Picker */}
         <div className="col-span-1 sm:col-span-2 p-4 rounded-xl bg-[var(--mb-surface-2)] border-[3px] border-black shadow-[var(--mb-shadow)] flex flex-col gap-2">
           <label className="text-xs font-black text-[var(--mb-text-dim)] uppercase tracking-wider [font-family:var(--mb-font-display)]">
             {t("games.zaplash.settings.packId")}
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <button
-              type="button"
-              disabled={disabled}
-              aria-pressed={packId === "zaplash-core"}
-              onClick={() => !disabled && onChange({ packId: "zaplash-core" })}
-              className={cn(
-                "p-3.5 min-h-[52px] rounded-xl border-2 border-black text-left font-black mb-press shadow-[2px_2px_0_0_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mb-accent-2)]",
-                packId === "zaplash-core"
-                  ? "bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)]"
-                  : "bg-[var(--mb-surface-3)] text-[var(--mb-text-dim)] hover:text-white"
-              )}
-            >
-              <p className="text-sm uppercase tracking-wider [font-family:var(--mb-font-display)]">Zaplash Core</p>
-              <span className="text-xs font-bold opacity-90">Family Friendly</span>
-            </button>
-
-            <button
-              type="button"
-              disabled={disabled}
-              aria-pressed={packId === "zaplash-afterdark"}
-              onClick={() => !disabled && onChange({ packId: "zaplash-afterdark" })}
-              className={cn(
-                "p-3.5 min-h-[52px] rounded-xl border-2 border-black text-left font-black mb-press shadow-[2px_2px_0_0_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mb-pink)]",
-                packId === "zaplash-afterdark"
-                  ? "bg-[var(--mb-pink)] text-[var(--mb-on-pink)]"
-                  : "bg-[var(--mb-surface-3)] text-[var(--mb-text-dim)] hover:text-white"
-              )}
-            >
-              <p className="text-sm uppercase tracking-wider [font-family:var(--mb-font-display)]">Zaplash After Dark</p>
-              <span className="text-xs font-bold opacity-90">Mildly Spicy (18+)</span>
-            </button>
+            {packOptions.map((p) => {
+              const isSelected = packId === p.id;
+              const label = p.titleKey ? t(p.titleKey) : p.title ?? p.id;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  disabled={disabled}
+                  aria-pressed={isSelected}
+                  onClick={() => !disabled && onChange({ packId: p.id })}
+                  className={cn(
+                    "p-3.5 min-h-[52px] rounded-xl border-2 border-black text-left font-black mb-press shadow-[2px_2px_0_0_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus-visible:outline-none focus-visible:ring-2",
+                    p.nsfw ? "focus-visible:ring-[var(--mb-pink)]" : "focus-visible:ring-[var(--mb-accent-2)]",
+                    isSelected
+                      ? p.nsfw
+                        ? "bg-[var(--mb-pink)] text-[var(--mb-on-pink)]"
+                        : "bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)]"
+                      : "bg-[var(--mb-surface-3)] text-[var(--mb-text-dim)] hover:text-white"
+                  )}
+                >
+                  <p className="text-sm uppercase tracking-wider [font-family:var(--mb-font-display)]">{label}</p>
+                  {p.nsfw && <span className="text-xs font-bold opacity-90">18+</span>}
+                </button>
+              );
+            })}
           </div>
         </div>
 

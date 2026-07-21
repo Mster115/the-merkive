@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import type { ControllerProps } from "@merky/game-sdk";
-import { Button, buzz, Card, LightningIcon, Panel, PencilIcon, Pill, cn } from "@merky/ui";
+import { Button, buzz, Card, LightningIcon, Panel, PencilIcon, Pill, RankBadge, ScoreBoard, WhimsicalAvatarFace, cn } from "@merky/ui";
 import type { ZaplashPrivateState, ZaplashPublicState } from "./logic";
 
 export function CheckIcon({ className = "w-4 h-4" }: { className?: string }) {
@@ -50,11 +50,12 @@ export function FinishFlagIcon({ className = "w-8 h-8" }: { className?: string }
   );
 }
 
-export function ZaplashController({ match, seat, privateState, act, t }: ControllerProps) {
+export function ZaplashController({ room, match, seat, privateState, act, t }: ControllerProps) {
   const pub = match.publicState as ZaplashPublicState | null;
   const priv = privateState as ZaplashPrivateState | null;
 
   const [inputTexts, setInputTexts] = React.useState<Record<number, string>>({});
+  const [finaleText, setFinaleText] = React.useState("");
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
 
   if (!pub) {
@@ -68,6 +69,8 @@ export function ZaplashController({ match, seat, privateState, act, t }: Control
   const isGameOver = match.over || match.phase === "game_over";
   const assignedPrompts = priv?.prompts ?? [];
   const submittedAnswers = priv?.answers ?? {};
+  const scoresObj = match.scores ?? {};
+  const sortedSeats = [...room.seats].sort((a, b) => (scoresObj[b.seatIndex] ?? 0) - (scoresObj[a.seatIndex] ?? 0));
 
   const handleSubmit = async (promptIndex: number) => {
     setErrorMsg(null);
@@ -92,6 +95,50 @@ export function ZaplashController({ match, seat, privateState, act, t }: Control
     }
   };
 
+  const handleSafetyQuip = async (promptIndex: number) => {
+    setErrorMsg(null);
+    const res = await act("use_safety_quip", { promptIndex });
+    if (!res.ok) {
+      setErrorMsg(res.error);
+      buzz([30, 40, 30]);
+    } else {
+      buzz(15);
+    }
+  };
+
+  const handleFinaleSubmit = async () => {
+    setErrorMsg(null);
+    const res = await act("submit_finale_answer", { text: finaleText });
+    if (!res.ok) {
+      setErrorMsg(res.error);
+      buzz([30, 40, 30]);
+    } else {
+      buzz(20);
+    }
+  };
+
+  const handleFinaleSafetyQuip = async () => {
+    setErrorMsg(null);
+    const res = await act("use_finale_safety_quip", {});
+    if (!res.ok) {
+      setErrorMsg(res.error);
+      buzz([30, 40, 30]);
+    } else {
+      buzz(15);
+    }
+  };
+
+  const handleFinaleVote = async (targetSeat: number) => {
+    setErrorMsg(null);
+    const res = await act("finale_vote", { targetSeat });
+    if (!res.ok) {
+      setErrorMsg(res.error);
+      buzz([30, 40, 30]);
+    } else {
+      buzz(20);
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-full w-full max-w-md mx-auto p-4 gap-4 select-none">
       {/* Live accessibility region */}
@@ -106,12 +153,18 @@ export function ZaplashController({ match, seat, privateState, act, t }: Control
 <LightningIcon className="w-3.5 h-3.5" /> {t("games.zaplash.name")}
           </Pill>
         </div>
-        <span className="font-black text-xs sm:text-sm text-[var(--mb-gold)] uppercase tracking-wider [font-family:var(--mb-font-display)]">
-          {t("games.zaplash.ui.round_info", {
-            round: pub.round,
-            total: pub.totalRounds,
-          })}
-        </span>
+        {match.phase === "finale_write" || match.phase === "finale_vote" || match.phase === "finale_reveal" ? (
+          <Pill tone="danger" className="text-xs px-3 py-1 font-black uppercase tracking-wider [font-family:var(--mb-font-display)] border border-black shadow-[2px_2px_0_0_#000] mb-blink">
+            {t("games.zaplash.ui.finale_title")}
+          </Pill>
+        ) : (
+          <span className="font-black text-xs sm:text-sm text-[var(--mb-gold)] uppercase tracking-wider [font-family:var(--mb-font-display)]">
+            {t("games.zaplash.ui.round_info", {
+              round: pub.round,
+              total: pub.totalRounds,
+            })}
+          </span>
+        )}
       </Card>
 
       {/* Error Toast / Alert */}
@@ -174,17 +227,27 @@ export function ZaplashController({ match, seat, privateState, act, t }: Control
                       placeholder={t("games.zaplash.ui.type_answer_ph")}
                       className="w-full p-3 rounded-xl bg-white text-black border-2 border-black font-extrabold placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-[var(--mb-accent-2)] text-base resize-none shadow-[2px_2px_0_0_#000]"
                     />
-                    <div className="flex items-center justify-between text-xs font-bold text-[var(--mb-text-dim)]">
-                      <span className="font-mono">{120 - textVal.length} {t("games.zaplash.ui.chars_left")}</span>
-                      <Button
-                        variant="primary"
-                        size="md"
-                        disabled={textVal.trim().length === 0 || textVal.length > 120}
-                        onClick={() => handleSubmit(p.index)}
-                        className="min-h-[44px] min-w-[100px] font-black uppercase tracking-wider [font-family:var(--mb-font-display)] mb-press shadow-[var(--mb-shadow)] active:translate-x-1 active:translate-y-1 active:shadow-none focus-visible:ring-2 focus-visible:ring-[var(--mb-accent-2)]"
-                      >
-                        {t("games.zaplash.ui.submit_btn")}
-                      </Button>
+                    <div className="flex items-center justify-between gap-2 text-xs font-bold text-[var(--mb-text-dim)]">
+                      <span className="font-mono shrink-0">{120 - textVal.length} {t("games.zaplash.ui.chars_left")}</span>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="md"
+                          onClick={() => handleSafetyQuip(p.index)}
+                          className="min-h-[44px] font-black uppercase tracking-wider [font-family:var(--mb-font-display)] mb-press shadow-[var(--mb-shadow)] active:translate-x-1 active:translate-y-1 active:shadow-none focus-visible:ring-2 focus-visible:ring-[var(--mb-accent-2)] flex items-center gap-1"
+                        >
+                          <LightningIcon className="w-4 h-4 shrink-0" /> {t("games.zaplash.ui.safety_quip_btn")}
+                        </Button>
+                        <Button
+                          variant="primary"
+                          size="md"
+                          disabled={textVal.trim().length === 0 || textVal.length > 120}
+                          onClick={() => handleSubmit(p.index)}
+                          className="min-h-[44px] min-w-[100px] font-black uppercase tracking-wider [font-family:var(--mb-font-display)] mb-press shadow-[var(--mb-shadow)] active:translate-x-1 active:translate-y-1 active:shadow-none focus-visible:ring-2 focus-visible:ring-[var(--mb-accent-2)]"
+                        >
+                          {t("games.zaplash.ui.submit_btn")}
+                        </Button>
+                      </div>
                     </div>
                   </>
                 ) : (
@@ -205,6 +268,141 @@ export function ZaplashController({ match, seat, privateState, act, t }: Control
           )}
         </div>
       )}
+
+      {/* LIGHTNING ROUND — WRITE PHASE */}
+      {match.phase === "finale_write" && pub.finale && (() => {
+        const finale = pub.finale!;
+        const isSubmitted = finale.submittedSeats.includes(seat);
+        const savedText = priv?.finaleAnswer ?? "";
+        const textVal = isSubmitted ? savedText : finaleText;
+
+        return (
+          <div className="flex flex-col gap-4">
+            <h2 className="flex items-center justify-center gap-2 text-xl font-black text-[var(--mb-gold)] text-center uppercase tracking-wider [font-family:var(--mb-font-display)] mb-wobble-fast">
+              <LightningIcon className="w-5 h-5 shrink-0" /> {t("games.zaplash.ui.finale_write_title")}
+            </h2>
+
+            <Card className="p-4 rounded-xl flex flex-col gap-3 border-[3px] border-black shadow-[var(--mb-shadow)] bg-[var(--mb-surface-2)] -rotate-[0.5deg]">
+              <span className="text-xs uppercase font-black text-[var(--mb-pink)] tracking-wider [font-family:var(--mb-font-display)]">
+                {t("games.zaplash.ui.finale_title")}
+              </span>
+              <p id="finale-prompt-label" className="font-extrabold text-base text-white leading-snug break-words">
+                "{finale.promptText}"
+              </p>
+
+              {!isSubmitted ? (
+                <>
+                  <textarea
+                    id="finale-answer"
+                    aria-labelledby="finale-prompt-label"
+                    value={textVal}
+                    onChange={(e) => setFinaleText(e.target.value)}
+                    maxLength={120}
+                    rows={2}
+                    placeholder={t("games.zaplash.ui.type_answer_ph")}
+                    className="w-full p-3 rounded-xl bg-white text-black border-2 border-black font-extrabold placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-[var(--mb-accent-2)] text-base resize-none shadow-[2px_2px_0_0_#000]"
+                  />
+                  <div className="flex items-center justify-between gap-2 text-xs font-bold text-[var(--mb-text-dim)]">
+                    <span className="font-mono shrink-0">{120 - textVal.length} {t("games.zaplash.ui.chars_left")}</span>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="md"
+                        onClick={handleFinaleSafetyQuip}
+                        className="min-h-[44px] font-black uppercase tracking-wider [font-family:var(--mb-font-display)] mb-press shadow-[var(--mb-shadow)] active:translate-x-1 active:translate-y-1 active:shadow-none focus-visible:ring-2 focus-visible:ring-[var(--mb-accent-2)] flex items-center gap-1"
+                      >
+                        <LightningIcon className="w-4 h-4 shrink-0" /> {t("games.zaplash.ui.safety_quip_btn")}
+                      </Button>
+                      <Button
+                        variant="primary"
+                        size="md"
+                        disabled={textVal.trim().length === 0 || textVal.length > 120}
+                        onClick={handleFinaleSubmit}
+                        className="min-h-[44px] min-w-[100px] font-black uppercase tracking-wider [font-family:var(--mb-font-display)] mb-press shadow-[var(--mb-shadow)] active:translate-x-1 active:translate-y-1 active:shadow-none focus-visible:ring-2 focus-visible:ring-[var(--mb-accent-2)]"
+                      >
+                        {t("games.zaplash.ui.submit_btn")}
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <p className="p-3 rounded-xl bg-[var(--mb-surface)] text-sm font-bold italic text-[var(--mb-gold)] border border-black/40">
+                  "{textVal}"
+                </p>
+              )}
+            </Card>
+
+            {isSubmitted && (
+              <Panel className="p-4 text-center rounded-xl bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)] border-[3px] border-black shadow-[var(--mb-shadow)] mb-breathe">
+                <p className="font-black text-sm uppercase tracking-wider [font-family:var(--mb-font-display)]">
+                  ⏳ {t("games.zaplash.ui.finale_waiting")}
+                </p>
+              </Panel>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* LIGHTNING ROUND — VOTE PHASE */}
+      {match.phase === "finale_vote" && pub.finale && (() => {
+        const finale = pub.finale!;
+        const ownEntry = finale.answers.find((a) => a.seat === seat);
+        const hasVoted = finale.votedSeats.includes(seat);
+        const candidates = finale.answers.filter((a) => a.seat !== seat);
+
+        return (
+          <div className="flex flex-col gap-4">
+            <Panel className="p-4 rounded-xl text-center bg-[var(--mb-surface-2)] border-[3px] border-black shadow-[var(--mb-shadow-lg)] -rotate-[0.5deg]">
+              <span className="text-xs uppercase font-black text-[var(--mb-pink)] tracking-widest [font-family:var(--mb-font-display)]">
+                {t("games.zaplash.ui.finale_title")}
+              </span>
+              <p className="font-black text-xl text-white mt-1 break-words [font-family:var(--mb-font-display)]">
+                "{finale.promptText}"
+              </p>
+            </Panel>
+
+            {hasVoted ? (
+              <Card className="p-6 text-center rounded-xl bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)] border-[3px] border-black shadow-[var(--mb-shadow-lg)] flex flex-col items-center gap-2 -rotate-1 mb-pop">
+                <LockIcon className="w-10 h-10 text-[var(--mb-on-accent-2)]" />
+                <p className="font-black text-lg uppercase tracking-wider [font-family:var(--mb-font-display)]">
+                  {t("games.zaplash.ui.finale_vote_locked")}
+                </p>
+              </Card>
+            ) : (
+              <div className="flex flex-col gap-3.5">
+                {ownEntry && (
+                  <Card className="p-4 text-center rounded-xl bg-[var(--mb-gold)] text-black border-[3px] border-black shadow-[var(--mb-shadow)] flex items-center justify-center gap-2 rotate-1">
+                    <PopcornIcon className="w-6 h-6 text-black shrink-0" />
+                    <p className="font-black text-sm uppercase tracking-wider [font-family:var(--mb-font-display)]">
+                      {t("games.zaplash.ui.finale_your_answer")}
+                    </p>
+                  </Card>
+                )}
+                {candidates.map((ans, idx) => {
+                  const label = String.fromCharCode(65 + finale.answers.indexOf(ans));
+                  return (
+                    <Button
+                      key={ans.seat}
+                      variant="secondary"
+                      size="lg"
+                      onClick={() => handleFinaleVote(ans.seat)}
+                      className={cn(
+                        "p-5 text-left flex flex-col items-start gap-2 min-h-[92px] rounded-xl justify-center font-black tracking-normal border-[3px] border-black shadow-[var(--mb-shadow-lg)] mb-press active:translate-x-1 active:translate-y-1 active:shadow-none focus-visible:ring-2 focus-visible:ring-[var(--mb-accent-2)] whitespace-normal break-words w-full bg-[var(--mb-surface-2)] text-white hover:bg-[var(--mb-surface-3)]",
+                        idx % 2 === 0 ? "-rotate-1" : "rotate-1"
+                      )}
+                    >
+                      <span className="text-xs font-black px-3 py-1 rounded-md bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)] border-2 border-black [font-family:var(--mb-font-display)] uppercase shadow-[2px_2px_0_0_#000]">
+                        CHOICE {label}
+                      </span>
+                      <span className="text-lg font-black text-white break-words w-full">{ans.text}</span>
+                    </Button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* VOTE PHASE */}
       {match.phase === "vote" && pub.currentMatchup && (() => {
@@ -268,14 +466,135 @@ export function ZaplashController({ match, seat, privateState, act, t }: Control
         );
       })()}
 
-      {/* REVEAL & SCOREBOARD PHASE */}
-      {(match.phase === "reveal" || match.phase === "scoreboard") && (
-        <Card className="p-6 text-center rounded-xl bg-[var(--mb-surface-2)] border-[3px] border-black shadow-[var(--mb-shadow-lg)] flex flex-col items-center gap-3 mb-breathe">
-          <EyeIcon className="w-12 h-12 text-[var(--mb-gold)]" />
-          <p className="font-black text-xl text-[var(--mb-gold)] uppercase tracking-wider [font-family:var(--mb-font-display)]">
-            {t("games.zaplash.ui.look_at_tv")}
-          </p>
-        </Card>
+      {/* REVEAL PHASE — mobile showcase (not everyone has a TV up) */}
+      {match.phase === "reveal" && pub.currentMatchup && (() => {
+        const matchup = pub.currentMatchup!;
+
+        if (matchup.jinx) {
+          return (
+            <Card className="p-6 text-center rounded-xl bg-[var(--mb-surface-2)] border-[3px] border-black shadow-[var(--mb-shadow-lg)] flex flex-col items-center gap-2 mb-shake">
+              <p className="text-3xl font-black uppercase tracking-tight [font-family:var(--mb-font-display)] mb-neon-pink">
+                ⚡ {t("games.zaplash.ui.jinx_title")}
+              </p>
+              <p className="text-sm font-black uppercase tracking-wider text-[var(--mb-gold)] [font-family:var(--mb-font-display)]">
+                {t("games.zaplash.ui.jinx_subtitle")}
+              </p>
+              <p className="p-3 rounded-xl bg-[var(--mb-surface)] text-base font-bold italic text-white border border-black/40 mt-1">
+                "{matchup.answers[0]?.text}"
+              </p>
+            </Card>
+          );
+        }
+
+        return (
+          <div className="flex flex-col gap-3">
+            <Panel className="p-3 rounded-xl text-center bg-[var(--mb-surface-2)] border-[3px] border-black shadow-[var(--mb-shadow)]">
+              <p className="font-black text-sm text-white break-words [font-family:var(--mb-font-display)]">"{matchup.promptText}"</p>
+            </Panel>
+            {matchup.answers.map((ans, idx) => {
+              const label = idx === 0 ? "A" : "B";
+              const writerSeat = ans.writerSeat !== undefined ? room.seats.find((s) => s.seatIndex === ans.writerSeat) : null;
+              const votes = matchup.votesPerAnswer?.[idx] ?? 0;
+              const pts = matchup.pointsAwarded?.[idx] ?? 0;
+              const otherVotes = matchup.votesPerAnswer?.[idx === 0 ? 1 : 0] ?? 0;
+              const isWinner = votes > otherVotes;
+              const isZap = matchup.zapSeat === ans.writerSeat && votes > 0;
+              return (
+                <Card
+                  key={idx}
+                  className={cn(
+                    "p-4 rounded-xl border-[3px] border-black shadow-[var(--mb-shadow)] flex flex-col gap-2",
+                    isZap ? "bg-[var(--mb-gold)] text-black" : isWinner ? "bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)]" : "bg-[var(--mb-surface-2)] text-white"
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-black px-2.5 py-0.5 rounded-md bg-[var(--mb-accent)] text-white border-2 border-black [font-family:var(--mb-font-display)]">
+                      {label}
+                    </span>
+                    {isZap && (
+                      <span className="px-2.5 py-1 rounded-lg bg-pink-600 text-white font-black text-xs border-2 border-black uppercase [font-family:var(--mb-font-display)]">
+                        ZAP! +50
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-lg font-black leading-snug break-words">{ans.text}</p>
+                  <div className="flex items-center justify-between pt-2 border-t-2 border-black/30">
+                    {writerSeat ? (
+                      <div className="flex items-center gap-2 min-w-0">
+                        <WhimsicalAvatarFace avatarId={writerSeat.avatarId} size={28} />
+                        <span className="font-bold text-sm truncate">{writerSeat.displayName}</span>
+                      </div>
+                    ) : (
+                      <span className="text-xs font-bold opacity-70">???</span>
+                    )}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs font-black px-2 py-0.5 rounded-md border-2 border-black bg-[var(--mb-gold)] text-black [font-family:var(--mb-font-display)] uppercase">
+                        {t("games.zaplash.ui.votes_count", { count: votes })}
+                      </span>
+                      {pts > 0 && <span className="text-lg font-black [font-family:var(--mb-font-display)]">+{pts}</span>}
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        );
+      })()}
+
+      {/* SCOREBOARD PHASE — mobile showcase */}
+      {match.phase === "scoreboard" && (
+        <div className="flex flex-col gap-3">
+          <h2 className="text-center text-lg font-black uppercase tracking-wider text-[var(--mb-gold)] [font-family:var(--mb-font-display)]">
+            {t("games.zaplash.ui.scoreboard_title")}
+          </h2>
+          <ScoreBoard
+            compact
+            animated
+            rows={sortedSeats.map((s) => ({
+              seatIndex: s.seatIndex,
+              displayName: s.displayName,
+              avatarId: s.avatarId,
+              points: scoresObj[s.seatIndex] ?? 0,
+            }))}
+          />
+        </div>
+      )}
+
+      {/* LIGHTNING ROUND — REVEAL PHASE — mobile showcase */}
+      {match.phase === "finale_reveal" && pub.finale && (
+        <div className="flex flex-col gap-3">
+          <h2 className="text-center text-lg font-black uppercase tracking-wider text-[var(--mb-gold)] [font-family:var(--mb-font-display)] flex items-center justify-center gap-2">
+            <LightningIcon className="w-4 h-4" /> {t("games.zaplash.ui.finale_reveal_title")}
+          </h2>
+          {!pub.finale.results || pub.finale.results.length === 0 ? (
+            <Panel className="p-4 text-center rounded-xl bg-[var(--mb-surface-2)] border-[3px] border-black shadow-[var(--mb-shadow)]">
+              <p className="font-bold text-sm text-[var(--mb-text-dim)]">{t("games.zaplash.ui.finale_not_enough")}</p>
+            </Panel>
+          ) : (
+            <ol className="flex flex-col gap-2" aria-label="Lightning Round results">
+              {pub.finale.results.map((r) => {
+                const seatObj = room.seats.find((s) => s.seatIndex === r.seat);
+                return (
+                  <li
+                    key={r.seat}
+                    className={cn(
+                      "flex items-center gap-3 p-3 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000]",
+                      r.rank === 0 ? "bg-[var(--mb-gold)] text-black" : "bg-[var(--mb-surface-2)] text-white"
+                    )}
+                  >
+                    <RankBadge rank={r.rank} className="w-7 h-7 text-sm shrink-0" />
+                    {seatObj && <WhimsicalAvatarFace avatarId={seatObj.avatarId} size={30} />}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-black truncate opacity-80">{seatObj?.displayName ?? "???"}</p>
+                      <p className="text-sm font-extrabold truncate">{r.text}</p>
+                    </div>
+                    <span className="text-base font-black shrink-0 [font-family:var(--mb-font-display)]">+{r.points}</span>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+        </div>
       )}
 
       {/* GAME OVER PHASE */}

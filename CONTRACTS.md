@@ -31,6 +31,12 @@ modify anything outside your ownership zone.
 - `ReduceResult.privateState`: per-seat **full replacement**; omitted seats
   keep previous private state. Clients only ever receive their own seat's
   private state.
+- `ReduceResult.secretState`: server-only game state — **never sent to any
+  client** (excluded from views/snapshots/patches; platform-tested). Omit the
+  key to keep the previous value; any present value (including `null`) is a
+  full replacement. JSON-serializable; use `null`, never `undefined`, inside
+  it. The sanctioned home for decks, hidden targets, and other information no
+  client may see. Full guide: `packages/game-sdk/README.md`.
 - `ReduceResult.scores`: **cumulative totals**, not deltas; omitted seats
   keep previous totals. These drive the shell scoreboard + podium.
 - `ReduceResult.timer`: `{ endsAt: ctx.now + ms, kind, durationMs }` starts a

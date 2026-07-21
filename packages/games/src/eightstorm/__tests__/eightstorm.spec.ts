@@ -8,7 +8,7 @@ import {
   botStep,
 } from "@merky/game-sdk/testing";
 import { eightstorm } from "../index";
-import type { EightstormPrivateState, EightstormPublicState } from "../types";
+import type { EightstormPrivateState, EightstormPublicState, EightstormSecret } from "../types";
 import type { Card } from "../cards";
 
 describe("Eightstorm Game Plugin", () => {
@@ -162,30 +162,33 @@ describe("Eightstorm Game Plugin", () => {
 
   it("conserves total card count during deck exhaustion reshuffle", () => {
     const m = createTestMatch(eightstorm, { players: 3, seed: "eightstorm-reshuffle" });
-    const pubBefore = m.state.publicState as EightstormPublicState;
+    const secretBefore = m.state.secretState as EightstormSecret;
 
     // Drain draw pile
-    pubBefore._drawPile = [pubBefore._drawPile[0]!];
-    pubBefore._discardPile = [
-      ...pubBefore._discardPile,
-      { id: "H-10", suit: "H", rank: "10" },
-      { id: "C-9", suit: "C", rank: "9" },
-    ];
+    const drainedSecret: EightstormSecret = {
+      drawPile: [secretBefore.drawPile[0]!],
+      discardPile: [
+        ...secretBefore.discardPile,
+        { id: "H-10", suit: "H", rank: "10" },
+        { id: "C-9", suit: "C", rank: "9" },
+      ],
+    };
+    m.state = { ...m.state, secretState: drainedSecret };
 
     const privateStateValues = Object.values(m.state.privateState) as Array<EightstormPrivateState | undefined>;
     const totalBefore =
-      pubBefore._drawPile.length +
-      pubBefore._discardPile.length +
+      drainedSecret.drawPile.length +
+      drainedSecret.discardPile.length +
       privateStateValues.reduce((sum: number, p) => sum + (p?.hand?.length ?? 0), 0);
 
     // Seat 0 draws, triggering reshuffle
     act(m, 0, "draw");
-    const pubAfter = m.state.publicState as EightstormPublicState;
+    const secretAfter = m.state.secretState as EightstormSecret;
 
     const privateStateValuesAfter = Object.values(m.state.privateState) as Array<EightstormPrivateState | undefined>;
     const totalAfter =
-      pubAfter._drawPile.length +
-      pubAfter._discardPile.length +
+      secretAfter.drawPile.length +
+      secretAfter.discardPile.length +
       privateStateValuesAfter.reduce((sum: number, p) => sum + (p?.hand?.length ?? 0), 0);
 
     expect(totalAfter).toBe(totalBefore);
@@ -271,5 +274,35 @@ describe("Eightstorm timeout hand integrity (regression)", () => {
     expect(handAfter).toBe(handBefore + 1);
     expect(pubAfter.handCounts[String(seat)]).toBe(handAfter);
     expect(pubAfter.activeSeat).not.toBe(seat);
+  });
+});
+
+describe("Eightstorm security (regression)", () => {
+  it("never leaks the draw/discard pile contents through publicState", () => {
+    const m = createTestMatch(eightstorm, { players: 3, seed: "eightstorm-no-leak" });
+
+    const assertNoPileLeak = () => {
+      const raw = m.state.publicState as unknown as Record<string, unknown>;
+      expect(raw._drawPile).toBeUndefined();
+      expect(raw._discardPile).toBeUndefined();
+
+      const topCardId = (m.state.publicState as EightstormPublicState).topCard.id;
+      const secret = m.state.secretState as EightstormSecret;
+      const json = JSON.stringify(m.state.publicState);
+      for (const card of [...secret.drawPile, ...secret.discardPile]) {
+        if (card.id === topCardId) continue; // the top discard card is legitimately public
+        expect(json, `card ${card.id} leaked into publicState`).not.toContain(card.id);
+      }
+    };
+
+    // Every future draw's exact card order must stay server-only from the
+    // opening deal onward, not just after some mutation.
+    assertNoPileLeak();
+    act(m, 0, "draw");
+    assertNoPileLeak();
+    act(m, 0, "pass");
+    assertNoPileLeak();
+    act(m, 1, "draw");
+    assertNoPileLeak();
   });
 });

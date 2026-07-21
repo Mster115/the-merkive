@@ -26,6 +26,7 @@ export const en: Record<string, string> = {
   "home.games.view_desktop": "Widescreen / TV View",
   "home.games.view_mobile": "Mobile Seat View",
   "home.games.pack_included": "Active Pack",
+  "home.games.count": "{count} GAMES INCLUDED",
   "home.games.pack_locked": "Locked Vault",
 
   "pack.merkining.name": "The Merk-ining",

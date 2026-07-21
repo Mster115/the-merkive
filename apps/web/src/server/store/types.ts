@@ -61,6 +61,12 @@ export interface MatchRecord {
   settings: Record<string, unknown>;
   publicState: unknown;
   privateState: Partial<Record<SeatIndex, unknown>>;
+  /**
+   * Server-only game state (see GameStateIn.secretState). Persisted with the
+   * match but excluded from every client-bound view/patch by construction —
+   * never add it to matchView/buildSnapshot or a published RoomMessage.
+   */
+  secretState?: unknown;
   scores: Partial<Record<SeatIndex, number>>;
   timer: TimerInfo | null;
   over: boolean;
@@ -84,6 +90,8 @@ export interface MatchUpdate {
   phase: string;
   publicState: unknown;
   privateStatePatch?: Partial<Record<SeatIndex, unknown>>;
+  /** undefined = keep current secret state; any present value replaces it. */
+  secretState?: unknown;
   scoresPatch?: Partial<Record<SeatIndex, number>>;
   /** undefined = keep current timer; null = clear. */
   timer?: TimerInfo | null;

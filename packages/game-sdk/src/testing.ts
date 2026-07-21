@@ -16,7 +16,9 @@ import { matchRng } from "./rng";
  * In-memory match harness that mirrors the server runtime's semantics
  * exactly: version increments per applied result, rng derives from
  * (seed, version), private state merges per-seat, scores are cumulative
- * totals, `timer: undefined` keeps the current timer.
+ * totals, `timer: undefined` keeps the current timer, `secretState:
+ * undefined` keeps the current secret state (assert on `m.state.secretState`
+ * — on the real server it never reaches any client).
  */
 export interface TestMatch {
   game: GameModule;
@@ -62,7 +64,7 @@ export function createTestMatch(
     seed: opts.seed ?? "test-seed",
     now: opts.now ?? 1_750_000_000_000,
     version: 0,
-    state: { publicState: null, privateState: {}, phase: "init" },
+    state: { publicState: null, privateState: {}, secretState: null, phase: "init" },
     scores: {},
     timer: null,
     over: false,
@@ -87,6 +89,7 @@ export function applyResult(m: TestMatch, r: ReduceResult): ReduceResult {
   m.state = {
     publicState: r.publicState,
     privateState: { ...m.state.privateState, ...(r.privateState ?? {}) },
+    secretState: r.secretState !== undefined ? r.secretState : m.state.secretState,
     phase: r.phase,
   };
   if (r.scores) m.scores = { ...m.scores, ...r.scores };

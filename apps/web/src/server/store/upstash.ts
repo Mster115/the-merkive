@@ -208,6 +208,7 @@ export class UpstashStore implements RoomStore {
       phase: update.phase,
       publicState: update.publicState,
       privateState: nextPrivateState,
+      secretState: update.secretState === undefined ? match.secretState : update.secretState,
       scores: nextScores,
       timer: update.timer === undefined ? match.timer : update.timer,
       over: update.over ?? match.over,

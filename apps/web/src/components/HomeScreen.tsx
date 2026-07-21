@@ -264,7 +264,7 @@ export function HomeScreen() {
                       {activePack.badge ? t(activePack.badge) : t("home.games.pack_included")}
                     </span>
                     <span className="bg-black text-[var(--mb-accent-2)] border border-[var(--mb-accent-2)] px-2 py-0.5 text-[11px] font-black uppercase tracking-widest">
-                      3 GAMES INCLUDED
+                      {t("home.games.count", { count: activePack.gameIds.length })}
                     </span>
                   </div>
                   <Pill tone="ok">{t("home.games.ready")}</Pill>

@@ -165,6 +165,7 @@ export class MemoryStore implements RoomStore {
     if (update.privateStatePatch) {
       m.privateState = { ...m.privateState, ...clone(update.privateStatePatch) };
     }
+    if (update.secretState !== undefined) m.secretState = clone(update.secretState);
     if (update.scoresPatch) {
       m.scores = { ...m.scores, ...clone(update.scoresPatch) };
     }

@@ -576,3 +576,11 @@ function ZapMoment() {
   }, []);
   return <div aria-hidden="true" className="mb-zapflash" />;
 }
+
+/** Victory sting for the Lightning Round results reveal. */
+function FinaleWinnerFx() {
+  React.useEffect(() => {
+    sfx.play("win");
+  }, []);
+  return null;
+}

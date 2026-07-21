@@ -40,6 +40,7 @@ async function persistAndPublish(
     phase: result.phase,
     publicState: result.publicState,
     privateStatePatch: result.privateState,
+    secretState: result.secretState,
     scoresPatch: result.scores,
     timer: result.timer,
     over: result.matchOver === true ? true : undefined,
@@ -55,6 +56,7 @@ async function persistAndPublish(
   if (update.privateStatePatch) {
     match.privateState = { ...match.privateState, ...update.privateStatePatch };
   }
+  if (update.secretState !== undefined) match.secretState = update.secretState;
   if (update.scoresPatch) match.scores = { ...match.scores, ...update.scoresPatch };
   if (update.timer !== undefined) match.timer = update.timer;
   if (update.over) match.over = true;
@@ -103,6 +105,7 @@ export async function startMatchRuntime(
     settings,
     publicState: null,
     privateState: {},
+    secretState: null,
     scores: {},
     timer: null,
     over: false,
@@ -115,6 +118,7 @@ export async function startMatchRuntime(
   base.phase = result.phase;
   base.publicState = result.publicState;
   base.privateState = { ...(result.privateState ?? {}) };
+  base.secretState = result.secretState !== undefined ? result.secretState : null;
   base.scores = { ...(result.scores ?? {}) };
   base.timer = result.timer ?? null;
   base.over = result.matchOver === true;
@@ -159,6 +163,7 @@ export async function advanceSystem(
       const result = game.onTick(buildCtx(room, match, seats), {
         publicState: match.publicState,
         privateState: match.privateState,
+        secretState: match.secretState,
         phase: match.phase,
       });
       if (result) {
@@ -188,6 +193,7 @@ export async function advanceSystem(
       .awaitedSeats(buildCtx(room, match, seats), {
         publicState: match.publicState,
         privateState: match.privateState,
+        secretState: match.secretState,
         phase: match.phase,
       })
       .filter((seat) => seats.find((s) => s.seatIndex === seat)?.abandoned);
@@ -196,13 +202,13 @@ export async function advanceSystem(
     for (const seat of abandonedAwaited) {
       const bot = game.suggestBotAction?.(
         buildCtx(room, match, seats),
-        { publicState: match.publicState, privateState: match.privateState, phase: match.phase },
+        { publicState: match.publicState, privateState: match.privateState, secretState: match.secretState, phase: match.phase },
         seat
       );
       if (!bot) continue;
       const result = game.reduce(
         buildCtx(room, match, seats),
-        { publicState: match.publicState, privateState: match.privateState, phase: match.phase },
+        { publicState: match.publicState, privateState: match.privateState, secretState: match.secretState, phase: match.phase },
         { type: bot.type, seat, payload: bot.payload }
       );
       if (isReduceError(result)) continue;
@@ -232,6 +238,7 @@ export async function applySeatHook(
   const result = fn(buildCtx(room, match, seats), {
     publicState: match.publicState,
     privateState: match.privateState,
+    secretState: match.secretState,
     phase: match.phase,
   }, seat);
   if (result) await persistAndPublish(deps, room, match, result, "system");
@@ -254,7 +261,7 @@ export async function applyPlayerAction(
 
   const result = game.reduce(
     buildCtx(room, match, seats),
-    { publicState: match.publicState, privateState: match.privateState, phase: match.phase },
+    { publicState: match.publicState, privateState: match.privateState, secretState: match.secretState, phase: match.phase },
     { type: action.type, seat, payload: action.payload }
   );
   if (isReduceError(result)) {

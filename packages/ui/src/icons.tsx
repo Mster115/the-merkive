@@ -209,7 +209,7 @@ export function MerkissionerIcon({ className = "w-6 h-6" }: { className?: string
   );
 }
 
-export function MerkwaveIcon({ className = "w-6 h-6" }: { className?: string }) {
+export function YouGotItIcon({ className = "w-6 h-6" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 18a9 9 0 0 1 18 0z" fill="var(--mb-accent)" fillOpacity="0.3" stroke="currentColor" strokeWidth="2" />
@@ -230,8 +230,8 @@ export function GameIcon({ gameId, className }: { gameId: string; className?: st
       return <TileTangleIcon className={className} />;
     case "merkissioner":
       return <MerkissionerIcon className={className} />;
-    case "merkwave":
-      return <MerkwaveIcon className={className} />;
+    case "yougotit":
+      return <YouGotItIcon className={className} />;
     default:
       return <PuzzleIcon className={className} />;
   }

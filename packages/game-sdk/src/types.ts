@@ -83,6 +83,14 @@ export interface GameContext {
 export interface GameStateIn {
   publicState: unknown;
   privateState: Partial<Record<SeatIndex, unknown>>;
+  /**
+   * Server-only game state. Never serialized into any client-bound payload
+   * (match views, snapshots, patches) — the sanctioned home for information
+   * no client may ever see: deck order/composition, hidden targets, pending
+   * simultaneous inputs. Must be JSON-serializable; use `null` (never
+   * `undefined`) for empty values inside it.
+   */
+  secretState?: unknown;
   phase: string;
 }
 
@@ -96,6 +104,12 @@ export interface ReduceResult {
   publicState: unknown;
   /** Per-seat FULL replacement; seats omitted keep their previous private state. */
   privateState?: Partial<Record<SeatIndex, unknown>>;
+  /**
+   * FULL replacement of the server-only secret state. Omit to keep the
+   * previous value; any present value (including `null`) replaces it.
+   * Never reaches any client.
+   */
+  secretState?: unknown;
   phase: string;
   /** CUMULATIVE match totals per seat; omitted seats keep their previous score. */
   scores?: Partial<Record<SeatIndex, number>>;
