@@ -71,6 +71,8 @@ export const yougotit = defineGame({
       "games.yougotit.description":
         "The Oracle drops one clue. Slide the dial to where their brain lives. You got it? Good.",
       "games.yougotit.tagline": "One clue. One dial. You got it?",
+      "games.yougotit.lobby.rules_summary":
+        "One player is the Oracle and sees a secret target hidden on the spectrum — they give a single clue to steer their team's dial toward it. Land close for points, nail a Bullseye for the max, and watch out for the other team's Undercut steal.",
       "games.yougotit.credits":
         "Mechanics inspired by Wavelength by Wolfgang Warsch, Alex Hague & Justin Vickers (CMYK).",
 

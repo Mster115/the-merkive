@@ -82,6 +82,8 @@ export const zaplash = defineGame({
     en: {
       "games.zaplash.name": "Banterbolt",
       "games.zaplash.description": "Write outrageous answers, vote for the best, and steal the show in the Lightning Round.",
+      "games.zaplash.lobby.rules_summary":
+        "Everyone writes a witty answer to two secret prompts, then votes blind for the funniest response — you can't vote for your own. Land a unanimous ZAP! for a bonus, then duke it out in the fast, high-stakes Lightning Round finale.",
       "games.zaplash.packs.core": "Banterbolt Core (Family Friendly)",
       "games.zaplash.packs.office": "Office Chaos (Family Friendly)",
       "games.zaplash.packs.popculture": "Screen Time (Family Friendly)",

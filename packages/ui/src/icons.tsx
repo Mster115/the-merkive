@@ -35,6 +35,16 @@ export function CloseIcon({ className = "w-5 h-5" }: { className?: string }) {
   );
 }
 
+export function InfoIcon({ className = "w-5 h-5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9.5" fill="currentColor" fillOpacity="0.12" />
+      <path d="M12 11v6" />
+      <circle cx="12" cy="7.75" r="1.15" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 export function TrophyIcon({ className = "w-6 h-6" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

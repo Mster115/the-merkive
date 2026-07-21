@@ -18,6 +18,7 @@ export {
   LockIcon,
   CrownIcon,
   CloseIcon,
+  InfoIcon,
   TrophyIcon,
   GlitchFaceIcon,
   BootIcon,

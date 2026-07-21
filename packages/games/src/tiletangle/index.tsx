@@ -28,6 +28,8 @@ export const tiletangle = defineGame({
     en: {
       "games.tiletangle.name": "Tile Tangle",
       "games.tiletangle.description": "Lay sets and runs, retangle the table, empty your rack first.",
+      "games.tiletangle.lobby.rules_summary":
+        "Draw tiles and race to empty your rack by laying down sets and runs on the table. Your first meld must clear the point minimum before you're free to rework tiles already on the table. First to play their last tile wins.",
       "games.tiletangle.setting.turnSeconds": "Turn Duration (seconds)",
       "games.tiletangle.setting.initialMeldPoints": "Initial Meld Requirement (points)",
       "games.tiletangle.yourTurn": "It's your turn!",

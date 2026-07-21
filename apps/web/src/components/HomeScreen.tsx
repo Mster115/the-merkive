@@ -3,12 +3,13 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { contentPacks, gameRegistry } from "@merky/games";
-import { Button, Card, Pill, LockIcon, Modal, GameIcon, SoundToggle } from "@merky/ui";
+import { Button, Card, Pill, LockIcon, Modal, GameIcon, InfoIcon, SoundToggle } from "@merky/ui";
 import { useT } from "@/i18n";
 import { api, ApiCallError } from "@/client/api";
 import { getPrefs, setPrefs, setToken } from "@/client/session";
 import { AvatarPicker } from "./AvatarPicker";
 import { Ticker } from "./Ticker";
+import { GameInfoModal } from "./GameInfoModal";
 import logoImg from "@/assets/logo-purple.png";
 
 export function HomeScreen() {
@@ -20,6 +21,7 @@ export function HomeScreen() {
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [showDeviceChoice, setShowDeviceChoice] = React.useState(false);
+  const [infoGameId, setInfoGameId] = React.useState<string | null>(null);
   // React's `busy` state can lag a render behind a fast double-click/tap —
   // the button's `disabled` attribute hasn't reached the DOM yet, so a second
   // click can re-enter the handler while the first request is still in
@@ -288,10 +290,14 @@ export function HomeScreen() {
                     const g = gameRegistry[gameId];
                     if (!g) return null;
                     return (
-                      <div
+                      <button
                         key={g.meta.id}
+                        type="button"
+                        onClick={() => setInfoGameId(gameId)}
+                        aria-haspopup="dialog"
+                        aria-label={t("home.games.view_rules_for", { name: t(g.meta.nameKey) })}
                         className={
-                          "flex flex-col justify-between gap-2 rounded-lg border-2 border-black bg-[var(--mb-surface-2)] p-3 shadow-[3px_3px_0_0_#000] hover:bg-[var(--mb-surface-3)] transition-all " +
+                          "mb-lift mb-press flex w-full flex-col justify-between gap-2 rounded-lg border-2 border-black bg-[var(--mb-surface-2)] p-3 text-left shadow-[3px_3px_0_0_#000] transition-all hover:bg-[var(--mb-surface-3)] cursor-pointer focus-visible:outline focus-visible:outline-4 focus-visible:outline-[var(--mb-violet)] focus-visible:outline-offset-2 " +
                           (i % 2 === 0 ? "rotate-[0.4deg]" : "-rotate-[0.4deg]")
                         }
                       >
@@ -303,6 +309,7 @@ export function HomeScreen() {
                                 {t(g.meta.nameKey)}
                               </span>
                             </div>
+                            <InfoIcon aria-hidden="true" className="w-4 h-4 text-[var(--mb-text-dim)] shrink-0" />
                           </div>
                           <p className="text-[11px] font-semibold text-[var(--mb-text-dim)] line-clamp-2 leading-snug">
                             {t(g.meta.descriptionKey)}
@@ -316,7 +323,7 @@ export function HomeScreen() {
                             PLAYABLE
                           </span>
                         </div>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
@@ -382,6 +389,7 @@ export function HomeScreen() {
         open={showDeviceChoice}
         onClose={() => setShowDeviceChoice(false)}
         title={t("home.create.deviceChoice.title")}
+        closeLabel={t("common.close")}
       >
         <div className="flex flex-col gap-3">
           <button
@@ -418,6 +426,8 @@ export function HomeScreen() {
           </button>
         </div>
       </Modal>
+
+      <GameInfoModal gameId={infoGameId} onClose={() => setInfoGameId(null)} />
 
       <Ticker
         className="fixed bottom-0 inset-x-0 z-40"

@@ -68,6 +68,8 @@ export const eightstorm = defineGame({
     en: {
       "games.eightstorm.name": "Eightstorm",
       "games.eightstorm.description": "Shed your cards, ride the eights, storm the discard pile.",
+      "games.eightstorm.lobby.rules_summary":
+        "Match the top card by suit or rank, or drop an eight to storm in a new suit. House rules can stack 2s onto the next player, skip with a Jack, or reverse with an Ace. First to empty their hand wins, scored on everyone else's leftover cards.",
       "games.eightstorm.settings.drawTwoOnTwo": "2s stack a draw penalty",
       "games.eightstorm.settings.skipOnJack": "Jacks skip the next player",
       "games.eightstorm.settings.reverseOnAce": "Aces reverse direction",

@@ -28,6 +28,8 @@ export const en: Record<string, string> = {
   "home.games.pack_included": "Active Pack",
   "home.games.count": "{count} GAMES INCLUDED",
   "home.games.pack_locked": "Locked Vault",
+  "home.games.how_to_play": "How to play",
+  "home.games.view_rules_for": "View full rules for {name}",
 
   "pack.merkining.name": "The Merk-ining",
   "pack.merkining.tagline": "The Original Party Starter Pack",
