@@ -17,7 +17,8 @@ export function getSettings(ctx: GameContext): MerkadeSettings {
 
 function getPack(ctx: GameContext): MerkadePackPayload {
   const defaultPayload = corePack.payload as MerkadePackPayload;
-  const pack = ((ctx.settings._pack as any)?.payload ?? defaultPayload) as Partial<MerkadePackPayload>;
+  const resolvedPack = ctx.settings._pack as { payload?: unknown } | undefined;
+  const pack = (resolvedPack?.payload ?? defaultPayload) as Partial<MerkadePackPayload>;
   return {
     trivia: Array.isArray(pack.trivia) && pack.trivia.length > 0 ? pack.trivia : defaultPayload.trivia,
     doodleWords: Array.isArray(pack.doodleWords) && pack.doodleWords.length > 0 ? pack.doodleWords : defaultPayload.doodleWords,
@@ -724,7 +725,8 @@ export function reduceEngine(
       if (priv.fibHasSubmitted) {
         return { error: "Already submitted a lie", code: "already_submitted" };
       }
-      const rawText = typeof action.payload === "object" && action.payload && "text" in action.payload && typeof (action.payload as any).text === "string" ? (action.payload as any).text : "";
+      const textPayload = action.payload as { text?: string } | undefined;
+      const rawText = typeof textPayload?.text === "string" ? textPayload.text : "";
       const trimmed = rawText.trim();
       if (trimmed.length === 0) {
         return { error: "Text cannot be empty", code: "empty_text" };
@@ -786,7 +788,8 @@ export function reduceEngine(
       if (priv.fibHasVoted) {
         return { error: "Already voted", code: "already_submitted" };
       }
-      const optionIndex = typeof action.payload === "object" && action.payload && "optionIndex" in action.payload && typeof (action.payload as any).optionIndex === "number" ? (action.payload as any).optionIndex : -1;
+      const optionPayload = action.payload as { optionIndex?: number } | undefined;
+      const optionIndex = typeof optionPayload?.optionIndex === "number" ? optionPayload.optionIndex : -1;
       const options = pub.fibOptions ?? [];
       if (!Number.isInteger(optionIndex) || optionIndex < 0 || optionIndex >= options.length) {
         return { error: "Invalid option index", code: "invalid_option_index" };
@@ -841,7 +844,8 @@ export function reduceEngine(
       if (priv.doodleHasSubmitted) {
         return { error: "Already submitted drawing", code: "already_submitted" };
       }
-      const grid = (action.payload as any)?.grid;
+      const gridPayload = action.payload as { grid?: unknown } | undefined;
+      const grid = gridPayload?.grid;
       if (!isValidGrid(grid)) {
         return { error: "Invalid drawing grid format", code: "invalid_grid" };
       }
@@ -898,7 +902,8 @@ export function reduceEngine(
       if (priv.doodleHasGuessed) {
         return { error: "Already submitted guess", code: "already_submitted" };
       }
-      const rawText = typeof action.payload === "object" && action.payload && "text" in action.payload && typeof (action.payload as any).text === "string" ? (action.payload as any).text : "";
+      const textPayload = action.payload as { text?: string } | undefined;
+      const rawText = typeof textPayload?.text === "string" ? textPayload.text : "";
       const trimmed = rawText.trim();
       if (trimmed.length === 0) {
         return { error: "Guess text cannot be empty", code: "empty_text" };
@@ -959,7 +964,8 @@ export function reduceEngine(
       if (priv.doodleHasVoted) {
         return { error: "Already voted", code: "already_submitted" };
       }
-      const optionIndex = typeof action.payload === "object" && action.payload && "optionIndex" in action.payload && typeof (action.payload as any).optionIndex === "number" ? (action.payload as any).optionIndex : -1;
+      const optionPayload = action.payload as { optionIndex?: number } | undefined;
+      const optionIndex = typeof optionPayload?.optionIndex === "number" ? optionPayload.optionIndex : -1;
       const options = pub.doodleGuessOptions ?? [];
       if (!Number.isInteger(optionIndex) || optionIndex < 0 || optionIndex >= options.length) {
         return { error: "Invalid option index", code: "invalid_option_index" };
@@ -1014,8 +1020,9 @@ export function reduceEngine(
       if (priv.majorityHasSubmitted) {
         return { error: "Already submitted choice", code: "already_submitted" };
       }
-      const choice = (action.payload as any)?.choice;
-      const predictedMajority = (action.payload as any)?.predictedMajority;
+      const majorityPayload = action.payload as { choice?: unknown; predictedMajority?: unknown } | undefined;
+      const choice = majorityPayload?.choice;
+      const predictedMajority = majorityPayload?.predictedMajority;
 
       if ((choice !== 0 && choice !== 1) || (predictedMajority !== 0 && predictedMajority !== 1)) {
         return { error: "Invalid choice or prediction", code: "invalid_choice" };

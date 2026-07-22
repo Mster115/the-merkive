@@ -33,7 +33,7 @@ export const en: Record<string, string> = {
 
   "pack.merkining.name": "The Merk-ining",
   "pack.merkining.tagline": "The Original Party Starter Pack",
-  "pack.merkining.desc": "Five flavors of party chaos: lightning-fast quips, tile brawls, card storms, mind-reading dials, and shadowy council intrigue.",
+  "pack.merkining.desc": "Six flavors of party chaos: lightning-fast quips, tile brawls, card storms, mind-reading dials, shadowy council intrigue, and a whirlwind arcade of bluffs, doodles, and votes.",
   "pack.merkining.badge": "LAUNCH PACK",
 
   "pack.merkaggeddon.name": "Merk-aggeddon",

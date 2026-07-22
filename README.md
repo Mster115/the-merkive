@@ -29,12 +29,13 @@ The Merkive is an open-source, browser-based party game platform inspired by Jac
 | **Tile Tangle** | 2–8 | Rummikub-style sets & runs with full table rearrangement and a 30-point opening meld |
 | **You got it? Good.** | 4–8 | The Oracle drops one clue, the team slides the dial to match it, the other team calls the Undercut |
 | **Mr Merkissioner, Sir** | 5–8 | Hidden-role social deduction — pass decrees, sniff out the Merkites, never elect Mr Merkissioner as Commissioner |
+| **Merkade** | 3–8 | A rotating arcade of three party-game tracks on one scoreboard — bluff-the-truth trivia, secret-prompt pixel doodles, and majority-vote predictions |
 
 ### 📦 Upcoming Content Packs
 
 | Pack | Status | Theme |
 | :--- | :---: | :--- |
-| **The Merkining** | ✅ Live | Core party pack (Banterbolt, Eightstorm, Tile Tangle, You got it? Good., Mr Merkissioner, Sir) |
+| **The Merkining** | ✅ Live | Core party pack (Banterbolt, Eightstorm, Tile Tangle, You got it? Good., Mr Merkissioner, Sir, Merkade) |
 | **Merkaggeddon** | 🔜 Coming Soon | Competitive chaos pack |
 | **Merky After Dark** | 🔜 Coming Soon | Adults-only party games |
 | **Seen & Heard** | 🔜 Coming Soon | Social deduction & conversation |
@@ -96,7 +97,7 @@ merky-box/
 │   └── web/                  # Next.js 15 App Router (Stage & Controller shell, API routes)
 ├── packages/
 │   ├── game-sdk/             # Core plugin contract: GameModule, deterministic RNG, test harness
-│   ├── games/                # Game plugins (Banterbolt, Eightstorm, Tile Tangle, You got it? Good., Mr Merkissioner, Sir) + registry
+│   ├── games/                # Game plugins (Banterbolt, Eightstorm, Tile Tangle, You got it? Good., Mr Merkissioner, Sir, Merkade) + registry
 │   ├── party/                # PartyKit Edge Room Engine (Durable Objects & WebSockets)
 │   └── ui/                   # Neo-Brutalist Design System (@merky/ui tokens & components)
 ├── market-research/          # Competitive analysis & game design research

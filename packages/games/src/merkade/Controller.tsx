@@ -32,7 +32,7 @@ export function MerkadeController({ seat, match, privateState, act, t }: Control
     );
   }
 
-  const handleAct = async (type: string, payload: any) => {
+  const handleAct = async (type: string, payload?: unknown) => {
     setErrorMessage(null);
     const res = await act(type, payload);
     if (!res.ok) {
