@@ -230,6 +230,18 @@ export function YouGotItIcon({ className = "w-6 h-6" }: { className?: string }) 
   );
 }
 
+export function MerkadeIcon({ className = "w-6 h-6" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="5" width="18" height="14" rx="2" fill="var(--mb-accent)" fillOpacity="0.25" stroke="currentColor" strokeWidth="2" />
+      <circle cx="8.5" cy="12" r="2.4" fill="var(--mb-surface)" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="15.5" cy="12" r="2.4" fill="var(--mb-surface)" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M8.5 12h7" stroke="var(--mb-gold)" strokeWidth="1.6" />
+      <path d="M6 8.5h12" stroke="currentColor" strokeWidth="1.4" />
+    </svg>
+  );
+}
+
 export function GameIcon({ gameId, className }: { gameId: string; className?: string }) {
   switch (gameId) {
     case "zaplash":
@@ -242,6 +254,8 @@ export function GameIcon({ gameId, className }: { gameId: string; className?: st
       return <MerkissionerIcon className={className} />;
     case "yougotit":
       return <YouGotItIcon className={className} />;
+    case "merkade":
+      return <MerkadeIcon className={className} />;
     default:
       return <PuzzleIcon className={className} />;
   }

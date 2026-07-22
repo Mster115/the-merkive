@@ -4,6 +4,7 @@ import { tiletangle } from "./tiletangle";
 import { eightstorm } from "./eightstorm";
 import { yougotit } from "./yougotit";
 import { merkissioner } from "./merkissioner";
+import { merkade } from "./merkade";
 
 export interface ContentPack {
   id: string;
@@ -23,6 +24,7 @@ export const gameRegistry: Record<string, GameModule> = {
   [eightstorm.meta.id]: eightstorm,
   [yougotit.meta.id]: yougotit,
   [merkissioner.meta.id]: merkissioner,
+  [merkade.meta.id]: merkade,
 };
 
 export const gameList: GameModule[] = Object.values(gameRegistry);
@@ -35,7 +37,7 @@ export const contentPacks: ContentPack[] = [
     taglineKey: "pack.merkining.tagline",
     badge: "pack.merkining.badge",
     isComingSoon: false,
-    gameIds: ["zaplash", "tiletangle", "eightstorm", "yougotit", "merkissioner"],
+    gameIds: ["zaplash", "tiletangle", "eightstorm", "yougotit", "merkissioner", "merkade"],
     gradientTheme: "from-purple-950/80 via-indigo-900/60 to-pink-950/80 border-[var(--mb-accent)]",
   },
   {
