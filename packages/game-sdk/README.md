@@ -27,7 +27,14 @@ packages/games/src/<id>/
 
 Register in `packages/games/src/index.ts` (one import + one registry entry +
 pack `gameIds`) and add a `GameIcon` case in `packages/ui/src/icons.tsx`.
-Nothing in `apps/web` changes to add a game.
+Nothing in `apps/web` changes to add a game — but `apps/web`'s
+`GameInfoModal` (the lobby's "View full rules" card) does consume a key
+every game must ship: `games.<id>.lobby.rules_summary`, a 2-3 sentence
+how-to-play summary in your `i18n.en` map alongside `nameKey`/
+`descriptionKey`. Miss it and the modal renders the raw key string instead
+of text — `packages/games/src/__tests__/registry.spec.ts` checks for it,
+but it's easy to miss if you only look at the plugin contract types and
+never open `apps/web/src/components/GameInfoModal.tsx`.
 
 ## 2. The three state slots — who sees what
 

@@ -92,6 +92,8 @@ export const merkade = defineGame({
       "games.merkade.description":
         "A rotating arcade of party games — bluff, doodle, and predict your way through every track.",
       "games.merkade.tagline": "One arcade. A different game every round.",
+      "games.merkade.lobby.rules_summary":
+        "Each round throws you into a different mini-game: bluff a trivia lie and try to spot the truth in Fib or Fact, draw a secret prompt in pixel art and guess everyone else's in Pixel Doodle, or pick a side and call the crowd in Majority Rules. Every track adds to one running score — most points when the arcade closes wins.",
       "games.merkade.pack.core": "Core Merkade Pack",
 
       "games.merkade.settings.roundCount": "Total Tracks (Rounds)",

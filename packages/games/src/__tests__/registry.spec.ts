@@ -32,6 +32,14 @@ describe("game registry (platform CI gate)", () => {
     }
   });
 
+  it("every game ships a lobby how-to-play summary (GameInfoModal contract)", () => {
+    for (const g of gameList) {
+      const en = g.i18n.en ?? {};
+      const key = `games.${g.meta.id}.lobby.rules_summary`;
+      expect(en[key], `${g.meta.id} missing ${key}`).toBeTruthy();
+    }
+  });
+
   it("every settingField labelKey resolves to an english string", () => {
     for (const g of gameList) {
       const en = g.i18n.en ?? {};
