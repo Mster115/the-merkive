@@ -93,7 +93,7 @@ export function HomeScreen() {
     <>
       <main className="mx-auto max-w-md lg:max-w-7xl min-h-dvh flex flex-col justify-between gap-8 p-4 sm:p-6 lg:p-10 pb-24 mb-stagger">
         {/* Widescreen / Desktop Hero Header */}
-        <header className="flex flex-col lg:flex-row items-center justify-between gap-6 mb-drop text-center lg:text-left border-b-2 border-black/40 pb-6" style={{ "--mb-i": 0 } as React.CSSProperties}>
+        <header className="flex flex-col lg:flex-row items-center justify-between gap-6 mb-drop text-center lg:text-left pb-6" style={{ "--mb-i": 0 } as React.CSSProperties}>
           <div>
             <div className="relative inline-block">
               <div aria-hidden className="absolute -inset-3 bg-[var(--mb-pink)] opacity-20 blur-2xl -z-10" />
@@ -254,7 +254,6 @@ export function HomeScreen() {
               <h2 className="shrink-0 bg-[var(--mb-accent)] text-[var(--mb-on-accent)] border-2 border-black shadow-[3px_3px_0_0_#000] px-4 py-1.5 text-base sm:text-lg font-black uppercase tracking-wider -rotate-1">
                 {t("home.games.title")}
               </h2>
-              <div aria-hidden className="h-1 flex-1 bg-black" />
             </div>
 
             {/* Active Content Pack Showcase ("The Merk-ining") */}
