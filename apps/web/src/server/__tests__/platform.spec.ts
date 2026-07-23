@@ -9,6 +9,7 @@ import {
   joinRoom,
   kickSeat,
   leaveRoom,
+  presenceOpen,
   snapshotFor,
   startMatch,
   sweepAll,
@@ -182,6 +183,27 @@ describe("platform spine", () => {
     expect(again.snapshot.room.seats).toHaveLength(1);
   });
 
+  it("fresh:true always mints a distinct seat, even if the resolved uid collides with an existing player", async () => {
+    // Regression: a browser can resolve the *same* uid for two different
+    // "join" attempts (e.g. a stale per-room cookie fallback shared across
+    // tabs/devices on one browser). A client that means "join as a new
+    // player" must pass fresh:true so this never silently reclaims someone
+    // else's seat instead of creating a new one.
+    freshStore();
+    const { code } = await createRoom(HOST, "Ana", "fox");
+    const second = await joinRoom(code, {
+      uid: HOST,
+      fresh: true,
+      name: "Bo",
+      avatarId: "cat",
+      role: "player",
+    });
+    expect(second.token).not.toBe(HOST);
+    expect(second.snapshot.you.seatIndex).toBe(1);
+    expect(second.snapshot.room.seats).toHaveLength(2);
+    expect(second.snapshot.room.seats.map((s) => s.displayName).sort()).toEqual(["Ana", "Bo"]);
+  });
+
   it("runs a full match: start → turns → scores → finalize → podium in lobby", async () => {
     const code = await setupStartedRoom();
 
@@ -248,6 +270,21 @@ describe("platform spine", () => {
     const after = await snapshotFor(code, HOST);
     const pub = after.match?.publicState as { active: number };
     expect(pub.active).toBe(2);
+  });
+
+  it("clears abandoned on presenceOpen so a reconnect (not just an explicit rejoin) stops bot coverage", async () => {
+    const code = await setupStartedRoom();
+    await kickSeat(code, HOST, 1);
+    const kicked = await snapshotFor(code, HOST);
+    expect(kicked.room.seats.find((s) => s.seatIndex === 1)?.abandoned).toBe(true);
+
+    // P2 simply reopens the room (SSE reconnect) rather than an explicit /join.
+    await presenceOpen(code, P2);
+
+    const after = await snapshotFor(code, HOST);
+    const seat1 = after.room.seats.find((s) => s.seatIndex === 1);
+    expect(seat1?.abandoned).toBe(false);
+    expect(seat1?.connected).toBe(true);
   });
 
   it("transfers host explicitly and rejects non-host control actions", async () => {

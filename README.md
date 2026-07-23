@@ -86,6 +86,7 @@ cp .env.example .env
 | `PARTYKIT_HOST` | — | PartyKit server host (production only) |
 | `NEXT_PUBLIC_PARTYKIT_HOST` | — | Client-side PartyKit WebSocket host |
 | `MB_SWEEP_SECRET` | — | Secret for the external sweeper endpoint |
+| `CRON_SECRET` | — | Vercel-reserved env var name. When set (along with the `crons` entry in `vercel.json`), Vercel automatically sends `Authorization: Bearer $CRON_SECRET` on its cron-invoked `GET /api/sweep` request, authenticating it |
 
 ---
 
@@ -202,6 +203,9 @@ Then deploy:
 ```bash
 npx vercel --prod
 ```
+
+> [!NOTE]
+> `vercel.json` configures a cron job that calls `GET /api/sweep` every minute to cover disconnect-grace, host reassignment, idle-room expiry, and bot-tick catch-up in PartyKit mode. Set `CRON_SECRET` in your Vercel Project Settings so this request is authenticated — without it, `GET /api/sweep` is unguarded, the same tradeoff `MB_SWEEP_SECRET` already has for the `POST` variant.
 
 ---
 

@@ -76,7 +76,7 @@ export function HomeScreen() {
     setError(null);
     setPrefs(name.trim(), avatarId);
     try {
-      const res = await api.join(cleaned, { name: name.trim(), avatarId, role }, null);
+      const res = await api.join(cleaned, { name: name.trim(), avatarId, role, fresh: true }, null);
       setToken(cleaned, res.token);
       router.push(`/play/${cleaned}`);
     } catch (err) {

@@ -3,6 +3,7 @@ import { jsonError, readJson, type RouteParams } from "@/server/api";
 import { normalizeCode } from "@/server/codes";
 import { readIdentity } from "@/server/identity";
 import { withRoomLock } from "@/server/lock";
+import { unabandonSeatOnReconnect } from "@/server/service";
 import { getStore } from "@/server/store";
 import { roomView } from "@/server/views";
 
@@ -41,11 +42,15 @@ export async function POST(req: Request, { params }: RouteParams): Promise<NextR
             disconnectedAt: now,
           });
         } else {
-          await store.updateSeat(room.id, seat.seatIndex, {
-            connected: true,
-            lastSeenAt: now,
-            disconnectedAt: null,
-          });
+          if (seat.abandoned) {
+            await unabandonSeatOnReconnect(store, room, seat);
+          } else {
+            await store.updateSeat(room.id, seat.seatIndex, {
+              connected: true,
+              lastSeenAt: now,
+              disconnectedAt: null,
+            });
+          }
           if (room.pausedAt) {
             await store.updateRoom(room.id, { pausedAt: null });
             room.pausedAt = null;

@@ -301,6 +301,34 @@ async function reclaimSeat(
   }
 }
 
+/**
+ * A live connection just confirmed for a seat that was previously marked
+ * `abandoned` (grace-swept, kicked, or explicitly left mid-game). Clear the
+ * abandoned flag the same way `reclaimSeat` does for an explicit rejoin, so
+ * bots stop covering a seat whose player is actively looking at the screen
+ * again. Shared by both presence-tracking paths (the memory-mode SSE route's
+ * `presenceOpen` below, and the PartyKit-mode `/presence` route handler) so
+ * the un-abandon-on-reconnect behavior isn't tripled across them.
+ */
+export async function unabandonSeatOnReconnect(
+  store: RoomStore,
+  room: RoomRecord,
+  seat: PlayerSeatRecord
+): Promise<void> {
+  await store.updateSeat(room.id, seat.seatIndex, {
+    abandoned: false,
+    connected: true,
+    disconnectedAt: null,
+    lastSeenAt: Date.now(),
+  });
+  const freshSeats = await store.listSeats(room.id);
+  const match = await store.getActiveMatch(room.id);
+  if (match) {
+    await applySeatHook({ store }, room, match, freshSeats, seat.seatIndex, "onSeatReplaced");
+    await advanceSystem({ store }, room, match, freshSeats);
+  }
+}
+
 export async function leaveRoom(rawCode: string, uid: string): Promise<void> {
   const store = getStore();
   return withRoomLock(rawCode, async () => {
@@ -637,11 +665,15 @@ export async function presenceOpen(rawCode: string, uid: string): Promise<void> 
     const seat = seats.find((s) => s.playerUid === uid);
     const now = Date.now();
     if (seat) {
-      await store.updateSeat(room.id, seat.seatIndex, {
-        connected: true,
-        disconnectedAt: null,
-        lastSeenAt: now,
-      });
+      if (seat.abandoned) {
+        await unabandonSeatOnReconnect(store, room, seat);
+      } else {
+        await store.updateSeat(room.id, seat.seatIndex, {
+          connected: true,
+          disconnectedAt: null,
+          lastSeenAt: now,
+        });
+      }
       if (room.pausedAt) {
         await store.updateRoom(room.id, { pausedAt: null });
         room.pausedAt = null;
