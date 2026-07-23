@@ -95,10 +95,13 @@ export default class TheMerkiveServer implements Party.Server {
         if (body.msg) {
           const msg = body.msg;
           if (msg.kind === "private" || msg.seat !== undefined) {
-            const targetSeat = msg.seat;
+            // msg.seat arrives as a JSON number; connection.state.seat is always
+            // a string (set from a URLSearchParams value in onConnect) — compare
+            // as strings or a private/bye message never reaches its target seat.
+            const targetSeat = String(msg.seat);
             for (const connection of this.room.getConnections()) {
               const state = connection.state as { seat?: string | null };
-              if (state && state.seat === targetSeat) {
+              if (state?.seat != null && String(state.seat) === targetSeat) {
                 connection.send(JSON.stringify(msg));
               }
             }
