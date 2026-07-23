@@ -176,6 +176,7 @@ function makeSeat(seatIndex: SeatIndex, overrides: Partial<PlayerSeatRecord> = {
     lastSeenAt: now,
     disconnectedAt: null,
     abandoned: false,
+    kicked: false,
     ...overrides,
   };
 }

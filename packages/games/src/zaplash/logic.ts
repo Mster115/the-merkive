@@ -33,6 +33,24 @@ export interface MatchupState {
   jinx?: boolean;
 }
 
+/**
+ * The client-visible projection of a matchup. `writers` (which seat authored
+ * `answers[0]` vs `answers[1]`) must never reach any client before the vote
+ * is locked in — that ordered mapping is exactly what anonymous voting is
+ * meant to hide. `excludedSeats` is the same two seats, sorted independently
+ * of answer order, so it can safely drive "who can't vote here" UI without
+ * leaking which answer either of them wrote. Authorship is only ever
+ * revealed the intended way: `answers[i].writerSeat`, populated at reveal.
+ */
+export type PublicMatchupState = Omit<MatchupState, "writers"> & {
+  excludedSeats: SeatIndex[];
+};
+
+function toPublicMatchup(m: MatchupState): PublicMatchupState {
+  const { writers, ...rest } = m;
+  return { ...rest, excludedSeats: [...writers].sort((a, b) => a - b) };
+}
+
 export interface FinaleAnswer {
   seat: SeatIndex;
   text: string;
@@ -64,13 +82,7 @@ export interface ZaplashPublicState {
   submittedSeats: SeatIndex[];
   currentMatchupIndex: number;
   totalMatchups: number;
-  currentMatchup: MatchupState | null;
-  _promptPool: string[];
-  _usedPrompts: string[];
-  _roundPrompts: PromptAssignment[];
-  _roundMatchups: MatchupState[];
-  _roundVotes: Record<number, Record<number, 0 | 1>>;
-  _roundAnswers: Record<number, Record<number, string>>;
+  currentMatchup: PublicMatchupState | null;
   /** Running cumulative totals — the platform's scores contract needs totals,
    * and reduce never receives prior scores, so the game carries its own. */
   _totals: Partial<Record<SeatIndex, number>>;
@@ -82,6 +94,21 @@ export interface ZaplashPrivateState {
   prompts: Array<{ index: number; text: string }>;
   answers: Record<number, string>;
   finaleAnswer?: string;
+}
+
+/**
+ * Server-only round bookkeeping. `roundMatchups` and `roundPrompts` carry
+ * real writer-seat identities and must never be sent to any client — see
+ * `PublicMatchupState`. `roundVotes` holds each seat's live vote choice
+ * (which of the two answers), which must also stay hidden until reveal so
+ * later voters can't see a running tally and follow the crowd.
+ */
+export interface ZaplashSecret {
+  promptPool: string[];
+  usedPrompts: string[];
+  roundPrompts: PromptAssignment[];
+  roundMatchups: MatchupState[];
+  roundVotes: Record<number, Record<number, 0 | 1>>;
 }
 
 export interface ZaplashSettings {
@@ -200,14 +227,16 @@ function startRound(
     currentMatchupIndex: 0,
     totalMatchups: 0,
     currentMatchup: null,
-    _promptPool: remainingPool,
-    _usedPrompts: used,
-    _roundPrompts: roundPrompts,
-    _roundMatchups: [],
-    _roundVotes: {},
-    _roundAnswers: {},
     _totals: carriedTotals,
     finale: null,
+  };
+
+  const secretState: ZaplashSecret = {
+    promptPool: remainingPool,
+    usedPrompts: used,
+    roundPrompts,
+    roundMatchups: [],
+    roundVotes: {},
   };
 
   const writeMs = settings.writeSeconds * 1000;
@@ -215,6 +244,7 @@ function startRound(
   return {
     publicState,
     privateState,
+    secretState,
     phase: "write",
     scores: carriedTotals,
     events: [{ type: "round_started", payload: { round } }],
@@ -272,14 +302,14 @@ function applyWriteAnswer(
 
 function buildMatchups(
   ctx: GameContext,
-  pub: ZaplashPublicState,
+  roundPrompts: PromptAssignment[],
   privateStateMap: Partial<Record<SeatIndex, unknown>>
 ): MatchupState[] {
   const activeSeats = activeSeatsOf(ctx);
   const matchups: MatchupState[] = [];
   const norm = (s: string) => s.trim().toLowerCase();
 
-  for (const pa of pub._roundPrompts) {
+  for (const pa of roundPrompts) {
     const [w0, w1] = pa.writers;
     const p0Priv = (privateStateMap[w0] as ZaplashPrivateState | undefined)?.answers?.[pa.promptIndex];
     const p1Priv = (privateStateMap[w1] as ZaplashPrivateState | undefined)?.answers?.[pa.promptIndex];
@@ -323,14 +353,15 @@ function buildMatchups(
 function revealJinx(
   ctx: GameContext,
   pub: ZaplashPublicState,
+  secret: ZaplashSecret,
   matchups: MatchupState[],
   matchupIdx: number
 ): ReduceResult {
   const current = matchups[matchupIdx]!;
   const [w0, w1] = current.writers;
 
-  const revealMatchup: MatchupState = {
-    ...current,
+  const revealMatchup: PublicMatchupState = {
+    ...toPublicMatchup(current),
     answers: [
       { text: current.answers[0]?.text ?? "", writerSeat: w0 },
       { text: current.answers[1]?.text ?? "", writerSeat: w1 },
@@ -345,13 +376,13 @@ function revealJinx(
     currentMatchupIndex: matchupIdx,
     totalMatchups: matchups.length,
     currentMatchup: revealMatchup,
-    _roundMatchups: matchups,
   };
 
   const revealMs = 6000;
 
   return {
     publicState: revealPub,
+    secretState: { ...secret, roundMatchups: matchups } satisfies ZaplashSecret,
     phase: "reveal",
     scores: pub._totals,
     events: [{ type: "jinx", payload: { matchupIndex: matchupIdx } }],
@@ -362,6 +393,7 @@ function revealJinx(
 function startNextMatchup(
   ctx: GameContext,
   pub: ZaplashPublicState,
+  secret: ZaplashSecret,
   matchups: MatchupState[],
   matchupIdx: number
 ): ReduceResult {
@@ -375,8 +407,8 @@ function startNextMatchup(
         currentMatchupIndex: matchups.length,
         totalMatchups: matchups.length,
         currentMatchup: null,
-        _roundMatchups: matchups,
       },
+      secretState: { ...secret, roundMatchups: matchups } satisfies ZaplashSecret,
       phase: "scoreboard",
       scores: pub._totals,
       events: [{ type: "scoreboard" }],
@@ -387,13 +419,13 @@ function startNextMatchup(
   const current = matchups[matchupIdx]!;
 
   if (current.jinx) {
-    return revealJinx(ctx, pub, matchups, matchupIdx);
+    return revealJinx(ctx, pub, secret, matchups, matchupIdx);
   }
 
   const voteMs = settings.voteSeconds * 1000;
 
-  const voteMatchupPublic: MatchupState = {
-    ...current,
+  const voteMatchupPublic: PublicMatchupState = {
+    ...toPublicMatchup(current),
     answers: current.answers.map((a) => ({ text: a.text })),
   };
 
@@ -402,11 +434,11 @@ function startNextMatchup(
     currentMatchupIndex: matchupIdx,
     totalMatchups: matchups.length,
     currentMatchup: voteMatchupPublic,
-    _roundMatchups: matchups,
   };
 
   return {
     publicState: nextPub,
+    secretState: { ...secret, roundMatchups: matchups } satisfies ZaplashSecret,
     phase: "vote",
     events: [{ type: "matchup_started", payload: { matchupIndex: matchupIdx } }],
     timer: { endsAt: ctx.now + voteMs, kind: "vote", durationMs: voteMs },
@@ -415,21 +447,23 @@ function startNextMatchup(
 
 function advanceToVote(ctx: GameContext, state: GameStateIn): ReduceResult {
   const pub = state.publicState as ZaplashPublicState;
-  const matchups = buildMatchups(ctx, pub, state.privateState);
-  return startNextMatchup(ctx, pub, matchups, 0);
+  const secret = state.secretState as ZaplashSecret;
+  const matchups = buildMatchups(ctx, secret.roundPrompts, state.privateState);
+  return startNextMatchup(ctx, pub, secret, matchups, 0);
 }
 
 function startReveal(ctx: GameContext, state: GameStateIn): ReduceResult {
   const pub = state.publicState as ZaplashPublicState;
+  const secret = state.secretState as ZaplashSecret;
   const settings = getSettings(ctx);
-  const matchup = pub.currentMatchup;
+  const mIdx = pub.currentMatchupIndex;
+  const matchup = secret.roundMatchups[mIdx];
 
-  if (!matchup) {
-    return startNextMatchup(ctx, pub, pub._roundMatchups, pub.currentMatchupIndex + 1);
+  if (!pub.currentMatchup || !matchup) {
+    return startNextMatchup(ctx, pub, secret, secret.roundMatchups, mIdx + 1);
   }
 
-  const mIdx = pub.currentMatchupIndex;
-  const votesObj = pub._roundVotes[mIdx] ?? {};
+  const votesObj = secret.roundVotes[mIdx] ?? {};
 
   let votes0 = 0;
   let votes1 = 0;
@@ -461,8 +495,8 @@ function startReveal(ctx: GameContext, state: GameStateIn): ReduceResult {
   updatedScores[w0] = (updatedScores[w0] ?? 0) + pts0;
   updatedScores[w1] = (updatedScores[w1] ?? 0) + pts1;
 
-  const revealMatchup: MatchupState = {
-    ...matchup,
+  const revealMatchup: PublicMatchupState = {
+    ...toPublicMatchup(matchup),
     answers: [
       { text: matchup.answers[0]?.text ?? "", writerSeat: w0 },
       { text: matchup.answers[1]?.text ?? "", writerSeat: w1 },
@@ -509,19 +543,23 @@ function finishMatch(pub: ZaplashPublicState): ReduceResult {
   };
 }
 
-function startFinaleWrite(ctx: GameContext, pub: ZaplashPublicState): ReduceResult | null {
+function startFinaleWrite(
+  ctx: GameContext,
+  pub: ZaplashPublicState,
+  secret: ZaplashSecret
+): ReduceResult | null {
   const settings = getSettings(ctx);
   const activeSeats = activeSeatsOf(ctx);
   if (activeSeats.length < 2) return null;
 
-  let pool = [...pub._promptPool];
+  let pool = [...secret.promptPool];
   if (pool.length === 0) {
     pool = shuffle(getPromptPool(ctx), ctx.rng);
   }
   const shuffledPool = shuffle(pool, ctx.rng);
   const promptText = shuffledPool[0] ?? "The worst possible thing to say right now: _____";
   const remainingPool = shuffledPool.slice(1);
-  const used = [...pub._usedPrompts, promptText];
+  const used = [...secret.usedPrompts, promptText];
 
   const finale: FinaleState = {
     promptText,
@@ -537,10 +575,9 @@ function startFinaleWrite(ctx: GameContext, pub: ZaplashPublicState): ReduceResu
   return {
     publicState: {
       ...pub,
-      _promptPool: remainingPool,
-      _usedPrompts: used,
       finale,
     },
+    secretState: { ...secret, promptPool: remainingPool, usedPrompts: used } satisfies ZaplashSecret,
     phase: "finale_write",
     scores: pub._totals,
     events: [{ type: "finale_started" }],
@@ -753,11 +790,11 @@ export function reduceZaplash(
       return { error: "No active matchup", code: "no_matchup" };
     }
 
+    const secret = state.secretState as ZaplashSecret;
     const seat = action.seat as SeatIndex;
-    const [w0, w1] = matchup.writers;
 
     const seatObj = ctx.seats.find((s) => s.seatIndex === seat);
-    if (seatObj?.abandoned || seat === w0 || seat === w1) {
+    if (seatObj?.abandoned || matchup.excludedSeats.includes(seat)) {
       return { error: "Writers cannot vote on their own matchup", code: "not_eligible" };
     }
 
@@ -772,11 +809,11 @@ export function reduceZaplash(
     }
 
     const mIdx = pub.currentMatchupIndex;
-    const currentVotes = pub._roundVotes[mIdx] ?? {};
+    const currentVotes = secret.roundVotes[mIdx] ?? {};
     const newVotes: Record<number, 0 | 1> = { ...currentVotes, [seat]: ansIdx };
     const newVotedSeats = [...matchup.votedSeats, seat];
 
-    const nextMatchup: MatchupState = {
+    const nextMatchup: PublicMatchupState = {
       ...matchup,
       votedSeats: newVotedSeats,
     };
@@ -784,22 +821,27 @@ export function reduceZaplash(
     const nextPub: ZaplashPublicState = {
       ...pub,
       currentMatchup: nextMatchup,
-      _roundVotes: {
-        ...pub._roundVotes,
+    };
+
+    const nextSecret: ZaplashSecret = {
+      ...secret,
+      roundVotes: {
+        ...secret.roundVotes,
         [mIdx]: newVotes,
       },
     };
 
     const activeSeats = activeSeatsOf(ctx);
-    const eligibleVoters = activeSeats.filter((s) => s !== w0 && s !== w1);
+    const eligibleVoters = activeSeats.filter((s) => !matchup.excludedSeats.includes(s));
     const allVoted = eligibleVoters.every((s) => newVotedSeats.includes(s));
 
     if (allVoted) {
-      return startReveal(ctx, { ...state, publicState: nextPub });
+      return startReveal(ctx, { ...state, publicState: nextPub, secretState: nextSecret });
     }
 
     return {
       publicState: nextPub,
+      secretState: nextSecret,
       phase: "vote",
       events: [{ type: "voted", payload: { seat } }],
     };
@@ -901,6 +943,7 @@ export function reduceZaplash(
 export function onTickZaplash(ctx: GameContext, state: GameStateIn): ReduceResult | null {
   const pub = state.publicState as ZaplashPublicState | null;
   if (!pub) return null;
+  const secret = state.secretState as ZaplashSecret | undefined;
 
   if (state.phase === "write") {
     return advanceToVote(ctx, state);
@@ -910,25 +953,25 @@ export function onTickZaplash(ctx: GameContext, state: GameStateIn): ReduceResul
     return startReveal(ctx, state);
   }
 
-  if (state.phase === "reveal") {
+  if (state.phase === "reveal" && secret) {
     const nextIdx = pub.currentMatchupIndex + 1;
-    return startNextMatchup(ctx, pub, pub._roundMatchups, nextIdx);
+    return startNextMatchup(ctx, pub, secret, secret.roundMatchups, nextIdx);
   }
 
-  if (state.phase === "scoreboard") {
+  if (state.phase === "scoreboard" && secret) {
     const settings = getSettings(ctx);
     if (pub.round < settings.rounds) {
       return startRound(
         ctx,
         pub.round + 1,
         settings.rounds,
-        pub._promptPool,
-        pub._usedPrompts,
+        secret.promptPool,
+        secret.usedPrompts,
         pub._totals ?? {}
       );
     }
     if (settings.lightningRound) {
-      const finaleResult = startFinaleWrite(ctx, pub);
+      const finaleResult = startFinaleWrite(ctx, pub, secret);
       if (finaleResult) return finaleResult;
     }
     return finishMatch(pub);
@@ -960,8 +1003,8 @@ export function awaitedSeatsZaplash(ctx: GameContext, state: GameStateIn): SeatI
   }
 
   if (state.phase === "vote" && pub.currentMatchup) {
-    const [w0, w1] = pub.currentMatchup.writers;
-    const eligible = activeSeats.filter((s) => s !== w0 && s !== w1);
+    const excluded = pub.currentMatchup.excludedSeats;
+    const eligible = activeSeats.filter((s) => !excluded.includes(s));
     return eligible.filter((s) => !pub.currentMatchup!.votedSeats.includes(s));
   }
 

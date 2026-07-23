@@ -162,6 +162,7 @@ export async function createRoom(
     lastSeenAt: now,
     disconnectedAt: null,
     abandoned: false,
+    kicked: false,
   });
   const snapshot = await snapshotForUid(store, room, uid);
   return { code: room.code, token: uid, snapshot };
@@ -200,7 +201,7 @@ export async function joinRoom(
     if (!opts.fresh && opts.uid) {
       const mine = seats.find((s) => s.playerUid === opts.uid);
       if (mine) {
-        if (mine.abandoned) await reclaimSeat(store, room, seats, mine);
+        if (mine.abandoned && !mine.kicked) await reclaimSeat(store, room, seats, mine);
         await publishRoom(store, room);
         return { token: opts.uid, snapshot: await snapshotForUid(store, room, opts.uid) };
       }
@@ -246,6 +247,7 @@ export async function joinRoom(
         lastSeenAt: now,
         disconnectedAt: null,
         abandoned: false,
+        kicked: false,
       });
       const freshSeats = await store.listSeats(room.id);
       await reassignHost(store, room, freshSeats);
@@ -268,6 +270,7 @@ export async function joinRoom(
       lastSeenAt: now,
       disconnectedAt: null,
       abandoned: false,
+      kicked: false,
     });
     const freshSeats = await store.listSeats(room.id);
     const match = await store.getActiveMatch(room.id);
@@ -303,18 +306,25 @@ async function reclaimSeat(
 
 /**
  * A live connection just confirmed for a seat that was previously marked
- * `abandoned` (grace-swept, kicked, or explicitly left mid-game). Clear the
- * abandoned flag the same way `reclaimSeat` does for an explicit rejoin, so
- * bots stop covering a seat whose player is actively looking at the screen
- * again. Shared by both presence-tracking paths (the memory-mode SSE route's
+ * `abandoned` (grace-swept or explicitly left mid-game). Clear the abandoned
+ * flag the same way `reclaimSeat` does for an explicit rejoin, so bots stop
+ * covering a seat whose player is actively looking at the screen again.
+ * Shared by both presence-tracking paths (the memory-mode SSE route's
  * `presenceOpen` below, and the PartyKit-mode `/presence` route handler) so
  * the un-abandon-on-reconnect behavior isn't tripled across them.
+ *
+ * Deliberately a no-op for a `kicked` seat: a host removal must never be
+ * undone by the removed player's own client simply reconnecting (page
+ * reload, tab refocus) — that requires no new authorization check and would
+ * make `kickSeat` unenforceable. Only a fresh join by a new identity may
+ * refill a kicked seat (see the mid-game-join branch of `joinRoom`).
  */
 export async function unabandonSeatOnReconnect(
   store: RoomStore,
   room: RoomRecord,
   seat: PlayerSeatRecord
 ): Promise<void> {
+  if (seat.kicked) return;
   await store.updateSeat(room.id, seat.seatIndex, {
     abandoned: false,
     connected: true,
@@ -383,6 +393,7 @@ export async function kickSeat(
     } else {
       await store.updateSeat(room.id, target.seatIndex, {
         abandoned: true,
+        kicked: true,
         connected: false,
         disconnectedAt: Date.now(),
       });
@@ -526,6 +537,7 @@ export async function applyAction(
 
     const seat = seats.find((s) => s.playerUid === uid);
     if (!seat) throw errors.notSeated();
+    if (seat.kicked) throw errors.kicked();
 
     const idemKey = action.idempotencyKey ? `${match.id}:${seat.seatIndex}:${action.idempotencyKey}` : null;
     if (idemKey) {
@@ -741,7 +753,7 @@ export async function sweepAll(): Promise<void> {
   }
 }
 
-async function sweepRoom(store: RoomStore, code: string): Promise<void> {
+export async function sweepRoom(store: RoomStore, code: string): Promise<void> {
   const room = await store.getRoomByCode(code);
   if (!room || room.status === "expired") return;
   const now = Date.now();

@@ -15,6 +15,7 @@ export const errors = {
   roomInGame: () => new ServiceError("room_in_game", "A match is already running — you can watch as a spectator.", 409),
   notHost: () => new ServiceError("not_host", "Only the host can do that.", 403),
   notSeated: () => new ServiceError("not_seated", "You don't have a seat in this room.", 403),
+  kicked: () => new ServiceError("kicked", "You were removed from this room.", 403),
   notInLobby: () => new ServiceError("not_in_lobby", "That can only happen in the lobby.", 409),
   noActiveMatch: () => new ServiceError("no_active_match", "There is no active match.", 409),
   versionConflict: () => new ServiceError("version_conflict", "The game state moved on — syncing.", 409),

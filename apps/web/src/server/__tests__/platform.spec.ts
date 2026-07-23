@@ -272,11 +272,17 @@ describe("platform spine", () => {
     expect(pub.active).toBe(2);
   });
 
-  it("clears abandoned on presenceOpen so a reconnect (not just an explicit rejoin) stops bot coverage", async () => {
+  it("clears abandoned on presenceOpen so a disconnect-grace reconnect (not just an explicit rejoin) stops bot coverage", async () => {
     const code = await setupStartedRoom();
-    await kickSeat(code, HOST, 1);
-    const kicked = await snapshotFor(code, HOST);
-    expect(kicked.room.seats.find((s) => s.seatIndex === 1)?.abandoned).toBe(true);
+    const store = globalThis.__mbStore as MemoryStore;
+    const room = await store.getRoomByCode(code);
+    await store.updateSeat(room!.id, 1, {
+      abandoned: true,
+      connected: false,
+      disconnectedAt: Date.now(),
+    });
+    const disconnected = await snapshotFor(code, HOST);
+    expect(disconnected.room.seats.find((s) => s.seatIndex === 1)?.abandoned).toBe(true);
 
     // P2 simply reopens the room (SSE reconnect) rather than an explicit /join.
     await presenceOpen(code, P2);
@@ -285,6 +291,37 @@ describe("platform spine", () => {
     const seat1 = after.room.seats.find((s) => s.seatIndex === 1);
     expect(seat1?.abandoned).toBe(false);
     expect(seat1?.connected).toBe(true);
+  });
+
+  it("does NOT let a kicked player's own reconnect (presenceOpen) undo the kick", async () => {
+    const code = await setupStartedRoom();
+    await kickSeat(code, HOST, 1);
+    const kicked = await snapshotFor(code, HOST);
+    const kickedSeat = kicked.room.seats.find((s) => s.seatIndex === 1);
+    expect(kickedSeat?.abandoned).toBe(true);
+
+    // P2 (the kicked player) simply reopens the room — this must not restore
+    // their seat; only a fresh join by a new identity may refill it.
+    await presenceOpen(code, P2);
+
+    const after = await snapshotFor(code, HOST);
+    const seat1 = after.room.seats.find((s) => s.seatIndex === 1);
+    expect(seat1?.abandoned).toBe(true);
+    expect(seat1?.connected).toBe(false);
+
+    // Nor can the kicked uid regain control by simply submitting an action.
+    await expect(applyAction(code, P2, { type: "add" })).rejects.toMatchObject({ code: "kicked" });
+
+    // Nor via a non-fresh /join replay with the same uid.
+    const rejoin = await joinRoom(code, {
+      uid: P2,
+      fresh: false,
+      name: "Bo",
+      avatarId: "cat",
+      role: "player",
+    });
+    const seat1AfterRejoin = rejoin.snapshot.room.seats.find((s) => s.seatIndex === 1);
+    expect(seat1AfterRejoin?.abandoned).toBe(true);
   });
 
   it("transfers host explicitly and rejects non-host control actions", async () => {

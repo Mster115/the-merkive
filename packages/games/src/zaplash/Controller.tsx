@@ -373,9 +373,9 @@ export function ZaplashController({ room, match, seat, privateState, act, t }: C
 
       {/* VOTE PHASE */}
       {match.phase === "vote" && pub.currentMatchup && (() => {
-        const [w0, w1] = pub.currentMatchup.writers ?? [-1, -1];
-        const isWriter = seat === w0 || seat === w1;
-        const hasVoted = pub.currentMatchup.votedSeats.includes(seat);
+        const currentMatchup = pub.currentMatchup;
+        const isWriter = priv?.prompts.some((p) => p.index === currentMatchup.promptIndex) ?? false;
+        const hasVoted = currentMatchup.votedSeats.includes(seat);
 
         return (
           <div className="flex flex-col gap-4">

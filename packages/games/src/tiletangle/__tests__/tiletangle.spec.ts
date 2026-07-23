@@ -9,7 +9,7 @@ import {
 import { tiletangle } from "../index";
 import type { Tile } from "../tiles";
 import { isValidMeld, meldValue, validateCommit } from "../tiles";
-import type { TileTanglePrivateState, TileTanglePublicState } from "../logic";
+import type { TileTanglePrivateState, TileTanglePublicState, TileTangleSecret } from "../logic";
 
 describe("Tile Tangle - Validation Engine", () => {
   it("validates groups and runs correctly", () => {
@@ -285,6 +285,15 @@ describe("Tile Tangle - Validation Engine", () => {
 });
 
 describe("Tile Tangle - Reducer & Match Flow", () => {
+  it("never puts the draw pile contents in publicState — only in secretState", () => {
+    const m = createTestMatch(tiletangle, { players: 2, seed: "no-leak-seed" });
+    expect(m.state.publicState).not.toHaveProperty("_drawPile");
+    expect((m.state.secretState as TileTangleSecret).drawPile.length).toBeGreaterThan(0);
+
+    act(m, 0, "draw", {});
+    expect(m.state.publicState).not.toHaveProperty("_drawPile");
+  });
+
   it("initializes match with 14 tiles per player; single set at 4p, double set at 5p+", () => {
     // 4p: single set (106 tiles)
     const m4 = createTestMatch(tiletangle, { players: 4, seed: "init-seed-1" });
@@ -333,7 +342,8 @@ describe("Tile Tangle - Reducer & Match Flow", () => {
         allIds.add(t.id);
       }
     }
-    for (const t of pub12._drawPile) {
+    const secret12 = m12.state.secretState as TileTangleSecret;
+    for (const t of secret12.drawPile) {
       expect(allIds.has(t.id), `duplicate tile id ${t.id} in draw pile`).toBe(false);
       allIds.add(t.id);
     }
@@ -418,8 +428,8 @@ describe("Tile Tangle - Reducer & Match Flow", () => {
   it("draw path + pile exhaustion stalemate ending", () => {
     const m = createTestMatch(tiletangle, { players: 2, seed: "stalemate-seed" });
     const pub = m.state.publicState as TileTanglePublicState;
-    pub._drawPile = []; // Empty draw pile
     pub.drawPileCount = 0;
+    m.state = { ...m.state, secretState: { drawPile: [] } satisfies TileTangleSecret }; // Empty draw pile
 
     // Both players pass 2 turns total -> stalemate
     act(m, 0, "draw", {});

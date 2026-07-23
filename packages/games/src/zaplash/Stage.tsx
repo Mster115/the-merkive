@@ -190,8 +190,7 @@ export function ZaplashStage({ room, match, t }: StageProps) {
                 {t("games.zaplash.ui.voted_status")}:
               </span>
               {room.seats.map((seat) => {
-                const [w0, w1] = pub.currentMatchup?.writers ?? [-1, -1];
-                const isWriter = seat.seatIndex === w0 || seat.seatIndex === w1;
+                const isWriter = pub.currentMatchup?.excludedSeats.includes(seat.seatIndex) ?? false;
                 const hasVoted = pub.currentMatchup?.votedSeats.includes(seat.seatIndex);
 
                 if (isWriter) return null;

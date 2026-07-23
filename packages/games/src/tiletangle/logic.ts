@@ -25,11 +25,14 @@ export interface TileTanglePublicState {
   endReason?: string;
   lastAction: { seat: SeatIndex; kind: "commit" | "draw"; placedCount?: number } | null;
   turnsWithoutCommit: number;
-  _drawPile: Tile[];
 }
 
 export interface TileTanglePrivateState {
   rack: Tile[];
+}
+
+export interface TileTangleSecret {
+  drawPile: Tile[];
 }
 
 export function getSettings(ctx: GameContext): TileTangleSettings {
@@ -119,12 +122,12 @@ export function initTileTangle(ctx: GameContext): ReduceResult {
     winner: null,
     lastAction: null,
     turnsWithoutCommit: 0,
-    _drawPile: drawPile,
   };
 
   return {
     publicState,
     privateState,
+    secretState: { drawPile } satisfies TileTangleSecret,
     phase: "playing",
     events: [{ type: "game_started" }],
     timer: { endsAt: ctx.now + turnMs, kind: "turn", durationMs: turnMs },
@@ -218,8 +221,9 @@ export function reduceTileTangle(
   }
 
   if (action.type === "draw") {
-    let newDrawPile = [...pub._drawPile];
-    let newRack = [...priv.rack];
+    const secret = (state.secretState as TileTangleSecret | undefined) ?? { drawPile: [] };
+    const newDrawPile = [...secret.drawPile];
+    const newRack = [...priv.rack];
 
     if (newDrawPile.length > 0) {
       const drawnTile = newDrawPile.pop()!;
@@ -253,15 +257,17 @@ export function reduceTileTangle(
         drawPileCount: 0,
         lastAction: { seat: activeSeat, kind: "draw" },
         turnsWithoutCommit,
-        _drawPile: [],
       };
 
-      return endMatchWithWinner(
-        ctx,
-        { ...state, publicState: endPub, privateState: { ...state.privateState, [activeSeat]: { rack: newRack } } },
-        lowestSeat,
-        "stalemate"
-      );
+      return {
+        ...endMatchWithWinner(
+          ctx,
+          { ...state, publicState: endPub, privateState: { ...state.privateState, [activeSeat]: { rack: newRack } } },
+          lowestSeat,
+          "stalemate"
+        ),
+        secretState: { drawPile: newDrawPile } satisfies TileTangleSecret,
+      };
     }
 
     const nextSeat = getNextSeat(activeSeat, ctx.seats);
@@ -272,12 +278,12 @@ export function reduceTileTangle(
       drawPileCount: newDrawPile.length,
       lastAction: { seat: activeSeat, kind: "draw" },
       turnsWithoutCommit,
-      _drawPile: newDrawPile,
     };
 
     return {
       publicState: nextPub,
       privateState: { [activeSeat]: { rack: newRack } },
+      secretState: { drawPile: newDrawPile } satisfies TileTangleSecret,
       phase: "playing",
       events: [{ type: "draw", payload: { seat: activeSeat } }],
       timer: { endsAt: ctx.now + turnMs, kind: "turn", durationMs: turnMs },

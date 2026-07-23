@@ -7,7 +7,7 @@ import {
   abandonSeat,
 } from "@merky/game-sdk/testing";
 import { zaplash } from "../index";
-import type { ZaplashPrivateState, ZaplashPublicState } from "../logic";
+import type { ZaplashPrivateState, ZaplashPublicState, ZaplashSecret } from "../logic";
 import { ZAPLASH_SAFETY_QUIPS } from "../packs";
 
 describe("Zaplash Game Plugin", () => {
@@ -25,7 +25,8 @@ describe("Zaplash Game Plugin", () => {
       expect(priv.prompts[0]?.index).not.toBe(priv.prompts[1]?.index);
     }
 
-    const assignments = pub._roundPrompts;
+    const secret = m.state.secretState as ZaplashSecret;
+    const assignments = secret.roundPrompts;
     expect(assignments).toHaveLength(4);
     for (const pa of assignments) {
       expect(pa.writers[0]).not.toBe(pa.writers[1]);
@@ -68,11 +69,11 @@ describe("Zaplash Game Plugin", () => {
     expect(m.state.phase).toBe("vote");
     const pub = m.state.publicState as ZaplashPublicState;
     const matchup = pub.currentMatchup!;
-    const [w0, w1] = matchup.writers;
+    const [w0, w1] = matchup.excludedSeats;
 
     // Writer tries to vote on their own matchup
-    actErr(m, w0, "vote", { answerIndex: 0 });
-    actErr(m, w1, "vote", { answerIndex: 1 });
+    actErr(m, w0!, "vote", { answerIndex: 0 });
+    actErr(m, w1!, "vote", { answerIndex: 1 });
 
     // Non-writer votes successfully
     const eligibleVoter = ([0, 1, 2] as const).find((s) => s !== w0 && s !== w1)!;
@@ -100,8 +101,8 @@ describe("Zaplash Game Plugin", () => {
     expect(m.state.phase).toBe("vote");
     const pub = m.state.publicState as ZaplashPublicState;
     const matchup = pub.currentMatchup!;
-    const [w0, w1] = matchup.writers;
-    const eligibleVoters = ([0, 1, 2, 3] as const).filter((s) => s !== w0 && s !== w1);
+    const excluded = matchup.excludedSeats;
+    const eligibleVoters = ([0, 1, 2, 3] as const).filter((s) => !excluded.includes(s));
 
     // Both eligible voters vote for answer index 0 (clean sweep of 2 votes -> ZAP bonus!)
     for (const v of eligibleVoters) {
@@ -194,11 +195,11 @@ describe("Zaplash Game Plugin", () => {
     const m1 = createTestMatch(zaplash, { players: 3, seed: "zaplash-same-seed" });
     const m2 = createTestMatch(zaplash, { players: 3, seed: "zaplash-same-seed" });
 
-    const pub1 = m1.state.publicState as ZaplashPublicState;
-    const pub2 = m2.state.publicState as ZaplashPublicState;
+    const secret1 = m1.state.secretState as ZaplashSecret;
+    const secret2 = m2.state.secretState as ZaplashSecret;
 
-    expect(pub1._roundPrompts.map((p) => p.promptText)).toEqual(
-      pub2._roundPrompts.map((p) => p.promptText)
+    expect(secret1.roundPrompts.map((p) => p.promptText)).toEqual(
+      secret2.roundPrompts.map((p) => p.promptText)
     );
   });
 });
@@ -225,11 +226,15 @@ describe("Zaplash cumulative scoring (regression)", () => {
     expect(m.state.phase).toBe("vote");
     let pub = m.state.publicState as ZaplashPublicState;
     const firstMatchup = pub.currentMatchup!;
-    const voter = ([0, 1, 2] as const).find(
-      (s) => s !== firstMatchup.writers[0] && s !== firstMatchup.writers[1]
-    )!;
+    const excluded = firstMatchup.excludedSeats;
+    const voter = ([0, 1, 2] as const).find((s) => !excluded.includes(s))!;
     act(m, voter, "vote", { answerIndex: 0 });
-    const scoredSeat = firstMatchup.writers[0];
+
+    // A single vote completes the only eligible voter in a 3p/2-writer matchup,
+    // triggering an immediate reveal — the true author of answers[0] is only
+    // knowable now, from the revealed matchup, not from the pre-vote public state.
+    const revealed = (m.state.publicState as ZaplashPublicState).currentMatchup!;
+    const scoredSeat = revealed.answers[0]!.writerSeat!;
     expect(m.scores[scoredSeat]).toBe(100);
 
     // Burn through the rest of round 1 with timer expiries (zero-vote matchups).

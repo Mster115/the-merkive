@@ -38,6 +38,12 @@ export interface PlayerSeatRecord {
   lastSeenAt: number;
   disconnectedAt: number | null;
   abandoned: boolean;
+  /** True only when a host explicitly removed this seat via kickSeat — unlike a
+   *  disconnect-grace or self-leave abandonment, a kicked seat must never be
+   *  silently restored by a passive reconnect (SSE/presence) or by the seat's
+   *  own uid replaying an action; only a fresh join by a new identity may
+   *  refill it. */
+  kicked: boolean;
 }
 
 export interface SpectatorRecord {
