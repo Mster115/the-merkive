@@ -5,6 +5,7 @@ import type { RoomMessage } from "@/shared/messages";
 import { MemoryStore } from "../store/memory";
 import {
   applyAction,
+  createPack,
   createRoom,
   joinRoom,
   kickSeat,
@@ -374,5 +375,17 @@ describe("platform spine", () => {
     await sweepAll();
     const after = await store.getRoomByCode(code);
     expect(after?.status).toBe("expired");
+  });
+
+  it("rejects createPack for a caller with no seat or spectator slot in the given room", async () => {
+    freshStore();
+    const { code } = await createRoom(HOST, "Ana", "fox");
+
+    const pack = await createPack(code, HOST, "testgame", "Family Pack", "en", { prompts: ["hi"] });
+    expect(pack.title).toBe("Family Pack");
+
+    await expect(
+      createPack(code, "uid-not-in-room", "testgame", "Evil Pack", "en", { prompts: ["hax"] })
+    ).rejects.toMatchObject({ code: "not_seated" });
   });
 });

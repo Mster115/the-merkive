@@ -635,13 +635,31 @@ async function resolvePack(
   return packs.find((p) => p.id === packId);
 }
 
+/**
+ * Custom packs are shared platform-wide (any room playing `gameId` can pick
+ * one up via `listPacks`), so creating one requires proof the caller is a
+ * genuine participant somewhere right now — this app has no identity beyond
+ * "holds a seat or spectator slot in a live room," so `rawCode`/`uid` must
+ * resolve to an actual member of that room, the same check every other
+ * write path in this file relies on.
+ */
 export async function createPack(
+  rawCode: string,
+  uid: string,
   gameId: string,
   title: string,
   locale: string,
   payload: unknown
 ): Promise<CustomPackRecord> {
   const store = getStore();
+  const room = await getRoomOrThrow(store, rawCode);
+  const [seats, spectators] = await Promise.all([
+    store.listSeats(room.id),
+    store.listSpectators(room.id),
+  ]);
+  const isMember = seats.some((s) => s.playerUid === uid) || spectators.some((s) => s.uid === uid);
+  if (!isMember) throw errors.notSeated();
+
   const game = getGame(gameId);
   if (!game) throw errors.gameUnknown();
   if (JSON.stringify(payload).length > 50_000) {

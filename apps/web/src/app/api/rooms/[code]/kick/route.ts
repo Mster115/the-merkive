@@ -15,7 +15,7 @@ export async function POST(req: Request, { params }: RouteParams): Promise<NextR
     }
     const body = await readJson(req);
     const seatIndex = Number(body.seatIndex);
-    if (!Number.isInteger(seatIndex) || seatIndex < 0 || seatIndex > 7) {
+    if (!Number.isInteger(seatIndex) || seatIndex < 0 || seatIndex > 11) {
       return NextResponse.json({ error: "Bad seat.", code: "bad_seat" }, { status: 400 });
     }
     await kickSeat(code, uid, seatIndex as SeatIndex);
