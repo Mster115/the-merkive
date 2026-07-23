@@ -55,6 +55,7 @@ export function YougotitController({ room, match, seat, privateState, act, t }: 
 
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
   const [clueText, setClueText] = React.useState("");
+  const [actionPending, setActionPending] = React.useState(false);
 
   const turnNumber = pub?.turnNumber;
   React.useEffect(() => {
@@ -77,10 +78,23 @@ export function YougotitController({ room, match, seat, privateState, act, t }: 
   const oracleName = room.seats.find((s) => s.seatIndex === pub.oracleSeat)?.displayName ?? "?";
 
   const runAct: RunAct = async (type, payload) => {
+    // Dial drags fire continuously and must stay responsive — never gate them
+    // behind the single-shot submit guard below.
+    if (type === "move_pointer") {
+      const res = await act(type, payload);
+      if (!res.ok) setErrorMsg(res.error);
+      return res;
+    }
+    if (actionPending) return { ok: false };
     setErrorMsg(null);
-    const res = await act(type, payload);
-    if (!res.ok) setErrorMsg(res.error);
-    return res;
+    setActionPending(true);
+    try {
+      const res = await act(type, payload);
+      if (!res.ok) setErrorMsg(res.error);
+      return res;
+    } finally {
+      setActionPending(false);
+    }
   };
 
   const roleLabel = !myTeam
@@ -138,13 +152,23 @@ export function YougotitController({ room, match, seat, privateState, act, t }: 
           oracleName={oracleName}
           clueText={clueText}
           setClueText={setClueText}
+          pending={actionPending}
           runAct={runAct}
           t={t}
         />
       )}
 
       {phase === "guess" && (
-        <GuessPhasePanel pub={pub} priv={priv} seat={seat} isOracle={isOracle} myTeam={myTeam} runAct={runAct} t={t} />
+        <GuessPhasePanel
+          pub={pub}
+          priv={priv}
+          seat={seat}
+          isOracle={isOracle}
+          myTeam={myTeam}
+          pending={actionPending}
+          runAct={runAct}
+          t={t}
+        />
       )}
 
       {phase === "steal" && (
@@ -154,6 +178,7 @@ export function YougotitController({ room, match, seat, privateState, act, t }: 
           seat={seat}
           myTeam={myTeam}
           opposingTeam={opposingTeam}
+          pending={actionPending}
           runAct={runAct}
           t={t}
         />
@@ -214,6 +239,7 @@ function CluePhasePanel({
   oracleName,
   clueText,
   setClueText,
+  pending,
   runAct,
   t,
 }: {
@@ -224,6 +250,7 @@ function CluePhasePanel({
   oracleName: string;
   clueText: string;
   setClueText: (v: string) => void;
+  pending: boolean;
   runAct: RunAct;
   t: Translate;
 }) {
@@ -270,7 +297,7 @@ function CluePhasePanel({
             {t("games.yougotit.ui.clue_chars_left", { count: remaining })}
           </span>
         </label>
-        <Button variant="primary" size="lg" block onClick={submit} disabled={trimmed.length === 0}>
+        <Button variant="primary" size="lg" block onClick={submit} disabled={trimmed.length === 0 || pending}>
           {t("games.yougotit.ui.submit_clue")}
         </Button>
       </div>
@@ -293,6 +320,7 @@ function GuessPhasePanel({
   seat,
   isOracle,
   myTeam,
+  pending,
   runAct,
   t,
 }: {
@@ -301,6 +329,7 @@ function GuessPhasePanel({
   seat: SeatIndex;
   isOracle: boolean;
   myTeam: TeamId | null;
+  pending: boolean;
   runAct: RunAct;
   t: Translate;
 }) {
@@ -355,7 +384,7 @@ function GuessPhasePanel({
         <p className="text-center text-xs font-bold text-[var(--mb-text-dim)]">
           {t("games.yougotit.ui.drag_instructions")}
         </p>
-        <Button variant={isLocked ? "secondary" : "primary"} size="lg" block onClick={lockIn} disabled={isLocked}>
+        <Button variant={isLocked ? "secondary" : "primary"} size="lg" block onClick={lockIn} disabled={isLocked || pending}>
           {isLocked ? t("games.yougotit.ui.locked_in") : t("games.yougotit.ui.lock_it_in")}
         </Button>
         {isLocked && (
@@ -384,6 +413,7 @@ function StealPhasePanel({
   seat,
   myTeam,
   opposingTeam,
+  pending,
   runAct,
   t,
 }: {
@@ -392,6 +422,7 @@ function StealPhasePanel({
   seat: SeatIndex;
   myTeam: TeamId | null;
   opposingTeam: TeamId | null;
+  pending: boolean;
   runAct: RunAct;
   t: Translate;
 }) {
@@ -418,10 +449,11 @@ function StealPhasePanel({
           <button
             type="button"
             onClick={() => vote("left")}
+            disabled={pending}
             aria-pressed={myVote === "left"}
             aria-label={t("games.yougotit.ui.undercut_left")}
             className={cn(
-              "min-h-20 rounded-xl border-[3px] border-black flex flex-col items-center justify-center gap-1 font-black uppercase [font-family:var(--mb-font-display)] transition-all mb-press",
+              "min-h-20 rounded-xl border-[3px] border-black flex flex-col items-center justify-center gap-1 font-black uppercase [font-family:var(--mb-font-display)] transition-all mb-press disabled:opacity-60",
               myVote === "left"
                 ? "bg-[var(--mb-accent)] text-[var(--mb-on-accent)] shadow-[var(--mb-shadow)]"
                 : "bg-[var(--mb-surface-2)] text-[var(--mb-text)] shadow-[2px_2px_0_0_#000]"
@@ -433,10 +465,11 @@ function StealPhasePanel({
           <button
             type="button"
             onClick={() => vote("right")}
+            disabled={pending}
             aria-pressed={myVote === "right"}
             aria-label={t("games.yougotit.ui.undercut_right")}
             className={cn(
-              "min-h-20 rounded-xl border-[3px] border-black flex flex-col items-center justify-center gap-1 font-black uppercase [font-family:var(--mb-font-display)] transition-all mb-press",
+              "min-h-20 rounded-xl border-[3px] border-black flex flex-col items-center justify-center gap-1 font-black uppercase [font-family:var(--mb-font-display)] transition-all mb-press disabled:opacity-60",
               myVote === "right"
                 ? "bg-[var(--mb-accent)] text-[var(--mb-on-accent)] shadow-[var(--mb-shadow)]"
                 : "bg-[var(--mb-surface-2)] text-[var(--mb-text)] shadow-[2px_2px_0_0_#000]"

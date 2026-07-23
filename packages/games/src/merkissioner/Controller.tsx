@@ -26,6 +26,7 @@ export function MerkissionerController({ room, match, seat, privateState, act, t
   const phase = match.phase;
 
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+  const [actionPending, setActionPending] = React.useState(false);
   const [roleModalOpen, setRoleModalOpen] = React.useState(false);
   const [handSelection, setHandSelection] = React.useState<number | null>(null);
   const [auditModalOpen, setAuditModalOpen] = React.useState(false);
@@ -72,10 +73,16 @@ export function MerkissionerController({ room, match, seat, privateState, act, t
   }
 
   const runAct: RunAct = async (type, payload) => {
+    if (actionPending) return { ok: false };
     setErrorMsg(null);
-    const res = await act(type, payload);
-    if (!res.ok) setErrorMsg(res.error);
-    return res;
+    setActionPending(true);
+    try {
+      const res = await act(type, payload);
+      if (!res.ok) setErrorMsg(res.error);
+      return res;
+    } finally {
+      setActionPending(false);
+    }
   };
 
   const isBanished = pub.banishedSeats.includes(seat);
@@ -110,13 +117,14 @@ export function MerkissionerController({ room, match, seat, privateState, act, t
           priv={priv}
           room={room}
           alreadyReady={pub.readySeats.includes(seat)}
+          pending={actionPending}
           onReady={() => void runAct("ready_up")}
           t={t}
         />
       ) : phase === "nominate" ? (
         <NominatePanel pub={pub} room={room} seat={seat} runAct={runAct} t={t} />
       ) : phase === "vote" ? (
-        <VotePanel pub={pub} priv={priv} room={room} runAct={runAct} t={t} />
+        <VotePanel pub={pub} priv={priv} room={room} pending={actionPending} runAct={runAct} t={t} />
       ) : phase === "legislative_chair" ? (
         seat === pub.chairSeat ? (
           <LegislativeHandPanel
@@ -124,6 +132,7 @@ export function MerkissionerController({ room, match, seat, privateState, act, t
             selection={handSelection}
             onSelect={setHandSelection}
             confirmLabel={t("games.merkissioner.ui.discard_this")}
+            pending={actionPending}
             onConfirm={() => {
               if (handSelection !== null) void runAct("discard_decree", { index: handSelection });
             }}
@@ -139,6 +148,7 @@ export function MerkissionerController({ room, match, seat, privateState, act, t
             priv={priv}
             selection={handSelection}
             onSelect={setHandSelection}
+            pending={actionPending}
             runAct={runAct}
             t={t}
           />
@@ -147,7 +157,7 @@ export function MerkissionerController({ room, match, seat, privateState, act, t
         )
       ) : phase === "veto_pending" ? (
         seat === pub.chairSeat ? (
-          <VetoPendingChairPanel runAct={runAct} t={t} />
+          <VetoPendingChairPanel pending={actionPending} runAct={runAct} t={t} />
         ) : (
           <WaitingCard title={t("games.merkissioner.ui.veto_pending_wait")} />
         )
@@ -280,19 +290,21 @@ function HuddlePanel({
   priv,
   room,
   alreadyReady,
+  pending,
   onReady,
   t,
 }: {
   priv: MerkissionerPrivateState;
   room: RoomView;
   alreadyReady: boolean;
+  pending: boolean;
   onReady: () => void;
   t: Translate;
 }) {
   return (
     <Card className="flex flex-col gap-4 p-4 border-[3px] border-black shadow-[var(--mb-shadow)] mb-flip-in">
       <RoleCardContent priv={priv} room={room} t={t} />
-      <Button variant={alreadyReady ? "secondary" : "primary"} size="lg" block onClick={onReady} disabled={alreadyReady}>
+      <Button variant={alreadyReady ? "secondary" : "primary"} size="lg" block onClick={onReady} disabled={alreadyReady || pending}>
         {alreadyReady ? t("games.merkissioner.ui.ready_confirmed") : t("games.merkissioner.ui.ready_button")}
       </Button>
     </Card>
@@ -382,12 +394,14 @@ function VotePanel({
   pub,
   priv,
   room,
+  pending,
   runAct,
   t,
 }: {
   pub: MerkissionerPublicState;
   priv: MerkissionerPrivateState;
   room: RoomView;
+  pending: boolean;
   runAct: RunAct;
   t: Translate;
 }) {
@@ -404,9 +418,10 @@ function VotePanel({
         <button
           type="button"
           onClick={() => vote("yeah")}
+          disabled={pending}
           aria-pressed={myVote === "yeah"}
           className={cn(
-            "min-h-20 rounded-xl border-[3px] border-black flex items-center justify-center gap-2 text-xl font-black uppercase [font-family:var(--mb-font-display)] transition-all mb-press",
+            "min-h-20 rounded-xl border-[3px] border-black flex items-center justify-center gap-2 text-xl font-black uppercase [font-family:var(--mb-font-display)] transition-all mb-press disabled:opacity-60",
             myVote === "yeah"
               ? "bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)] shadow-[var(--mb-shadow)]"
               : "bg-[var(--mb-surface-2)] text-[var(--mb-text)] shadow-[2px_2px_0_0_#000]"
@@ -417,9 +432,10 @@ function VotePanel({
         <button
           type="button"
           onClick={() => vote("nah")}
+          disabled={pending}
           aria-pressed={myVote === "nah"}
           className={cn(
-            "min-h-20 rounded-xl border-[3px] border-black flex items-center justify-center gap-2 text-xl font-black uppercase [font-family:var(--mb-font-display)] transition-all mb-press",
+            "min-h-20 rounded-xl border-[3px] border-black flex items-center justify-center gap-2 text-xl font-black uppercase [font-family:var(--mb-font-display)] transition-all mb-press disabled:opacity-60",
             myVote === "nah"
               ? "bg-[var(--mb-danger)] text-[var(--mb-on-danger)] shadow-[var(--mb-shadow)]"
               : "bg-[var(--mb-surface-2)] text-[var(--mb-text)] shadow-[2px_2px_0_0_#000]"
@@ -479,6 +495,7 @@ function LegislativeHandPanel({
   selection,
   onSelect,
   confirmLabel,
+  pending,
   onConfirm,
   t,
 }: {
@@ -486,6 +503,7 @@ function LegislativeHandPanel({
   selection: number | null;
   onSelect: (i: number) => void;
   confirmLabel: string;
+  pending: boolean;
   onConfirm: () => void;
   t: Translate;
 }) {
@@ -505,7 +523,7 @@ function LegislativeHandPanel({
           />
         ))}
       </div>
-      <Button variant="primary" size="lg" block onClick={onConfirm} disabled={selection === null}>
+      <Button variant="primary" size="lg" block onClick={onConfirm} disabled={selection === null || pending}>
         {confirmLabel}
       </Button>
     </Card>
@@ -517,6 +535,7 @@ function CommissionerPanel({
   priv,
   selection,
   onSelect,
+  pending,
   runAct,
   t,
 }: {
@@ -524,6 +543,7 @@ function CommissionerPanel({
   priv: MerkissionerPrivateState;
   selection: number | null;
   onSelect: (i: number) => void;
+  pending: boolean;
   runAct: RunAct;
   t: Translate;
 }) {
@@ -536,6 +556,7 @@ function CommissionerPanel({
         selection={selection}
         onSelect={onSelect}
         confirmLabel={t("games.merkissioner.ui.enact_this")}
+        pending={pending}
         onConfirm={() => {
           if (selection !== null) void runAct("enact_decree", { index: selection });
         }}
@@ -544,8 +565,9 @@ function CommissionerPanel({
       {vetoUnlocked && (
         <button
           type="button"
+          disabled={pending}
           onClick={() => void runAct("propose_veto")}
-          className="min-h-11 rounded-xl border-2 border-black bg-[var(--mb-warn)] text-[var(--mb-on-gold)] font-black uppercase text-sm shadow-[2px_2px_0_0_#000] mb-press flex items-center justify-center gap-2 [font-family:var(--mb-font-display)]"
+          className="min-h-11 rounded-xl border-2 border-black bg-[var(--mb-warn)] text-[var(--mb-on-gold)] font-black uppercase text-sm shadow-[2px_2px_0_0_#000] mb-press flex items-center justify-center gap-2 [font-family:var(--mb-font-display)] disabled:opacity-60"
         >
           <VetoIcon className="w-4 h-4" /> {t("games.merkissioner.ui.propose_veto")}
         </button>
@@ -554,7 +576,7 @@ function CommissionerPanel({
   );
 }
 
-function VetoPendingChairPanel({ runAct, t }: { runAct: RunAct; t: Translate }) {
+function VetoPendingChairPanel({ pending, runAct, t }: { pending: boolean; runAct: RunAct; t: Translate }) {
   return (
     <Card className="flex flex-col gap-3 p-4 border-[3px] border-black shadow-[var(--mb-shadow)] items-center">
       <VetoIcon className="w-10 h-10 text-[var(--mb-warn)]" />
@@ -562,10 +584,10 @@ function VetoPendingChairPanel({ runAct, t }: { runAct: RunAct; t: Translate }) 
         {t("games.merkissioner.ui.veto_pending_chair_prompt")}
       </p>
       <div className="grid grid-cols-1 gap-2 w-full">
-        <Button variant="secondary" size="lg" block onClick={() => void runAct("resolve_veto", { agree: true })}>
+        <Button variant="secondary" size="lg" block disabled={pending} onClick={() => void runAct("resolve_veto", { agree: true })}>
           {t("games.merkissioner.ui.veto_agree")}
         </Button>
-        <Button variant="danger" size="lg" block onClick={() => void runAct("resolve_veto", { agree: false })}>
+        <Button variant="danger" size="lg" block disabled={pending} onClick={() => void runAct("resolve_veto", { agree: false })}>
           {t("games.merkissioner.ui.veto_refuse")}
         </Button>
       </div>

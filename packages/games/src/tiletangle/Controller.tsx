@@ -35,6 +35,7 @@ export const Controller: React.FC<ControllerProps> = ({
     tile: Tile;
   } | null>(null);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+  const [pending, setPending] = React.useState(false);
 
   const [draggedRackIndex, setDraggedRackIndex] = React.useState<number | null>(null);
 
@@ -243,7 +244,7 @@ export const Controller: React.FC<ControllerProps> = ({
   };
 
   const handleCommit = async () => {
-    if (!isMyTurn) return;
+    if (!isMyTurn || pending) return;
 
     const validation = validateCommit(
       serverTable,
@@ -260,23 +261,33 @@ export const Controller: React.FC<ControllerProps> = ({
       return;
     }
 
-    const res = await act("commit", { melds: localTable, placedTileIds });
-    if (!res.ok) {
-      const errKey = `games.tiletangle.err.${res.code}`;
-      const translated = t(errKey, { target: initialMeldPoints });
-      setErrorMsg(translated !== errKey ? translated : res.error);
-      buzz([30, 40, 30]);
-    } else {
-      buzz([15, 30, 25]);
+    setPending(true);
+    try {
+      const res = await act("commit", { melds: localTable, placedTileIds });
+      if (!res.ok) {
+        const errKey = `games.tiletangle.err.${res.code}`;
+        const translated = t(errKey, { target: initialMeldPoints });
+        setErrorMsg(translated !== errKey ? translated : res.error);
+        buzz([30, 40, 30]);
+      } else {
+        buzz([15, 30, 25]);
+      }
+    } finally {
+      setPending(false);
     }
   };
 
   const handleDraw = async () => {
-    if (!isMyTurn) return;
-    const res = await act("draw", {});
-    if (!res.ok) {
-      setErrorMsg(res.error);
-      buzz([30, 40, 30]);
+    if (!isMyTurn || pending) return;
+    setPending(true);
+    try {
+      const res = await act("draw", {});
+      if (!res.ok) {
+        setErrorMsg(res.error);
+        buzz([30, 40, 30]);
+      }
+    } finally {
+      setPending(false);
     }
   };
 
@@ -505,11 +516,11 @@ export const Controller: React.FC<ControllerProps> = ({
       {/* Action Buttons */}
       {isMyTurn && (
         <div className="grid grid-cols-2 gap-3 pt-2">
-          <Button size="lg" variant="secondary" onClick={handleDraw} className="w-full font-black">
+          <Button size="lg" variant="secondary" disabled={pending} onClick={() => void handleDraw()} className="w-full font-black">
             {t("games.tiletangle.drawTile")}
           </Button>
-          <Button size="lg" variant="primary" onClick={handleCommit} className="w-full font-black">
-            {t("games.tiletangle.playTiles")}
+          <Button size="lg" variant="primary" disabled={pending} onClick={() => void handleCommit()} className="w-full font-black">
+            {pending ? t("common.submitting") : t("games.tiletangle.playTiles")}
           </Button>
         </div>
       )}

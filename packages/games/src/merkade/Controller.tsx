@@ -19,6 +19,7 @@ export function MerkadeController({ seat, match, privateState, act, t }: Control
   const [majorityPrediction, setMajorityPrediction] = React.useState<0 | 1 | null>(null);
 
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+  const [pending, setPending] = React.useState(false);
 
   React.useEffect(() => {
     setErrorMessage(null);
@@ -33,10 +34,16 @@ export function MerkadeController({ seat, match, privateState, act, t }: Control
   }
 
   const handleAct = async (type: string, payload?: unknown) => {
+    if (pending) return;
     setErrorMessage(null);
-    const res = await act(type, payload);
-    if (!res.ok) {
-      setErrorMessage(res.error || res.code);
+    setPending(true);
+    try {
+      const res = await act(type, payload);
+      if (!res.ok) {
+        setErrorMessage(res.error || res.code);
+      }
+    } finally {
+      setPending(false);
     }
   };
 
@@ -116,7 +123,7 @@ export function MerkadeController({ seat, match, privateState, act, t }: Control
 
                 <Button
                   variant="primary"
-                  disabled={fibText.trim().length === 0}
+                  disabled={fibText.trim().length === 0 || pending}
                   onClick={() => handleAct("submit_fib_lie", { text: fibText })}
                   className="w-full min-h-[44px] font-black uppercase [font-family:var(--mb-font-display)]"
                 >
@@ -146,9 +153,10 @@ export function MerkadeController({ seat, match, privateState, act, t }: Control
                   <button
                     key={idx}
                     type="button"
+                    disabled={pending}
                     onClick={() => handleAct("submit_fib_vote", { optionIndex: idx })}
                     className={cn(
-                      "min-h-[44px] p-3 rounded-xl border-2 border-black text-left font-black text-sm uppercase tracking-wider flex items-center justify-between mb-press shadow-[2px_2px_0_0_#000] [font-family:var(--mb-font-display)]",
+                      "min-h-[44px] p-3 rounded-xl border-2 border-black text-left font-black text-sm uppercase tracking-wider flex items-center justify-between mb-press shadow-[2px_2px_0_0_#000] [font-family:var(--mb-font-display)] disabled:opacity-60",
                       "bg-[var(--mb-surface-3)] text-white hover:bg-[var(--mb-gold)] hover:text-black"
                     )}
                   >
@@ -219,6 +227,7 @@ export function MerkadeController({ seat, match, privateState, act, t }: Control
 
                 <Button
                   variant="primary"
+                  disabled={pending}
                   onClick={() => handleAct("submit_drawing", { grid: doodleGrid })}
                   className="w-full min-h-[44px] font-black uppercase [font-family:var(--mb-font-display)] mt-1"
                 >
@@ -265,7 +274,7 @@ export function MerkadeController({ seat, match, privateState, act, t }: Control
 
                 <Button
                   variant="primary"
-                  disabled={guessText.trim().length === 0}
+                  disabled={guessText.trim().length === 0 || pending}
                   onClick={() => handleAct("submit_guess", { text: guessText })}
                   className="w-full min-h-[44px] font-black uppercase [font-family:var(--mb-font-display)]"
                 >
@@ -297,9 +306,10 @@ export function MerkadeController({ seat, match, privateState, act, t }: Control
                   <button
                     key={idx}
                     type="button"
+                    disabled={pending}
                     onClick={() => handleAct("submit_guess_vote", { optionIndex: idx })}
                     className={cn(
-                      "min-h-[44px] p-3 rounded-xl border-2 border-black text-left font-black text-sm uppercase tracking-wider flex items-center justify-between mb-press shadow-[2px_2px_0_0_#000] [font-family:var(--mb-font-display)]",
+                      "min-h-[44px] p-3 rounded-xl border-2 border-black text-left font-black text-sm uppercase tracking-wider flex items-center justify-between mb-press shadow-[2px_2px_0_0_#000] [font-family:var(--mb-font-display)] disabled:opacity-60",
                       "bg-[var(--mb-surface-3)] text-white hover:bg-[var(--mb-pink)] hover:text-black"
                     )}
                   >
@@ -376,7 +386,7 @@ export function MerkadeController({ seat, match, privateState, act, t }: Control
 
                 <Button
                   variant="primary"
-                  disabled={majorityChoice === null || majorityPrediction === null}
+                  disabled={majorityChoice === null || majorityPrediction === null || pending}
                   onClick={() =>
                     majorityChoice !== null &&
                     majorityPrediction !== null &&

@@ -57,6 +57,7 @@ export function ZaplashController({ room, match, seat, privateState, act, t }: C
   const [inputTexts, setInputTexts] = React.useState<Record<number, string>>({});
   const [finaleText, setFinaleText] = React.useState("");
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+  const [pending, setPending] = React.useState(false);
 
   if (!pub) {
     return (
@@ -72,72 +73,35 @@ export function ZaplashController({ room, match, seat, privateState, act, t }: C
   const scoresObj = match.scores ?? {};
   const sortedSeats = [...room.seats].sort((a, b) => (scoresObj[b.seatIndex] ?? 0) - (scoresObj[a.seatIndex] ?? 0));
 
-  const handleSubmit = async (promptIndex: number) => {
+  const runAction = async (type: string, payload: unknown, buzzOk: number | number[]) => {
+    if (pending) return;
     setErrorMsg(null);
-    const text = inputTexts[promptIndex] ?? "";
-    const res = await act("submit_answer", { promptIndex, text });
-    if (!res.ok) {
-      setErrorMsg(res.error);
-      buzz([30, 40, 30]);
-    } else {
-      buzz(20);
+    setPending(true);
+    try {
+      const res = await act(type, payload);
+      if (!res.ok) {
+        setErrorMsg(res.error);
+        buzz([30, 40, 30]);
+      } else {
+        buzz(buzzOk);
+      }
+    } finally {
+      setPending(false);
     }
   };
 
-  const handleVote = async (answerIndex: 0 | 1) => {
-    setErrorMsg(null);
-    const res = await act("vote", { answerIndex });
-    if (!res.ok) {
-      setErrorMsg(res.error);
-      buzz([30, 40, 30]);
-    } else {
-      buzz(20);
-    }
-  };
+  const handleSubmit = (promptIndex: number) =>
+    runAction("submit_answer", { promptIndex, text: inputTexts[promptIndex] ?? "" }, 20);
 
-  const handleSafetyQuip = async (promptIndex: number) => {
-    setErrorMsg(null);
-    const res = await act("use_safety_quip", { promptIndex });
-    if (!res.ok) {
-      setErrorMsg(res.error);
-      buzz([30, 40, 30]);
-    } else {
-      buzz(15);
-    }
-  };
+  const handleVote = (answerIndex: 0 | 1) => runAction("vote", { answerIndex }, 20);
 
-  const handleFinaleSubmit = async () => {
-    setErrorMsg(null);
-    const res = await act("submit_finale_answer", { text: finaleText });
-    if (!res.ok) {
-      setErrorMsg(res.error);
-      buzz([30, 40, 30]);
-    } else {
-      buzz(20);
-    }
-  };
+  const handleSafetyQuip = (promptIndex: number) => runAction("use_safety_quip", { promptIndex }, 15);
 
-  const handleFinaleSafetyQuip = async () => {
-    setErrorMsg(null);
-    const res = await act("use_finale_safety_quip", {});
-    if (!res.ok) {
-      setErrorMsg(res.error);
-      buzz([30, 40, 30]);
-    } else {
-      buzz(15);
-    }
-  };
+  const handleFinaleSubmit = () => runAction("submit_finale_answer", { text: finaleText }, 20);
 
-  const handleFinaleVote = async (targetSeat: number) => {
-    setErrorMsg(null);
-    const res = await act("finale_vote", { targetSeat });
-    if (!res.ok) {
-      setErrorMsg(res.error);
-      buzz([30, 40, 30]);
-    } else {
-      buzz(20);
-    }
-  };
+  const handleFinaleSafetyQuip = () => runAction("use_finale_safety_quip", {}, 15);
+
+  const handleFinaleVote = (targetSeat: number) => runAction("finale_vote", { targetSeat }, 20);
 
   return (
     <div className="flex flex-col min-h-full w-full max-w-md mx-auto p-4 gap-4 select-none">
@@ -233,6 +197,7 @@ export function ZaplashController({ room, match, seat, privateState, act, t }: C
                         <Button
                           variant="ghost"
                           size="md"
+                          disabled={pending}
                           onClick={() => handleSafetyQuip(p.index)}
                           className="min-h-[44px] font-black uppercase tracking-wider [font-family:var(--mb-font-display)] mb-press shadow-[var(--mb-shadow)] active:translate-x-1 active:translate-y-1 active:shadow-none focus-visible:ring-2 focus-visible:ring-[var(--mb-accent-2)] flex items-center gap-1"
                         >
@@ -241,7 +206,7 @@ export function ZaplashController({ room, match, seat, privateState, act, t }: C
                         <Button
                           variant="primary"
                           size="md"
-                          disabled={textVal.trim().length === 0 || textVal.length > 120}
+                          disabled={pending || textVal.trim().length === 0 || textVal.length > 120}
                           onClick={() => handleSubmit(p.index)}
                           className="min-h-[44px] min-w-[100px] font-black uppercase tracking-wider [font-family:var(--mb-font-display)] mb-press shadow-[var(--mb-shadow)] active:translate-x-1 active:translate-y-1 active:shadow-none focus-visible:ring-2 focus-visible:ring-[var(--mb-accent-2)]"
                         >
@@ -308,6 +273,7 @@ export function ZaplashController({ room, match, seat, privateState, act, t }: C
                       <Button
                         variant="ghost"
                         size="md"
+                        disabled={pending}
                         onClick={handleFinaleSafetyQuip}
                         className="min-h-[44px] font-black uppercase tracking-wider [font-family:var(--mb-font-display)] mb-press shadow-[var(--mb-shadow)] active:translate-x-1 active:translate-y-1 active:shadow-none focus-visible:ring-2 focus-visible:ring-[var(--mb-accent-2)] flex items-center gap-1"
                       >
@@ -316,7 +282,7 @@ export function ZaplashController({ room, match, seat, privateState, act, t }: C
                       <Button
                         variant="primary"
                         size="md"
-                        disabled={textVal.trim().length === 0 || textVal.length > 120}
+                        disabled={pending || textVal.trim().length === 0 || textVal.length > 120}
                         onClick={handleFinaleSubmit}
                         className="min-h-[44px] min-w-[100px] font-black uppercase tracking-wider [font-family:var(--mb-font-display)] mb-press shadow-[var(--mb-shadow)] active:translate-x-1 active:translate-y-1 active:shadow-none focus-visible:ring-2 focus-visible:ring-[var(--mb-accent-2)]"
                       >
@@ -385,6 +351,7 @@ export function ZaplashController({ room, match, seat, privateState, act, t }: C
                       key={ans.seat}
                       variant="secondary"
                       size="lg"
+                      disabled={pending}
                       onClick={() => handleFinaleVote(ans.seat)}
                       className={cn(
                         "p-5 text-left flex flex-col items-start gap-2 min-h-[92px] rounded-xl justify-center font-black tracking-normal border-[3px] border-black shadow-[var(--mb-shadow-lg)] mb-press active:translate-x-1 active:translate-y-1 active:shadow-none focus-visible:ring-2 focus-visible:ring-[var(--mb-accent-2)] whitespace-normal break-words w-full bg-[var(--mb-surface-2)] text-white hover:bg-[var(--mb-surface-3)]",
@@ -447,6 +414,7 @@ export function ZaplashController({ room, match, seat, privateState, act, t }: C
                       key={idx}
                       variant="secondary"
                       size="lg"
+                      disabled={pending}
                       onClick={() => handleVote(idx as 0 | 1)}
                       className={cn(
                         "p-5 text-left flex flex-col items-start gap-2 min-h-[92px] rounded-xl justify-center font-black tracking-normal border-[3px] border-black shadow-[var(--mb-shadow-lg)] mb-press active:translate-x-1 active:translate-y-1 active:shadow-none focus-visible:ring-2 focus-visible:ring-[var(--mb-accent-2)] whitespace-normal break-words w-full bg-[var(--mb-surface-2)] text-white hover:bg-[var(--mb-surface-3)]",

@@ -134,4 +134,5 @@ export const en: Record<string, string> = {
   "common.round": "Round {n}",
   "common.on": "On",
   "common.off": "Off",
+  "common.submitting": "Submitting...",
 };
