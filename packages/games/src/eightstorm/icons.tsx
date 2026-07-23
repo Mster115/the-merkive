@@ -88,35 +88,39 @@ export function StarIcon({ className = "w-5 h-5" }: { className?: string }) {
   );
 }
 
-/* Whimsical Suit Icons */
-export function SpadeIcon({ className = "w-5 h-5" }: { className?: string }) {
+/* Eightstorm Elemental Suit Icons */
+export function BoltIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 2.5C9.5 7 4 10.5 4 14.5c0 3 2.5 5 5.5 5 1.7 0 3-.7 4.2-2.1.2.7.5 1.4 1.3 2.1H9v2h6v-2h-2c.8-.7 1.1-1.4 1.3-2.1 1.2 1.4 2.5 2.1 4.2 2.1 3 0 5.5-2 5.5-5 0-4-5.5-7.5-8-12z" />
+      <path d="M19.35 8.04C18.67 4.59 15.64 2 12 2C9.11 2 6.6 3.64 5.35 6.04C2.34 6.36 0 8.91 0 12c0 3.31 2.69 6 6 6h2.5l-2 5 7.5-6.5h-4l3.5-4.5h-4l3-3.5H12L9.5 10h3L10.5 14H18c3.31 0 6-2.69 6-6 0-3.09-2.34-5.64-5.35-5.96z" />
     </svg>
   );
 }
 
-export function HeartIcon({ className = "w-5 h-5" }: { className?: string }) {
+export function BlazeIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+      <path d="M13.5 2C13.5 2 14 5 12 7C10 5 10 3 10 3C7 6 6 10 6 13.5C6 17.09 8.91 20 12.5 20C16.09 20 19 17.09 19 13.5C19 9 15.5 5.5 13.5 2ZM12.5 18C10.57 18 9 16.43 9 14.5C9 13.4 9.5 12.1 10.3 11.3C10.6 12.8 11.9 14 13.5 14C14.3 14 15 13.7 15.5 13.2C15.8 14.2 15.8 15.3 15.3 16.2C14.7 17.3 13.7 18 12.5 18Z" />
     </svg>
   );
 }
 
-export function DiamondIcon({ className = "w-5 h-5" }: { className?: string }) {
+export function GaleIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 2L3.5 12 12 22l8.5-10L12 2z" />
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12.8 3a3.8 3.8 0 0 0-3.8 3.8c0 2.1 1.7 3.8 3.8 3.8H2" />
+      <path d="M17.5 9a3.5 3.5 0 0 1 3.5 3.5c0 1.9-1.6 3.5-3.5 3.5H2" />
+      <path d="M9.8 21a2.8 2.8 0 0 0 2.8-2.8c0-1.5-1.3-2.8-2.8-2.8H4" />
     </svg>
   );
 }
 
-export function ClubIcon({ className = "w-5 h-5" }: { className?: string }) {
+export function TideIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 2a4 4 0 0 0-4 4c0 1.2.5 2.3 1.4 3A4 4 0 0 0 5 13a4 4 0 0 0 6 3.5c.2.7.5 1.4 1.3 2.1H10v2h4v-2h-2.3c.8-.7 1.1-1.4 1.3-2.1A4 4 0 0 0 19 13a4 4 0 0 0-4.4-4c.9-.7 1.4-1.8 1.4-3a4 4 0 0 0-4-4z" />
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 6c2.5 0 2.5 2.5 5 2.5s2.5-2.5 5-2.5 2.5 2.5 5 2.5 2.5-2.5 5-2.5" />
+      <path d="M2 12c2.5 0 2.5 2.5 5 2.5s2.5-2.5 5-2.5 2.5 2.5 5 2.5 2.5-2.5 5-2.5" />
+      <path d="M2 18c2.5 0 2.5 2.5 5 2.5s2.5-2.5 5-2.5 2.5 2.5 5 2.5 2.5-2.5 5-2.5" />
     </svg>
   );
 }

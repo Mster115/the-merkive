@@ -6,7 +6,7 @@ import { Button, buzz, Card, Modal, Pill, cn } from "@merky/ui";
 import type { EightstormPrivateState, EightstormPublicState } from "./types";
 import type { Card as CardType, DeclareSuit, Suit } from "./cards";
 import { isLegalPlay, isWildCard, SUITS } from "./cards";
-import { CardView, getCardDisplayRank, SuitSVG, SUIT_NAMES } from "./CardView";
+import { CardView, getCardDisplayRank, SuitSVG, SUIT_NAMES, SUIT_THEMES } from "./CardView";
 import { FanIcon, GridIcon, LightningIcon, ReverseIcon } from "./icons";
 
 export function EightstormController({ room, match, seat, privateState, act, t }: ControllerProps) {
@@ -17,6 +17,7 @@ export function EightstormController({ room, match, seat, privateState, act, t }
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
   const [selectedWildId, setSelectedWildId] = React.useState<string | null>(null);
   const [viewMode, setViewMode] = React.useState<"fan" | "grid">("fan");
+  const [pending, setPending] = React.useState(false);
 
   if (!pub) {
     return (
@@ -46,41 +47,60 @@ export function EightstormController({ room, match, seat, privateState, act, t }
   );
 
   const handleCardClick = (card: CardType) => {
+    if (pending) return;
     setErrorMsg(null);
     buzz(10);
     if (isWildCard(card)) {
       setSelectedWildId(card.id);
     } else {
-      executePlay(card.id);
+      void executePlay(card.id);
     }
   };
 
   const executePlay = async (cardId: string, declareSuit?: DeclareSuit) => {
+    if (pending) return;
     setErrorMsg(null);
     setSelectedWildId(null);
-    const res = await act("play", { cardId, declareSuit });
-    if (!res.ok) {
-      setErrorMsg(res.error);
-      buzz([30, 40, 30]);
-    } else {
-      buzz(18);
+    setPending(true);
+    try {
+      const res = await act("play", { cardId, declareSuit });
+      if (!res.ok) {
+        setErrorMsg(res.error);
+        buzz([30, 40, 30]);
+      } else {
+        buzz(18);
+      }
+    } finally {
+      setPending(false);
     }
   };
 
   const handleDraw = async () => {
+    if (pending) return;
     setErrorMsg(null);
-    const res = await act("draw");
-    if (!res.ok) {
-      setErrorMsg(res.error);
-      buzz([30, 40, 30]);
+    setPending(true);
+    try {
+      const res = await act("draw");
+      if (!res.ok) {
+        setErrorMsg(res.error);
+        buzz([30, 40, 30]);
+      }
+    } finally {
+      setPending(false);
     }
   };
 
   const handlePass = async () => {
+    if (pending) return;
     setErrorMsg(null);
-    const res = await act("pass");
-    if (!res.ok) {
-      setErrorMsg(res.error);
+    setPending(true);
+    try {
+      const res = await act("pass");
+      if (!res.ok) {
+        setErrorMsg(res.error);
+      }
+    } finally {
+      setPending(false);
     }
   };
 
@@ -102,11 +122,9 @@ export function EightstormController({ room, match, seat, privateState, act, t }
           <span
             className={cn(
               "font-black text-sm px-3 py-1 rounded-lg border-2 border-black flex items-center gap-1.5 shadow-[2px_2px_0_0_#000] uppercase [font-family:var(--mb-font-display)]",
-              pub.topCard.suit === "H" || pub.topCard.suit === "D"
-                ? "bg-[#dc2626] text-white"
-                : isWildCard(pub.topCard)
+              isWildCard(pub.topCard)
                 ? "bg-[var(--mb-gold)] text-black"
-                : "bg-white text-black"
+                : cn(SUIT_THEMES[pub.topCard.suit].bg, SUIT_THEMES[pub.topCard.suit].text)
             )}
           >
             {getCardDisplayRank(pub.topCard.rank)}
@@ -140,10 +158,16 @@ export function EightstormController({ room, match, seat, privateState, act, t }
               <LightningIcon className="w-4 h-4 text-[var(--mb-on-accent)]" />
               {t("games.eightstorm.ui.your_turn")}
             </Pill>
-            {playableCards.length > 0 && (
-              <span className="text-xs font-black px-3 py-1 rounded-lg bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)] border-2 border-black shadow-[2px_2px_0_0_#000] [font-family:var(--mb-font-display)] uppercase">
-                {playableCards.length} PLAYABLE
+            {pending ? (
+              <span className="text-xs font-black px-3 py-1 rounded-lg bg-[var(--mb-surface-3)] text-[var(--mb-text-dim)] border-2 border-black shadow-[2px_2px_0_0_#000] [font-family:var(--mb-font-display)] uppercase mb-blink">
+                {t("games.eightstorm.ui.submitting")}
               </span>
+            ) : (
+              playableCards.length > 0 && (
+                <span className="text-xs font-black px-3 py-1 rounded-lg bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)] border-2 border-black shadow-[2px_2px_0_0_#000] [font-family:var(--mb-font-display)] uppercase">
+                  {playableCards.length} PLAYABLE
+                </span>
+              )
             )}
           </div>
         ) : (
@@ -168,11 +192,13 @@ export function EightstormController({ room, match, seat, privateState, act, t }
             variant={pub.pendingDraw > 0 ? "danger" : "secondary"}
             size="lg"
             block
-            onClick={handleDraw}
-            disabled={pub.drewThisTurn && pub.pendingDraw === 0}
+            onClick={() => void handleDraw()}
+            disabled={pending || (pub.drewThisTurn && pub.pendingDraw === 0)}
             className="flex-1 min-h-14 font-black tracking-wider uppercase [font-family:var(--mb-font-display)]"
           >
-            {pub.pendingDraw > 0
+            {pending
+              ? t("games.eightstorm.ui.submitting")
+              : pub.pendingDraw > 0
               ? t("games.eightstorm.ui.draw_pending", { count: pub.pendingDraw })
               : t("games.eightstorm.ui.draw")}
           </Button>
@@ -181,7 +207,8 @@ export function EightstormController({ room, match, seat, privateState, act, t }
             <Button
               variant="primary"
               size="lg"
-              onClick={handlePass}
+              onClick={() => void handlePass()}
+              disabled={pending}
               className="px-6 min-h-14 font-black uppercase tracking-wider [font-family:var(--mb-font-display)]"
             >
               {t("games.eightstorm.ui.pass")}
@@ -237,7 +264,8 @@ export function EightstormController({ room, match, seat, privateState, act, t }
           <div className="w-full overflow-x-auto pb-6 pt-4 px-2 no-scrollbar">
             <div className="flex items-center justify-start min-w-max px-4">
               {sortedHand.map((card, idx) => {
-                const playable = isMyTurn && isLegalPlay(card, pub.topCard, pub.declaredSuit, pub.pendingDraw, settings.drawTwoOnTwo);
+                const playable =
+                  isMyTurn && !pending && isLegalPlay(card, pub.topCard, pub.declaredSuit, pub.pendingDraw, settings.drawTwoOnTwo);
                 return (
                   <div
                     key={card.id}
@@ -270,7 +298,8 @@ export function EightstormController({ room, match, seat, privateState, act, t }
         {viewMode === "grid" && (
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 overflow-y-auto max-h-[340px] p-1">
             {sortedHand.map((card) => {
-              const playable = isMyTurn && isLegalPlay(card, pub.topCard, pub.declaredSuit, pub.pendingDraw, settings.drawTwoOnTwo);
+              const playable =
+                isMyTurn && !pending && isLegalPlay(card, pub.topCard, pub.declaredSuit, pub.pendingDraw, settings.drawTwoOnTwo);
               return (
                 <CardView
                   key={card.id}
@@ -292,22 +321,20 @@ export function EightstormController({ room, match, seat, privateState, act, t }
       >
         <div className="grid grid-cols-2 gap-3 p-2">
           {SUITS.map((suit) => {
-            const isRed = suit === "H" || suit === "D";
+            const theme = SUIT_THEMES[suit];
             return (
               <Button
                 key={suit}
                 variant="ghost"
                 size="lg"
+                disabled={pending}
                 onClick={() => {
-                  if (selectedWildId) {
-                    executePlay(selectedWildId, suit);
-                  }
+                  if (selectedWildId) void executePlay(selectedWildId, suit);
                 }}
                 className={cn(
                   "flex flex-col items-center justify-center py-6 min-h-[96px] gap-2 border-[3px] border-black text-xl font-black rounded-xl transition-all shadow-[var(--mb-shadow)] mb-press",
-                  isRed
-                    ? "bg-[#dc2626] text-white hover:bg-[#dc2626]"
-                    : "bg-white text-black hover:bg-white"
+                  theme.bg,
+                  theme.text
                 )}
               >
                 <SuitSVG suit={suit} className="w-12 h-12" />

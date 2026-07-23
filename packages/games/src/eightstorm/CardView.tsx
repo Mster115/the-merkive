@@ -3,26 +3,26 @@
 import * as React from "react";
 import { cn } from "@merky/ui";
 import type { Card as CardType, Rank, Suit } from "./cards";
-import { ClubIcon, DiamondIcon, HeartIcon, LightningIcon, ReverseIcon, SkipIcon, SpadeIcon, StarIcon } from "./icons";
+import { BlazeIcon, BoltIcon, GaleIcon, LightningIcon, ReverseIcon, SkipIcon, StarIcon, TideIcon } from "./icons";
 
 export const SUIT_NAMES: Record<Suit, string> = {
-  S: "Spades",
-  H: "Hearts",
-  D: "Diamonds",
-  C: "Clubs",
+  S: "Bolt",
+  H: "Blaze",
+  D: "Gale",
+  C: "Tide",
   X: "Joker",
 };
 
 export function SuitSVG({ suit, className = "w-4 h-4" }: { suit: Suit; className?: string }) {
   switch (suit) {
     case "S":
-      return <SpadeIcon className={className} />;
+      return <BoltIcon className={className} />;
     case "H":
-      return <HeartIcon className={className} />;
+      return <BlazeIcon className={className} />;
     case "D":
-      return <DiamondIcon className={className} />;
+      return <GaleIcon className={className} />;
     case "C":
-      return <ClubIcon className={className} />;
+      return <TideIcon className={className} />;
     case "X":
       return <StarIcon className={className} />;
   }
@@ -59,7 +59,7 @@ export function getCardActionLabel(rank: Rank, suit: Suit): string {
     case "JOKER":
       return "Joker (wild)";
     default:
-      return `${rank} of ${suitName}`;
+      return `${rank} (${suitName})`;
   }
 }
 
@@ -72,10 +72,18 @@ interface CardViewProps {
   size?: "sm" | "md" | "lg" | "xl";
 }
 
+export const SUIT_THEMES: Record<Suit, { bg: string; text: string }> = {
+  S: { bg: "bg-[var(--mb-violet)]", text: "text-black" },
+  H: { bg: "bg-[var(--mb-danger)]", text: "text-black" },
+  D: { bg: "bg-[var(--mb-accent-2)]", text: "text-black" },
+  C: { bg: "bg-[var(--mb-pink)]", text: "text-black" },
+  X: { bg: "bg-[var(--mb-gold)]", text: "text-black" },
+};
+
 export function CardView({ card, selected, disabled, onClick, className, size = "md" }: CardViewProps) {
-  const isRed = card.suit === "H" || card.suit === "D";
   const isWild = card.rank === "8" || card.suit === "X";
   const displayRank = getCardDisplayRank(card.rank);
+  const theme = SUIT_THEMES[card.suit];
 
   const sizeClasses = {
     sm: "w-14 h-22 p-1.5 text-xs rounded-lg border-2 min-h-[44px]",
@@ -99,7 +107,6 @@ export function CardView({ card, selected, disabled, onClick, className, size = 
   }[size];
 
   const actionLabel = getCardActionLabel(card.rank, card.suit);
-  const textColor = isRed ? "text-[#dc2626]" : "text-black";
 
   return (
     <button
@@ -108,14 +115,15 @@ export function CardView({ card, selected, disabled, onClick, className, size = 
       onClick={onClick}
       aria-label={actionLabel}
       className={cn(
-        "flex flex-col justify-between select-none relative font-black transition-all duration-150 transform text-left overflow-hidden bg-white border-black shadow-[2px_2px_0_0_#000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--mb-accent-2)]",
+        "flex flex-col justify-between select-none relative font-black transition-all duration-150 transform text-left overflow-hidden border-black shadow-[2px_2px_0_0_#000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--mb-accent-2)]",
         "[font-family:var(--mb-font-display)]",
         sizeClasses,
-        textColor,
+        theme.bg,
+        theme.text,
         disabled
           ? "opacity-40 grayscale cursor-not-allowed scale-95 shadow-none"
           : "cursor-pointer mb-press active:translate-x-0.5 active:translate-y-0.5 active:shadow-none hover:-translate-y-1.5",
-        selected && "ring-4 ring-[var(--mb-accent-2)] -translate-y-3 shadow-[4px_4px_0_0_#000] border-black bg-white z-20",
+        selected && "ring-4 ring-[var(--mb-accent-2)] -translate-y-3 shadow-[4px_4px_0_0_#000] border-black z-20",
         className
       )}
     >
@@ -129,29 +137,29 @@ export function CardView({ card, selected, disabled, onClick, className, size = 
       <div className="self-center text-center my-auto z-10 flex flex-col items-center justify-center gap-1">
         {card.rank === "A" ? (
           <>
-            <ReverseIcon className={cn(iconSizeClass, "text-[var(--mb-violet)]")} />
-            <span className="text-[0.6em] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--mb-violet)] text-white border-2 border-black shadow-[1px_1px_0_0_#000]">
+            <ReverseIcon className={cn(iconSizeClass, "text-black")} />
+            <span className="text-[0.6em] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--mb-paper)] text-black border-2 border-black shadow-[1px_1px_0_0_#000]">
               REVERSE
             </span>
           </>
         ) : card.rank === "J" ? (
           <>
-            <SkipIcon className={cn(iconSizeClass, "text-[var(--mb-pink-deep)]")} />
-            <span className="text-[0.6em] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--mb-pink)] text-black border-2 border-black shadow-[1px_1px_0_0_#000]">
+            <SkipIcon className={cn(iconSizeClass, "text-black")} />
+            <span className="text-[0.6em] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--mb-paper)] text-black border-2 border-black shadow-[1px_1px_0_0_#000]">
               SKIP
             </span>
           </>
         ) : card.rank === "2" ? (
           <>
-            <LightningIcon className={cn(iconSizeClass, "text-[var(--mb-gold)]")} />
-            <span className="text-[0.65em] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--mb-danger)] text-white border-2 border-black shadow-[1px_1px_0_0_#000]">
+            <LightningIcon className={cn(iconSizeClass, "text-black")} />
+            <span className="text-[0.65em] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--mb-paper)] text-black border-2 border-black shadow-[1px_1px_0_0_#000]">
               +2 DRAW
             </span>
           </>
         ) : isWild ? (
           <>
-            <StarIcon className={cn(iconSizeClass, "text-[var(--mb-gold)]")} />
-            <span className="text-[0.6em] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--mb-gold)] text-black border-2 border-black shadow-[1px_1px_0_0_#000]">
+            <StarIcon className={cn(iconSizeClass, "text-black")} />
+            <span className="text-[0.6em] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--mb-paper)] text-black border-2 border-black shadow-[1px_1px_0_0_#000]">
               {card.rank === "JOKER" ? "JOKER" : "WILD 8"}
             </span>
           </>
