@@ -19,7 +19,7 @@ export const yougotit = defineGame({
     descriptionKey: "games.yougotit.description",
     taglineKey: "games.yougotit.tagline",
     minPlayers: 4,
-    maxPlayers: 8,
+    maxPlayers: 12,
     supportsSpectators: true,
     supportsMidGameJoin: false,
     tags: ["party", "teams", "guessing"],

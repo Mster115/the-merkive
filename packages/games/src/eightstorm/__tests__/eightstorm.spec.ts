@@ -256,6 +256,79 @@ describe("Eightstorm Game Plugin", () => {
 
     expect(hand1.map((c) => c.id)).toEqual(hand2.map((c) => c.id));
   });
+
+  it("deals correct hands for 9p and 12p using a double deck with unique card ids", () => {
+    for (const players of [9, 12] as const) {
+      const m = createTestMatch(eightstorm, { players, seed: `eightstorm-${players}p` });
+      const pub = m.state.publicState as EightstormPublicState;
+      const secret = m.state.secretState as EightstormSecret;
+      expect(m.state.phase).toBe("turn");
+
+      // Every player got 5 cards
+      for (let s = 0; s < players; s++) {
+        const priv = m.state.privateState[s as 0 | 1] as EightstormPrivateState;
+        expect(priv.hand).toHaveLength(5);
+        expect(pub.handCounts[s]).toBe(5);
+      }
+
+      // Total cards conserved against the expected shoe size (double deck above 8p)
+      const totalDealt = players * 5;
+      const totalInPile = secret.drawPile.length + secret.discardPile.length;
+      const expectedDeckSize = players > 8 ? 104 : 52;
+      expect(totalDealt + totalInPile).toBe(expectedDeckSize);
+
+      // All card ids across all hands + piles must be unique
+      const allIds = new Set<string>();
+      for (let s = 0; s < players; s++) {
+        const priv = m.state.privateState[s as 0 | 1] as EightstormPrivateState;
+        for (const c of priv.hand) {
+          expect(allIds.has(c.id), `duplicate card id ${c.id}`).toBe(false);
+          allIds.add(c.id);
+        }
+      }
+      for (const c of secret.drawPile) {
+        expect(allIds.has(c.id), `duplicate card id ${c.id} in drawPile`).toBe(false);
+        allIds.add(c.id);
+      }
+      for (const c of secret.discardPile) {
+        expect(allIds.has(c.id), `duplicate card id ${c.id} in discardPile`).toBe(false);
+        allIds.add(c.id);
+      }
+    }
+  });
+
+  it("conserves total card count during reshuffle at double-deck player count", () => {
+    const m = createTestMatch(eightstorm, { players: 10, seed: "eightstorm-reshuffle-10p" });
+    const secretBefore = m.state.secretState as EightstormSecret;
+
+    // Drain draw pile to trigger reshuffle
+    const drainedSecret: EightstormSecret = {
+      drawPile: [secretBefore.drawPile[0]!],
+      discardPile: [
+        ...secretBefore.discardPile,
+        { id: "d1-H-10", suit: "H", rank: "10" },
+        { id: "d1-C-9", suit: "C", rank: "9" },
+      ],
+    };
+    m.state = { ...m.state, secretState: drainedSecret };
+
+    const privateStateValues = Object.values(m.state.privateState) as Array<EightstormPrivateState | undefined>;
+    const totalBefore =
+      drainedSecret.drawPile.length +
+      drainedSecret.discardPile.length +
+      privateStateValues.reduce((sum: number, p) => sum + (p?.hand?.length ?? 0), 0);
+
+    act(m, 0, "draw");
+    const secretAfter = m.state.secretState as EightstormSecret;
+
+    const privateStateValuesAfter = Object.values(m.state.privateState) as Array<EightstormPrivateState | undefined>;
+    const totalAfter =
+      secretAfter.drawPile.length +
+      secretAfter.discardPile.length +
+      privateStateValuesAfter.reduce((sum: number, p) => sum + (p?.hand?.length ?? 0), 0);
+
+    expect(totalAfter).toBe(totalBefore);
+  });
 });
 
 describe("Eightstorm timeout hand integrity (regression)", () => {

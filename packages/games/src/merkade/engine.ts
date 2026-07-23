@@ -51,7 +51,7 @@ export function initEngine(ctx: GameContext): ReduceResult {
   const publicState: MerkadePublicState = {
     roundPlan,
     roundIndex: 0,
-    phase: "track_intro",
+    phase: "round_intro",
   };
 
   const secretState: MerkadeSecretState = {
@@ -59,7 +59,7 @@ export function initEngine(ctx: GameContext): ReduceResult {
   };
 
   return {
-    phase: "track_intro",
+    phase: "round_intro",
     publicState,
     privateState: {} as Record<SeatIndex, MerkadePrivateState>,
     secretState,
@@ -67,7 +67,7 @@ export function initEngine(ctx: GameContext): ReduceResult {
     events: [],
     timer: {
       endsAt: ctx.now + 4000,
-      kind: "track_intro",
+      kind: "round_intro",
       durationMs: 4000,
     },
   };
@@ -248,11 +248,11 @@ function advanceRound(ctx: GameContext, pub: MerkadePublicState, secret: Merkade
   const nextPub: MerkadePublicState = {
     roundPlan: pub.roundPlan,
     roundIndex: nextRoundIndex,
-    phase: "track_intro",
+    phase: "round_intro",
   };
 
   return {
-    phase: "track_intro",
+    phase: "round_intro",
     publicState: nextPub,
     privateState: {} as Record<SeatIndex, MerkadePrivateState>,
     secretState: secret,
@@ -260,7 +260,7 @@ function advanceRound(ctx: GameContext, pub: MerkadePublicState, secret: Merkade
     events: [],
     timer: {
       endsAt: ctx.now + 4000,
-      kind: "track_intro",
+      kind: "round_intro",
       durationMs: 4000,
     },
   };
@@ -1084,7 +1084,7 @@ export function onTickEngine(ctx: GameContext, state: GameStateIn): ReduceResult
   const secret = state.secretState as MerkadeSecretState;
 
   switch (pub.phase) {
-    case "track_intro":
+    case "round_intro":
       return startRound(ctx, pub, secret);
 
     case "fib_answer":

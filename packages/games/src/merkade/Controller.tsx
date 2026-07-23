@@ -53,7 +53,7 @@ export function MerkadeController({ seat, match, privateState, act, t }: Control
       {!isGameOver && (
         <div className="flex items-center justify-between gap-2 bg-[var(--mb-surface-2)] p-3 rounded-xl border-2 border-black shadow-[var(--mb-shadow)]">
           <span className="font-black text-sm text-[var(--mb-gold)] uppercase tracking-wider [font-family:var(--mb-font-display)]">
-            {t("games.merkade.ui.track_header", { current: pub.roundIndex + 1, total: pub.roundPlan.length })}
+            {t("games.merkade.ui.round_header", { current: pub.roundIndex + 1, total: pub.roundPlan.length })}
           </span>
           <Pill tone="neutral" className="text-xs px-2.5 py-0.5 font-black uppercase [font-family:var(--mb-font-display)]">
             {t(`games.merkade.phase.${match.phase}`)}
@@ -70,14 +70,14 @@ export function MerkadeController({ seat, match, privateState, act, t }: Control
           </div>
         )}
 
-        {/* --- TRACK INTRO --- */}
-        {match.phase === "track_intro" && (
+        {/* --- ROUND INTRO --- */}
+        {match.phase === "round_intro" && (
           <Panel className="p-6 rounded-xl bg-[var(--mb-surface-2)] border-[3px] border-black text-center flex flex-col gap-3">
             <h3 className="text-2xl font-black text-[var(--mb-gold)] uppercase [font-family:var(--mb-font-display)]">
-              {t("games.merkade.ui.track_ready")}
+              {t("games.merkade.ui.round_ready")}
             </h3>
             <p className="text-sm font-bold text-[var(--mb-text-dim)]">
-              {t("games.merkade.ui.next_track_starting")}
+              {t("games.merkade.ui.next_round_starting")}
             </p>
           </Panel>
         )}

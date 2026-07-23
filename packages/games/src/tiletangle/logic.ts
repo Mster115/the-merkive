@@ -66,29 +66,32 @@ export function getNextSeat(currentSeat: SeatIndex, seats: SeatPublic[]): SeatIn
   return currentSeat;
 }
 
-export function createFullDeck(): Tile[] {
+export function createFullDeck(setCount = 1): Tile[] {
   const deck: Tile[] = [];
-  // 4 colors (0..3), numbers (1..13), 2 copies
-  for (let copy = 0; copy < 2; copy++) {
-    for (let n = 1; n <= 13; n++) {
-      for (let c = 0; c < 4; c++) {
-        deck.push({
-          id: `${copy}-${n}-${c}`,
-          n,
-          c,
-        });
+  for (let set = 0; set < setCount; set++) {
+    const prefix = set === 0 ? "" : `s${set}-`;
+    // 4 colors (0..3), numbers (1..13), 2 copies
+    for (let copy = 0; copy < 2; copy++) {
+      for (let n = 1; n <= 13; n++) {
+        for (let c = 0; c < 4; c++) {
+          deck.push({
+            id: `${prefix}${copy}-${n}-${c}`,
+            n,
+            c,
+          });
+        }
       }
     }
+    // 2 jokers
+    deck.push({ id: `${prefix}j-0`, n: 0, c: 0, joker: true });
+    deck.push({ id: `${prefix}j-1`, n: 0, c: 0, joker: true });
   }
-  // 2 jokers
-  deck.push({ id: "j-0", n: 0, c: 0, joker: true });
-  deck.push({ id: "j-1", n: 0, c: 0, joker: true });
   return deck;
 }
 
 export function initTileTangle(ctx: GameContext): ReduceResult {
   const settings = getSettings(ctx);
-  const deck = shuffle(createFullDeck(), ctx.rng);
+  const deck = shuffle(createFullDeck(ctx.seats.length >= 5 ? 2 : 1), ctx.rng);
 
   const privateState: Partial<Record<SeatIndex, TileTanglePrivateState>> = {};
   const rackCounts: Partial<Record<SeatIndex, number>> = {};

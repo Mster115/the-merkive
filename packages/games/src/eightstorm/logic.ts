@@ -82,7 +82,11 @@ function drawFromPile(
 
 export function initEightstorm(ctx: GameContext): ReduceResult {
   const settings = getSettings(ctx);
-  const fullDeck = shuffle(createDeck(settings.jokers), ctx.rng);
+  const singleDeck = createDeck(settings.jokers, 0);
+  const shoe = ctx.seats.length > 8
+    ? [...singleDeck, ...createDeck(settings.jokers, 1)]
+    : singleDeck;
+  const fullDeck = shuffle(shoe, ctx.rng);
   const cardsPerPlayer = ctx.seats.length === 2 ? 7 : 5;
 
   const hands: Partial<Record<SeatIndex, Card[]>> = {};

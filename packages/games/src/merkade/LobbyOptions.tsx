@@ -48,7 +48,7 @@ export function MerkadeLobbyOptions({ settings, onChange, disabled, t }: LobbyOp
                   : "bg-[var(--mb-surface-3)] text-[var(--mb-text-dim)] hover:text-white"
               )}
             >
-              {t("games.merkade.ui.tracks_unit", { count: rc })}
+              {t("games.merkade.ui.rounds_unit", { count: rc })}
             </button>
           ))}
         </div>

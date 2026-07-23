@@ -17,7 +17,7 @@ export const tiletangle = defineGame({
     nameKey: "games.tiletangle.name",
     descriptionKey: "games.tiletangle.description",
     minPlayers: 2,
-    maxPlayers: 8,
+    maxPlayers: 12,
     supportsSpectators: true,
     supportsMidGameJoin: true,
     tags: ["tiles", "turn-based", "brainy"],

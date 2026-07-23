@@ -18,7 +18,7 @@ export const merkissioner = defineGame({
     descriptionKey: "games.merkissioner.description",
     taglineKey: "games.merkissioner.tagline",
     minPlayers: 5,
-    maxPlayers: 8,
+    maxPlayers: 12,
     supportsSpectators: true,
     supportsMidGameJoin: false,
     tags: ["party", "deduction", "bluffing"],

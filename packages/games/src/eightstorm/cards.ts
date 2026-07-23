@@ -11,20 +11,21 @@ export interface Card {
 export const SUITS: readonly DeclareSuit[] = ["S", "H", "D", "C"];
 export const RANKS: readonly Rank[] = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
 
-export function createDeck(includeJokers: boolean): Card[] {
+export function createDeck(includeJokers: boolean, deckIndex = 0): Card[] {
+  const prefix = deckIndex === 0 ? "" : `d${deckIndex}-`;
   const deck: Card[] = [];
   for (const suit of SUITS) {
     for (const rank of RANKS) {
       deck.push({
-        id: `${suit}-${rank}`,
+        id: `${prefix}${suit}-${rank}`,
         suit,
         rank,
       });
     }
   }
   if (includeJokers) {
-    deck.push({ id: "X-1", suit: "X", rank: "JOKER" });
-    deck.push({ id: "X-2", suit: "X", rank: "JOKER" });
+    deck.push({ id: `${prefix}X-1`, suit: "X", rank: "JOKER" });
+    deck.push({ id: `${prefix}X-2`, suit: "X", rank: "JOKER" });
   }
   return deck;
 }

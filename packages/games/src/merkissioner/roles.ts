@@ -16,13 +16,21 @@ export function roleCountsFor(playerCount: number): RoleCounts {
       return { merkizen: 4, merkite: 2, merkissioner: 1 };
     case 8:
       return { merkizen: 5, merkite: 2, merkissioner: 1 };
+    case 9:
+      return { merkizen: 6, merkite: 2, merkissioner: 1 };
+    case 10:
+      return { merkizen: 6, merkite: 3, merkissioner: 1 };
+    case 11:
+      return { merkizen: 7, merkite: 3, merkissioner: 1 };
+    case 12:
+      return { merkizen: 7, merkite: 4, merkissioner: 1 };
     case 5:
     default:
       return { merkizen: 3, merkite: 1, merkissioner: 1 };
   }
 }
 
-/** 5–6p share the small power track; 7–8p share the large one. */
+/** 5–6p share the small power track; 7+p share the large one. */
 export function boardFor(playerCount: number): Board {
   return playerCount <= 6 ? "5-6" : "7-8";
 }

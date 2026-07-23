@@ -130,7 +130,7 @@ async function allocateRoom(store: RoomStore, hostSeat: SeatIndex | null): Promi
     hostSeat,
     gameId: null,
     settings: {},
-    maxPlayers: 8,
+    maxPlayers: 12,
     createdAt: now,
     updatedAt: now,
     expiresAt: now + ROOM_ABSOLUTE_MS,

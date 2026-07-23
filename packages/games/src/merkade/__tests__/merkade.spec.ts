@@ -189,7 +189,7 @@ describe("Merkade Game Plugin", () => {
     });
 
     const startPhase = m.state.phase;
-    expect(startPhase).toBe("track_intro");
+    expect(startPhase).toBe("round_intro");
 
     for (let i = 0; i < 15; i++) {
       if (m.over) break;

@@ -233,11 +233,11 @@ export function YouGotItIcon({ className = "w-6 h-6" }: { className?: string }) 
 export function MerkadeIcon({ className = "w-6 h-6" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="5" width="18" height="14" rx="2" fill="var(--mb-accent)" fillOpacity="0.25" stroke="currentColor" strokeWidth="2" />
-      <circle cx="8.5" cy="12" r="2.4" fill="var(--mb-surface)" stroke="currentColor" strokeWidth="1.6" />
-      <circle cx="15.5" cy="12" r="2.4" fill="var(--mb-surface)" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M8.5 12h7" stroke="var(--mb-gold)" strokeWidth="1.6" />
-      <path d="M6 8.5h12" stroke="currentColor" strokeWidth="1.4" />
+      <rect x="3" y="15" width="18" height="6" rx="2" fill="var(--mb-accent)" fillOpacity="0.3" stroke="currentColor" strokeWidth="2" />
+      <path d="M12 15V8" />
+      <circle cx="12" cy="6" r="2.6" fill="var(--mb-gold)" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="7.5" cy="18" r="1.4" fill="var(--mb-pink)" stroke="currentColor" strokeWidth="1.4" />
+      <circle cx="16.5" cy="18" r="1.4" fill="var(--mb-pink)" stroke="currentColor" strokeWidth="1.4" />
     </svg>
   );
 }

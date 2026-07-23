@@ -17,7 +17,7 @@ export const zaplash = defineGame({
     nameKey: "games.zaplash.name",
     descriptionKey: "games.zaplash.description",
     minPlayers: 3,
-    maxPlayers: 8,
+    maxPlayers: 12,
     supportsSpectators: true,
     supportsMidGameJoin: false,
     tags: ["party", "writing", "voting"],

@@ -2,7 +2,7 @@
 
 # 🎲 The Merkive
 
-**Browser party games for 2–8 friends — one shared Stage, everyone plays on their phone.**
+**Browser party games for 2–12 friends — one shared Stage, everyone plays on their phone.**
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org/)
@@ -24,12 +24,12 @@ The Merkive is an open-source, browser-based party game platform inspired by Jac
 
 | Game | Players | Description |
 | :--- | :---: | :--- |
-| **Banterbolt** | 3–8 | Write outrageous answers to prompts, vote for the best, ZAP bonus for clean sweeps, and a Lightning Round finale |
-| **Eightstorm** | 2–8 | Crazy-8s shedding — match rank or suit, eights are wild, house rules for stacks/skips/reverses |
-| **Tile Tangle** | 2–8 | Rummikub-style sets & runs with full table rearrangement and a 30-point opening meld |
-| **You got it? Good.** | 4–8 | The Oracle drops one clue, the team slides the dial to match it, the other team calls the Undercut |
-| **Mr Merkissioner, Sir** | 5–8 | Hidden-role social deduction — pass decrees, sniff out the Merkites, never elect Mr Merkissioner as Commissioner |
-| **Merkade** | 3–8 | A rotating arcade of three party-game tracks on one scoreboard — bluff-the-truth trivia, secret-prompt pixel doodles, and majority-vote predictions |
+| **Banterbolt** | 3–12 | Write outrageous answers to prompts, vote for the best, ZAP bonus for clean sweeps, and a Lightning Round finale |
+| **Eightstorm** | 2–12 | Crazy-8s shedding — match rank or suit, eights are wild, house rules for stacks/skips/reverses |
+| **Tile Tangle** | 2–12 | Rummikub-style sets & runs with full table rearrangement and a 30-point opening meld |
+| **You got it? Good.** | 4–12 | The Oracle drops one clue, the team slides the dial to match it, the other team calls the Undercut |
+| **Mr Merkissioner, Sir** | 5–12 | Hidden-role social deduction — pass decrees, sniff out the Merkites, never elect Mr Merkissioner as Commissioner |
+| **Merkade** | 3–12 | A rotating arcade of three party-game modes on one scoreboard — bluff-the-truth trivia, secret-prompt pixel doodles, and majority-vote predictions |
 
 ### 📦 Upcoming Content Packs
 

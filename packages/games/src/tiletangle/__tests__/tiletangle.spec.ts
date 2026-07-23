@@ -285,16 +285,57 @@ describe("Tile Tangle - Validation Engine", () => {
 });
 
 describe("Tile Tangle - Reducer & Match Flow", () => {
-  it("initializes match with 14 tiles per player and pool of 106", () => {
-    const m = createTestMatch(tiletangle, { players: 4, seed: "init-seed-1" });
-    const pub = m.state.publicState as TileTanglePublicState;
-
-    expect(pub.drawPileCount).toBe(106 - 4 * 14); // 50
-    expect(Object.keys(pub.rackCounts).length).toBe(4);
+  it("initializes match with 14 tiles per player; single set at 4p, double set at 5p+", () => {
+    // 4p: single set (106 tiles)
+    const m4 = createTestMatch(tiletangle, { players: 4, seed: "init-seed-1" });
+    const pub4 = m4.state.publicState as TileTanglePublicState;
+    expect(pub4.drawPileCount).toBe(106 - 4 * 14); // 50
     for (let s = 0; s < 4; s++) {
-      expect(pub.rackCounts[s as keyof typeof pub.rackCounts]).toBe(14);
-      const priv = m.state.privateState[s as keyof typeof m.state.privateState] as TileTanglePrivateState;
+      expect(pub4.rackCounts[s as keyof typeof pub4.rackCounts]).toBe(14);
+      const priv = m4.state.privateState[s as keyof typeof m4.state.privateState] as TileTanglePrivateState;
       expect(priv.rack.length).toBe(14);
+    }
+
+    // 5p: double set (212 tiles) — this is the threshold
+    const m5 = createTestMatch(tiletangle, { players: 5, seed: "init-seed-5p" });
+    const pub5 = m5.state.publicState as TileTanglePublicState;
+    expect(pub5.drawPileCount).toBe(212 - 5 * 14); // 142
+    for (let s = 0; s < 5; s++) {
+      expect(pub5.rackCounts[s as keyof typeof pub5.rackCounts]).toBe(14);
+    }
+
+    // 8p: double set — proves the old 8p under-deal bug is fixed
+    const m8 = createTestMatch(tiletangle, { players: 8, seed: "init-seed-8p" });
+    const pub8 = m8.state.publicState as TileTanglePublicState;
+    expect(pub8.drawPileCount).toBe(212 - 8 * 14); // 100
+    for (let s = 0; s < 8; s++) {
+      expect(pub8.rackCounts[s as keyof typeof pub8.rackCounts]).toBe(14);
+      const priv = m8.state.privateState[s as keyof typeof m8.state.privateState] as TileTanglePrivateState;
+      expect(priv.rack.length).toBe(14);
+    }
+
+    // 12p: double set — max capacity
+    const m12 = createTestMatch(tiletangle, { players: 12, seed: "init-seed-12p" });
+    const pub12 = m12.state.publicState as TileTanglePublicState;
+    expect(pub12.drawPileCount).toBe(212 - 12 * 14); // 44
+    for (let s = 0; s < 12; s++) {
+      expect(pub12.rackCounts[s as keyof typeof pub12.rackCounts]).toBe(14);
+      const priv = m12.state.privateState[s as keyof typeof m12.state.privateState] as TileTanglePrivateState;
+      expect(priv.rack.length).toBe(14);
+    }
+
+    // Verify all tile IDs are unique within a double-set deck
+    const allIds = new Set<string>();
+    for (let s = 0; s < 12; s++) {
+      const priv = m12.state.privateState[s as keyof typeof m12.state.privateState] as TileTanglePrivateState;
+      for (const t of priv.rack) {
+        expect(allIds.has(t.id), `duplicate tile id ${t.id}`).toBe(false);
+        allIds.add(t.id);
+      }
+    }
+    for (const t of pub12._drawPile) {
+      expect(allIds.has(t.id), `duplicate tile id ${t.id} in draw pile`).toBe(false);
+      allIds.add(t.id);
     }
   });
 

@@ -150,10 +150,10 @@ describe("platform spine", () => {
     expect(res.snapshot.room.seats[0]?.isHost).toBe(true);
   });
 
-  it("assigns lowest free seats and rejects a 9th player", async () => {
+  it("assigns lowest free seats and rejects a 13th player", async () => {
     freshStore();
     const { code } = await createRoom(HOST, "Ana", "fox");
-    for (let i = 1; i < 8; i++) {
+    for (let i = 1; i < 12; i++) {
       const r = await joinRoom(code, {
         uid: `uid-${i}`,
         fresh: false,
@@ -164,7 +164,7 @@ describe("platform spine", () => {
       expect(r.snapshot.you.seatIndex).toBe(i);
     }
     await expect(
-      joinRoom(code, { uid: "uid-9", fresh: false, name: "Nope", avatarId: "cat", role: "player" })
+      joinRoom(code, { uid: "uid-13", fresh: false, name: "Nope", avatarId: "cat", role: "player" })
     ).rejects.toMatchObject({ code: "room_full" });
   });
 

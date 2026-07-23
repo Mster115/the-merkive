@@ -228,8 +228,8 @@ function driveRoundsUntil(
 /* ------------------------------------------------------------------ */
 
 describe("init", () => {
-  it("role distribution and knowledge rules hold for every player count 5..8", () => {
-    for (let n = 5; n <= 8; n++) {
+  it("role distribution and knowledge rules hold for every player count 5..12", () => {
+    for (let n = 5; n <= 12; n++) {
       const m = createTestMatch(merkissioner, { players: n, seed: `init-${n}` });
       const counts = roleCountsFor(n);
       const roleTally: Record<Role, number> = { merkizen: 0, merkite: 0, merkissioner: 0 };

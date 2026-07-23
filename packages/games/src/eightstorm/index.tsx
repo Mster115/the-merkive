@@ -17,7 +17,7 @@ export const eightstorm = defineGame({
     nameKey: "games.eightstorm.name",
     descriptionKey: "games.eightstorm.description",
     minPlayers: 2,
-    maxPlayers: 8,
+    maxPlayers: 12,
     supportsSpectators: true,
     supportsMidGameJoin: true,
     tags: ["cards", "turn-based"],

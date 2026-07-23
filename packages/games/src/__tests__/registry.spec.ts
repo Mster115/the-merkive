@@ -16,10 +16,10 @@ describe("game registry (platform CI gate)", () => {
     }
   });
 
-  it("player bounds respect the platform cap (2..8)", () => {
+  it("player bounds respect the platform cap (2..12)", () => {
     for (const g of gameList) {
       expect(g.meta.minPlayers).toBeGreaterThanOrEqual(2);
-      expect(g.meta.maxPlayers).toBeLessThanOrEqual(8);
+      expect(g.meta.maxPlayers).toBeLessThanOrEqual(12);
       expect(g.meta.minPlayers).toBeLessThanOrEqual(g.meta.maxPlayers);
     }
   });

@@ -7,7 +7,7 @@ import { BallotIcon, BossIcon } from "./icons";
 import { roleCountsFor } from "./roles";
 
 const PACES = ["relaxed", "standard", "speedy"] as const;
-const PLAYER_COUNTS = [5, 6, 7, 8] as const;
+const PLAYER_COUNTS = [5, 6, 7, 8, 9, 10, 11, 12] as const;
 
 export function MerkissionerLobbyOptions({ settings, onChange, disabled, t }: LobbyOptionsProps) {
   const pace = typeof settings.pace === "string" ? settings.pace : "standard";

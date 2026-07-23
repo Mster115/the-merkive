@@ -129,7 +129,7 @@ declared in the module's `i18n.en` map — zero hardcoded strings in JSX.
 Interpolation: `t("games.x.hello", { name })` fills `{name}`.
 Registry CI (`packages/games/src/__tests__/registry.spec.ts`) asserts:
 unique meta ids matching registry keys, player bounds within the platform cap
-(≤8), `nameKey`/`descriptionKey` resolve, every settingField `labelKey` (and
+(≤12), `nameKey`/`descriptionKey` resolve, every settingField `labelKey` (and
 select option labelKey) resolves, and the required plugin surface exists.
 
 ## 8. UI slots

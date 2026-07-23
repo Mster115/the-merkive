@@ -47,12 +47,12 @@ export function MerkadeStage({ room, match, t }: StageProps) {
         {t(`games.merkade.phase.${match.phase}`)}
       </div>
 
-      {/* Header Tracklist Bar */}
+      {/* Header Round Progress Bar */}
       {!isGameOver && (
         <div className="flex flex-wrap items-center justify-between gap-3 bg-[var(--mb-surface-2)] p-4 rounded-xl border-[3px] border-black shadow-[var(--mb-shadow)] -rotate-[0.5deg]">
           <div className="flex items-center gap-3">
             <span className="font-black text-2xl text-[var(--mb-gold)] uppercase tracking-wider [font-family:var(--mb-font-display)]">
-              {t("games.merkade.ui.track_header", {
+              {t("games.merkade.ui.round_header", {
                 current: pub.roundIndex + 1,
                 total: pub.roundPlan.length,
               })}
@@ -62,7 +62,7 @@ export function MerkadeStage({ room, match, t }: StageProps) {
             )}
           </div>
 
-          {/* Tracklist strip */}
+          {/* Round strip */}
           <div className="flex items-center gap-1.5 overflow-x-auto py-1">
             {pub.roundPlan.map((fmt, idx) => (
               <div
@@ -75,7 +75,7 @@ export function MerkadeStage({ room, match, t }: StageProps) {
                     ? "bg-[var(--mb-surface-3)] text-[var(--mb-text-dim)] opacity-50"
                     : "bg-[var(--mb-surface-3)] text-white"
                 )}
-                title={t("games.merkade.ui.track_tooltip", { num: idx + 1, format: t(`games.merkade.format.${fmt}`) })}
+                title={t("games.merkade.ui.round_tooltip", { num: idx + 1, format: t(`games.merkade.format.${fmt}`) })}
               >
                 {idx + 1}
               </div>
@@ -86,11 +86,11 @@ export function MerkadeStage({ room, match, t }: StageProps) {
 
       {/* Phase specific content */}
       <div className="my-auto py-4 flex flex-col items-center justify-center min-h-[360px]">
-        {/* --- TRACK INTRO --- */}
-        {match.phase === "track_intro" && (
+        {/* --- ROUND INTRO --- */}
+        {match.phase === "round_intro" && (
           <Panel className="p-8 rounded-2xl bg-[var(--mb-surface-2)] border-[4px] border-black shadow-[var(--mb-shadow)] text-center max-w-lg w-full flex flex-col items-center gap-4 mb-pop">
             <Pill tone="gold" className="text-sm px-4 py-1 font-black uppercase [font-family:var(--mb-font-display)]">
-              {t("games.merkade.ui.upcoming_track")}
+              {t("games.merkade.ui.upcoming_round")}
             </Pill>
             <h2 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tight [font-family:var(--mb-font-display)] -rotate-1">
               {pub.roundPlan[pub.roundIndex] ? t(`games.merkade.format.${pub.roundPlan[pub.roundIndex]!}`) : ""}

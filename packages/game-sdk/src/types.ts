@@ -1,9 +1,9 @@
 import type * as React from "react";
 
-export type SeatIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+export type SeatIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
 export type Locale = "en";
 
-export const SEAT_INDICES: readonly SeatIndex[] = [0, 1, 2, 3, 4, 5, 6, 7];
+export const SEAT_INDICES: readonly SeatIndex[] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
 export interface SeatPublic {
   seatIndex: SeatIndex;
@@ -39,7 +39,7 @@ export interface GameMeta {
   descriptionKey: string;
   taglineKey?: string;
   minPlayers: number;
-  /** Hard platform cap is 8. */
+  /** Hard platform cap is 12. */
   maxPlayers: number;
   supportsSpectators: boolean;
   /** If true, a new player may replace an abandoned seat mid-match. */

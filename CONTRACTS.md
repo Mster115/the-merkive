@@ -16,7 +16,7 @@ modify anything outside your ownership zone.
 - Two storage/realtime adapters behind one interface
   (`apps/web/src/server/store/types.ts`): **MemoryStore** (in-process + SSE,
   dev) and **PartyKitStore** (PartyKit Edge relay, prod).
-- Rooms: 4-char codes, ≤8 seats, spectators, host transfer, disconnect
+- Rooms: 4-char codes, ≤12 seats, spectators, host transfer, disconnect
   graces (player 60s → seat abandoned), timers, bot coverage of abandoned
   seats, expiry sweeper. All implemented in
   `apps/web/src/server/{service,runtime}.ts` — already tested, do not edit.
