@@ -74,8 +74,6 @@ export interface YougotitPublicState {
   winnerTeam?: TeamId;
   /** Finished-turn summary (already-revealed data only). */
   lastTurn: LastTurnSummary | null;
-  _promptPool: Spectrum[];
-  _usedPrompts: Spectrum[];
   _oracleCursor: { bass: number; treble: number };
 }
 
@@ -84,6 +82,17 @@ export interface YougotitPrivateState {
   targetAngle?: number;
   /** Only ever set for opposing-team seats during the Undercut. */
   undercutDir?: StealDir;
+}
+
+/**
+ * Server-only prompt bookkeeping. The undealt pool and the used-prompt
+ * discard pile must never reach any client — either would let a player see
+ * which spectrum is coming up before its turn, the same class of leak as an
+ * exposed draw pile.
+ */
+export interface YougotitSecret {
+  promptPool: Spectrum[];
+  usedPrompts: Spectrum[];
 }
 
 export interface YougotitSettings {
@@ -224,18 +233,13 @@ function pickOracle(
 
 type TurnCarry = Pick<
   YougotitPublicState,
-  | "teams"
-  | "teamScores"
-  | "turnNumber"
-  | "lastTurn"
-  | "_promptPool"
-  | "_usedPrompts"
-  | "_oracleCursor"
+  "teams" | "teamScores" | "turnNumber" | "lastTurn" | "_oracleCursor"
 >;
 
 function startTurn(
   ctx: GameContext,
   prev: TurnCarry,
+  secret: YougotitSecret,
   team: TeamId,
   catchUp: boolean
 ): ReduceResult {
@@ -243,8 +247,8 @@ function startTurn(
   const { oracle, nextCursor } = pickOracle(ctx, prev.teams[team], prev._oracleCursor[team]);
 
   // Draw a prompt — no repeats until the pool runs dry, then reshuffle used.
-  let pool = [...prev._promptPool];
-  let used = [...prev._usedPrompts];
+  let pool = [...secret.promptPool];
+  let used = [...secret.usedPrompts];
   if (pool.length === 0) {
     const source = used.length > 0 ? used : getPromptPool(ctx);
     pool = shuffle(source, ctx.rng);
@@ -277,10 +281,10 @@ function startTurn(
     stealVotes: { left: 0, right: 0 },
     stealVotedSeats: [],
     lastTurn: prev.lastTurn,
-    _promptPool: remainingPool,
-    _usedPrompts: nextUsed,
     _oracleCursor: nextCursorMap,
   };
+
+  const secretState: YougotitSecret = { promptPool: remainingPool, usedPrompts: nextUsed };
 
   // SECURITY: full per-seat wipe every turn. Only the new Oracle carries the
   // target; everyone else's stale private data (old targets, old Undercut
@@ -294,6 +298,7 @@ function startTurn(
   return {
     publicState,
     privateState,
+    secretState,
     phase: "clue",
     scores: seatScores(publicState),
     events: [
@@ -330,10 +335,9 @@ export function initYougotit(ctx: GameContext): ReduceResult {
       teamScores: { bass: 0, treble: 1 },
       turnNumber: 0,
       lastTurn: null,
-      _promptPool: initialPool,
-      _usedPrompts: [],
       _oracleCursor: { bass: 0, treble: 0 },
     },
+    { promptPool: initialPool, usedPrompts: [] },
     "bass",
     false
   );
@@ -468,7 +472,11 @@ function beginReveal(
   };
 }
 
-function finishOrNextTurn(ctx: GameContext, pub: YougotitPublicState): ReduceResult {
+function finishOrNextTurn(
+  ctx: GameContext,
+  pub: YougotitPublicState,
+  secret: YougotitSecret
+): ReduceResult {
   const settings = getSettings(ctx);
   const { bass, treble } = pub.teamScores;
   const reached = bass >= settings.targetScore || treble >= settings.targetScore;
@@ -489,7 +497,7 @@ function finishOrNextTurn(ctx: GameContext, pub: YougotitPublicState): ReduceRes
 
   const catchUp = pub.lastTurn?.catchUp === true;
   const nextTeam = catchUp ? pub.activeTeam : otherTeam(pub.activeTeam);
-  return startTurn(ctx, pub, nextTeam, catchUp);
+  return startTurn(ctx, pub, secret, nextTeam, catchUp);
 }
 
 /* ------------------------------------------------------------------ */
@@ -644,7 +652,8 @@ export function onTickYougotit(ctx: GameContext, state: GameStateIn): ReduceResu
     return resolveSteal(ctx, pub, state.privateState, []);
   }
   if (state.phase === "reveal") {
-    return finishOrNextTurn(ctx, pub);
+    const secret = state.secretState as YougotitSecret;
+    return finishOrNextTurn(ctx, pub, secret);
   }
   return null;
 }
