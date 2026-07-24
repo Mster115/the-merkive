@@ -90,6 +90,27 @@ describe("nexus daily game module", () => {
     expect(getDailyGame("nexus")).toBe(nexus);
   });
 
+  it("validatePack accepts the pipeline's submission envelope, not just a bare payload", () => {
+    // service.submitPack calls validatePack({ gameId, puzzleDate, payload,
+    // sourceRefs }). Reading fields off the envelope's top level rejects every
+    // real submission while a bare-payload spec still passes, so assert the
+    // shape the pipeline actually sends.
+    const enveloped = nexus.validatePack(
+      {
+        gameId: "nexus",
+        puzzleDate: "2026-07-24",
+        payload: samplePayload,
+        sourceRefs: samplePack.sourceRefs,
+      },
+      "2026-07-24"
+    );
+    expect(enveloped.ok).toBe(true);
+    if (enveloped.ok) {
+      expect(enveloped.pack.gameId).toBe("nexus");
+      expect(enveloped.pack.sourceRefs).toEqual(samplePack.sourceRefs);
+    }
+  });
+
   it("normalization helper lowercases, trims, collapses spaces, and strips leading articles", () => {
     expect(normalizeAnswer("The Great Wall of China")).toBe("great wall of china");
     expect(normalizeAnswer("a banana")).toBe("banana");
