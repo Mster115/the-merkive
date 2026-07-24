@@ -91,7 +91,29 @@ export interface DailyGameModule {
   i18n: Partial<Record<Locale, Record<string, string>>>; // keys prefixed `daily.<id>.*`
   /** Research brief for the content pipeline: what to find/verify for this date. */
   generatePrompt(puzzleDate: string): string;
-  /** Validates+normalizes a raw submission before it's allowed into the content queue. */
+  /**
+   * Validates+normalizes a raw submission before it's allowed into the content queue.
+   *
+   * `raw` is the submission **envelope**, not the bare payload — the pipeline
+   * calls this as:
+   *
+   * ```ts
+   * validatePack({ gameId, puzzleDate, payload, sourceRefs }, puzzleDate)
+   * ```
+   *
+   * So read game fields off `raw.payload` and citations off `raw.sourceRefs`.
+   * Implementations should also accept a bare payload (fall back to `raw`
+   * when `raw.payload` is absent) so tests and direct callers stay ergonomic:
+   *
+   * ```ts
+   * const obj = typeof raw.payload === "object" && raw.payload !== null
+   *   ? raw.payload
+   *   : raw;
+   * ```
+   *
+   * Reading game fields off the envelope's top level instead will reject every
+   * real submission while unit tests that pass a bare payload still pass.
+   */
   validatePack(
     raw: unknown,
     puzzleDate: string

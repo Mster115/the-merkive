@@ -37,6 +37,20 @@ All state transitions in `init`, `reduce`, and `summarize` must be pure and dete
 - `generatePrompt(puzzleDate)`: Generates a prompt/brief for automated puzzle generators describing what data or references to retrieve for the target date.
 - `validatePack(raw, puzzleDate)`: Validates and normalizes raw generated or ingested pack JSON into a typed `DailyContentPack`.
 
+**`raw` is the submission envelope, not the bare payload.** The pipeline calls
+`validatePack({ gameId, puzzleDate, payload, sourceRefs }, puzzleDate)`, so read
+your game's fields off `raw.payload` and citations off `raw.sourceRefs`:
+
+```ts
+const obj = typeof raw.payload === "object" && raw.payload !== null ? raw.payload : raw;
+```
+
+The `?? raw` fallback keeps a bare payload working for tests and direct callers.
+Reading game fields off the envelope's top level instead is the one mistake that
+unit tests will not catch — a spec that passes a bare payload goes green while
+every real submission through `/api/admin/daily/submit-pack` is rejected. Cover
+it by asserting the envelope form, as each game's spec does.
+
 Note: The content ingestion and storage pipeline itself is outside this package's scope.
 
 ## Registering a Daily Game
