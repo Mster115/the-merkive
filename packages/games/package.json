@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./daily": "./src/daily/index.ts",
+    "./daily/*": "./src/daily/*.ts"
   },
   "scripts": {
     "test": "vitest run",
