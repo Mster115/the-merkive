@@ -1,9 +1,9 @@
 import * as React from "react";
 import type { DailyPlayProps } from "../types";
-import type { MerkGridPublicState, MerkGridCellPublic } from "./types";
+import type { NexusPublicState, NexusCellPublic } from "./types";
 import { Button, Card, Panel, Pill } from "@merky/ui";
 
-export const MerkGridPlay: React.FC<DailyPlayProps> = ({
+export const NexusPlay: React.FC<DailyPlayProps> = ({
   meta,
   puzzleDate,
   publicState,
@@ -11,7 +11,7 @@ export const MerkGridPlay: React.FC<DailyPlayProps> = ({
   act,
   t,
 }) => {
-  const state = publicState as MerkGridPublicState | null;
+  const state = publicState as NexusPublicState | null;
 
   const [selectedCoords, setSelectedCoords] = React.useState<{
     row: number;
@@ -36,7 +36,7 @@ export const MerkGridPlay: React.FC<DailyPlayProps> = ({
     );
   }
 
-  const selectedCell: MerkGridCellPublic | undefined = selectedCoords
+  const selectedCell: NexusCellPublic | undefined = selectedCoords
     ? state.cells.find(
         (c) => c.row === selectedCoords.row && c.col === selectedCoords.col
       )
@@ -87,7 +87,7 @@ export const MerkGridPlay: React.FC<DailyPlayProps> = ({
   };
 
   const handleCopy = () => {
-    const text = `Merk Grid — ${puzzleDate}\n${state.score}/9\n\n` +
+    const text = `Nexus — ${puzzleDate}\n${state.score}/9\n\n` +
       [0, 1, 2]
         .map((r) =>
           [0, 1, 2]
@@ -127,7 +127,7 @@ export const MerkGridPlay: React.FC<DailyPlayProps> = ({
           </div>
           <div className="text-right">
             <span className="text-xs uppercase font-extrabold text-[var(--mb-text-dim)] block">
-              {t("daily.merk-grid.scoreLabel")}
+              {t("daily.nexus.scoreLabel")}
             </span>
             <span className="text-2xl font-black text-[var(--mb-gold)]">
               {state.score} / 9
@@ -240,7 +240,7 @@ export const MerkGridPlay: React.FC<DailyPlayProps> = ({
           {selectedCell.answer && (
             <div className="p-2 bg-[var(--mb-surface-2)] border border-black rounded text-xs">
               <span className="font-bold text-[var(--mb-gold)]">
-                {t("daily.merk-grid.answerWas")}{" "}
+                {t("daily.nexus.answerWas")}{" "}
               </span>
               <span className="font-extrabold">{selectedCell.answer}</span>
             </div>
@@ -260,7 +260,7 @@ export const MerkGridPlay: React.FC<DailyPlayProps> = ({
                   type="text"
                   value={guessText}
                   onChange={(e) => setGuessText(e.target.value)}
-                  placeholder={t("daily.merk-grid.guessPlaceholder")}
+                  placeholder={t("daily.nexus.guessPlaceholder")}
                   disabled={isSubmitting}
                   className="flex-1 px-3 py-2 text-sm bg-[var(--mb-surface-2)] border-2 border-black rounded text-[var(--mb-text)] focus:outline-none focus:ring-2 focus:ring-[var(--mb-accent)] placeholder:text-[var(--mb-text-dim)] min-h-[44px]"
                 />
@@ -271,7 +271,7 @@ export const MerkGridPlay: React.FC<DailyPlayProps> = ({
                   disabled={isSubmitting || !guessText.trim()}
                   className="min-h-[44px] px-4 font-bold"
                 >
-                  {t("daily.merk-grid.submitGuess")}
+                  {t("daily.nexus.submitGuess")}
                 </Button>
               </form>
 
@@ -283,7 +283,7 @@ export const MerkGridPlay: React.FC<DailyPlayProps> = ({
                   disabled={isSubmitting}
                   className="text-xs text-[var(--mb-text-dim)] hover:text-[var(--mb-danger)] min-h-[44px]"
                 >
-                  {t("daily.merk-grid.revealCell")}
+                  {t("daily.nexus.revealCell")}
                 </Button>
               </div>
             </div>
@@ -311,7 +311,7 @@ export const MerkGridPlay: React.FC<DailyPlayProps> = ({
             disabled={isSubmitting}
             className="min-h-[44px] font-black uppercase text-base"
           >
-            {t("daily.merk-grid.submitGrid")}
+            {t("daily.nexus.submitGrid")}
           </Button>
         </Card>
       )}
@@ -321,8 +321,8 @@ export const MerkGridPlay: React.FC<DailyPlayProps> = ({
         <Card className="p-4 bg-[var(--mb-surface)] border-[3px] border-black text-center space-y-3 shadow-[var(--mb-shadow)]">
           <h2 className="text-xl font-black uppercase text-[var(--mb-gold)]">
             {phase === "solved"
-              ? t("daily.merk-grid.solvedTitle")
-              : t("daily.merk-grid.failedTitle")}
+              ? t("daily.nexus.solvedTitle")
+              : t("daily.nexus.failedTitle")}
           </h2>
           <p className="text-sm">
             Final Score:{" "}
@@ -337,7 +337,7 @@ export const MerkGridPlay: React.FC<DailyPlayProps> = ({
             onClick={handleCopy}
             className="min-h-[44px] font-bold"
           >
-            {copied ? t("daily.merk-grid.copied") : t("daily.merk-grid.copyShare")}
+            {copied ? t("daily.nexus.copied") : t("daily.nexus.copyShare")}
           </Button>
         </Card>
       )}

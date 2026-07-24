@@ -1,5 +1,5 @@
 import type { DailyContentPack } from "../types";
-import type { MerkGridPayload, MerkGridCellSpec } from "./types";
+import type { NexusPayload, NexusCellSpec } from "./types";
 
 /**
  * Pure answer normalization helper shared between validatePack and reduce.
@@ -74,7 +74,7 @@ export function validatePack(
   }
 
   const seenCoords = new Set<string>();
-  const cleanedCells: MerkGridCellSpec[] = [];
+  const cleanedCells: NexusCellSpec[] = [];
 
   for (const item of payloadObj.cells) {
     if (typeof item !== "object" || item === null) {
@@ -124,7 +124,7 @@ export function validatePack(
   // Sort cells by row then col for deterministic order
   cleanedCells.sort((a, b) => a.row - b.row || a.col - b.col);
 
-  const cleanPayload: MerkGridPayload = {
+  const cleanPayload: NexusPayload = {
     rowLabels: [
       String(payloadObj.rowLabels[0]).trim(),
       String(payloadObj.rowLabels[1]).trim(),
@@ -141,7 +141,7 @@ export function validatePack(
   return {
     ok: true,
     pack: {
-      gameId: "merk-grid",
+      gameId: "nexus",
       puzzleDate,
       payload: cleanPayload,
       sourceRefs: sourceRefs as { url: string; title: string }[],

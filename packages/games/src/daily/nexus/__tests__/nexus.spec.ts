@@ -1,11 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { createDailyTestRun, act, actErr, ctxOf } from "../../testing";
-import { merkGrid } from "../index";
+import { nexus } from "../index";
 import { validatePack, normalizeAnswer } from "../utils";
 import type { DailyContentPack } from "../../types";
-import type { MerkGridPublicState, MerkGridPayload } from "../types";
+import type { NexusPublicState, NexusPayload } from "../types";
 
-const samplePayload: MerkGridPayload = {
+const samplePayload: NexusPayload = {
   rowLabels: ["Geography", "Science", "History"],
   colLabels: ["Capitals", "Nobels", "Islands"],
   cells: [
@@ -76,7 +76,7 @@ const samplePayload: MerkGridPayload = {
 };
 
 const samplePack: DailyContentPack = {
-  gameId: "merk-grid",
+  gameId: "nexus",
   puzzleDate: "2026-07-24",
   sourceRefs: [
     { url: "https://example.com/ref", title: "Merkive Reference Archive" },
@@ -84,7 +84,7 @@ const samplePack: DailyContentPack = {
   payload: samplePayload,
 };
 
-describe("merk-grid daily game module", () => {
+describe("nexus daily game module", () => {
   it("normalization helper lowercases, trims, collapses spaces, and strips leading articles", () => {
     expect(normalizeAnswer("The Great Wall of China")).toBe("great wall of china");
     expect(normalizeAnswer("a banana")).toBe("banana");
@@ -115,12 +115,12 @@ describe("merk-grid daily game module", () => {
   });
 
   it("init produces all 9 cells unanswered with no answer text in publicState", () => {
-    const run = createDailyTestRun(merkGrid, {
+    const run = createDailyTestRun(nexus, {
       puzzleDate: "2026-07-24",
       pack: samplePack,
     });
 
-    const pub = run.state.publicState as MerkGridPublicState;
+    const pub = run.state.publicState as NexusPublicState;
     expect(pub.cells.length).toBe(9);
     expect(pub.score).toBe(0);
     for (const cell of pub.cells) {
@@ -130,32 +130,32 @@ describe("merk-grid daily game module", () => {
   });
 
   it("handles correct, incorrect, and alternate-answer matching with normalization", () => {
-    const run = createDailyTestRun(merkGrid, {
+    const run = createDailyTestRun(nexus, {
       puzzleDate: "2026-07-24",
       pack: samplePack,
     });
 
     // Test alternate answer with article stripping ("a paris" -> "paris", matching acceptableAnswers)
     act(run, "answer_cell", { row: 0, col: 0, guess: "a paris" });
-    let pub = run.state.publicState as MerkGridPublicState;
+    let pub = run.state.publicState as NexusPublicState;
     expect(pub.cells[0]?.status).toBe("correct");
     expect(pub.score).toBe(1);
 
     // Test incorrect answer
     act(run, "answer_cell", { row: 0, col: 1, guess: "Wrong Answer" });
-    pub = run.state.publicState as MerkGridPublicState;
+    pub = run.state.publicState as NexusPublicState;
     expect(pub.cells[1]?.status).toBe("incorrect");
     expect(pub.score).toBe(1);
 
     // Test canonical answer with article stripping ("The City of London" -> "city of london")
     act(run, "answer_cell", { row: 1, col: 0, guess: "London" });
-    pub = run.state.publicState as MerkGridPublicState;
+    pub = run.state.publicState as NexusPublicState;
     expect(pub.cells[3]?.status).toBe("correct");
     expect(pub.score).toBe(2);
   });
 
   it("a locked cell rejects a second guess", () => {
-    const run = createDailyTestRun(merkGrid, {
+    const run = createDailyTestRun(nexus, {
       puzzleDate: "2026-07-24",
       pack: samplePack,
     });
@@ -168,20 +168,20 @@ describe("merk-grid daily game module", () => {
   });
 
   it("reveal_cell fills answer text but does not count toward score", () => {
-    const run = createDailyTestRun(merkGrid, {
+    const run = createDailyTestRun(nexus, {
       puzzleDate: "2026-07-24",
       pack: samplePack,
     });
 
     act(run, "reveal_cell", { row: 0, col: 0 });
-    const pub = run.state.publicState as MerkGridPublicState;
+    const pub = run.state.publicState as NexusPublicState;
     expect(pub.cells[0]?.status).toBe("revealed");
     expect(pub.cells[0]?.answer).toBe("The City of Paris");
     expect(pub.score).toBe(0);
   });
 
   it("submit before all 9 resolved fails with code incomplete", () => {
-    const run = createDailyTestRun(merkGrid, {
+    const run = createDailyTestRun(nexus, {
       puzzleDate: "2026-07-24",
       pack: samplePack,
     });
@@ -191,7 +191,7 @@ describe("merk-grid daily game module", () => {
   });
 
   it("full-correct run reaches solved and score 9", () => {
-    const run = createDailyTestRun(merkGrid, {
+    const run = createDailyTestRun(nexus, {
       puzzleDate: "2026-07-24",
       pack: samplePack,
     });
@@ -218,21 +218,21 @@ describe("merk-grid daily game module", () => {
       }
     }
 
-    const pubBefore = run.state.publicState as MerkGridPublicState;
+    const pubBefore = run.state.publicState as NexusPublicState;
     expect(pubBefore.score).toBe(9);
 
     act(run, "submit");
     expect(run.phase).toBe("solved");
     expect(run.over).toBe(true);
 
-    const summary = merkGrid.summarize(ctxOf(run), run.state);
+    const summary = nexus.summarize(ctxOf(run), run.state);
     expect(summary.status).toBe("solved");
     expect(summary.stats.completed).toBe(true);
     expect(summary.stats.score).toBe(9);
   });
 
   it("a run with any incorrect/revealed cell reaches failed", () => {
-    const run = createDailyTestRun(merkGrid, {
+    const run = createDailyTestRun(nexus, {
       puzzleDate: "2026-07-24",
       pack: samplePack,
     });
@@ -262,13 +262,13 @@ describe("merk-grid daily game module", () => {
     expect(run.phase).toBe("failed");
     expect(run.over).toBe(true);
 
-    const summary = merkGrid.summarize(ctxOf(run), run.state);
+    const summary = nexus.summarize(ctxOf(run), run.state);
     expect(summary.status).toBe("failed");
     expect(summary.stats.score).toBe(8);
   });
 
   it("summarize().shareText never contains question or answer text for any status", () => {
-    const run = createDailyTestRun(merkGrid, {
+    const run = createDailyTestRun(nexus, {
       puzzleDate: "2026-07-24",
       pack: samplePack,
     });
@@ -276,10 +276,10 @@ describe("merk-grid daily game module", () => {
     act(run, "answer_cell", { row: 0, col: 0, guess: "Paris" });
     act(run, "reveal_cell", { row: 0, col: 1 });
 
-    const summary = merkGrid.summarize(ctxOf(run), run.state);
+    const summary = nexus.summarize(ctxOf(run), run.state);
     const text = summary.shareText;
 
-    expect(text).toContain("Merk Grid — 2026-07-24");
+    expect(text).toContain("Nexus — 2026-07-24");
     expect(text).toContain("1/9");
 
     // Must not contain questions or answers

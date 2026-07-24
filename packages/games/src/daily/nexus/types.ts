@@ -1,4 +1,4 @@
-export interface MerkGridCellSpec {
+export interface NexusCellSpec {
   row: number;
   col: number;
   question: string;
@@ -6,25 +6,25 @@ export interface MerkGridCellSpec {
   acceptableAnswers: string[];
 }
 
-export interface MerkGridPayload {
+export interface NexusPayload {
   rowLabels: [string, string, string];
   colLabels: [string, string, string];
-  cells: MerkGridCellSpec[];
+  cells: NexusCellSpec[];
 }
 
-export type MerkGridCellStatus = "unanswered" | "correct" | "incorrect" | "revealed";
+export type NexusCellStatus = "unanswered" | "correct" | "incorrect" | "revealed";
 
-export interface MerkGridCellPublic {
+export interface NexusCellPublic {
   row: number;
   col: number;
   question: string;
-  status: MerkGridCellStatus;
+  status: NexusCellStatus;
   answer?: string;
 }
 
-export interface MerkGridPublicState {
+export interface NexusPublicState {
   rowLabels: [string, string, string];
   colLabels: [string, string, string];
-  cells: MerkGridCellPublic[];
+  cells: NexusCellPublic[];
   score: number;
 }

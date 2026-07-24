@@ -10,57 +10,57 @@ import type {
   DailySummary,
 } from "../types";
 import type {
-  MerkGridPayload,
-  MerkGridPublicState,
-  MerkGridCellPublic,
+  NexusPayload,
+  NexusPublicState,
+  NexusCellPublic,
 } from "./types";
 import { generatePrompt, normalizeAnswer, validatePack } from "./utils";
-import { MerkGridPlay } from "./ui";
+import { NexusPlay } from "./ui";
 
-export const merkGridMeta: DailyGameMeta = {
-  id: "merk-grid",
-  nameKey: "daily.merk-grid.name",
-  descriptionKey: "daily.merk-grid.description",
-  taglineKey: "daily.merk-grid.tagline",
+export const nexusMeta: DailyGameMeta = {
+  id: "nexus",
+  nameKey: "daily.nexus.name",
+  descriptionKey: "daily.nexus.description",
+  taglineKey: "daily.nexus.tagline",
   estimatedMinutes: 5,
   tags: ["trivia", "matrix", "grid", "solo"],
 };
 
 export const en: Record<string, string> = {
-  "daily.merk-grid.name": "Merk Grid",
-  "daily.merk-grid.description":
-    "A 3x3 trivia intersection matrix. Solve all 9 intersecting questions!",
-  "daily.merk-grid.tagline": "3x3 Trivia Matrix",
-  "daily.merk-grid.guessPlaceholder": "Type your answer...",
-  "daily.merk-grid.submitGuess": "Submit Answer",
-  "daily.merk-grid.revealCell": "Reveal Answer",
-  "daily.merk-grid.submitGrid": "Submit Grid",
-  "daily.merk-grid.solvedTitle": "Puzzle Solved!",
-  "daily.merk-grid.failedTitle": "Puzzle Complete",
-  "daily.merk-grid.copyShare": "Copy Result",
-  "daily.merk-grid.copied": "Copied to clipboard!",
-  "daily.merk-grid.scoreLabel": "Score",
-  "daily.merk-grid.selectCellHint": "Select a cell to answer",
-  "daily.merk-grid.cellLocked": "Cell is locked",
-  "daily.merk-grid.answerWas": "Answer:",
+  "daily.nexus.name": "Nexus",
+  "daily.nexus.description":
+    "Where categories collide. Solve all 9 questions where a row and column meet.",
+  "daily.nexus.tagline": "Daily Trivia Crossroads",
+  "daily.nexus.guessPlaceholder": "Type your answer...",
+  "daily.nexus.submitGuess": "Submit Answer",
+  "daily.nexus.revealCell": "Reveal Answer",
+  "daily.nexus.submitGrid": "Submit Grid",
+  "daily.nexus.solvedTitle": "Puzzle Solved!",
+  "daily.nexus.failedTitle": "Puzzle Complete",
+  "daily.nexus.copyShare": "Copy Result",
+  "daily.nexus.copied": "Copied to clipboard!",
+  "daily.nexus.scoreLabel": "Score",
+  "daily.nexus.selectCellHint": "Select a cell to answer",
+  "daily.nexus.cellLocked": "Cell is locked",
+  "daily.nexus.answerWas": "Answer:",
 };
 
-export const merkGrid = defineDailyGame({
-  meta: merkGridMeta,
+export const nexus = defineDailyGame({
+  meta: nexusMeta,
   i18n: { en },
   generatePrompt,
   validatePack,
 
   init(ctx: DailyContext, pack: DailyContentPack) {
-    const payload = pack.payload as MerkGridPayload;
-    const cells: MerkGridCellPublic[] = payload.cells.map((c) => ({
+    const payload = pack.payload as NexusPayload;
+    const cells: NexusCellPublic[] = payload.cells.map((c) => ({
       row: c.row,
       col: c.col,
       question: c.question,
       status: "unanswered",
     }));
 
-    const publicState: MerkGridPublicState = {
+    const publicState: NexusPublicState = {
       rowLabels: payload.rowLabels,
       colLabels: payload.colLabels,
       cells,
@@ -79,8 +79,8 @@ export const merkGrid = defineDailyGame({
     state: DailyStateIn,
     action: DailyAction
   ): DailyReduceResult | DailyReduceError {
-    const publicState = state.publicState as MerkGridPublicState;
-    const secretState = state.secretState as MerkGridPayload;
+    const publicState = state.publicState as NexusPublicState;
+    const secretState = state.secretState as NexusPayload;
 
     if (!publicState || !secretState) {
       return { error: "Invalid state structure", code: "invalid_state" };
@@ -233,7 +233,7 @@ export const merkGrid = defineDailyGame({
   },
 
   summarize(ctx: DailyContext, state: DailyStateIn): DailySummary {
-    const publicState = state.publicState as MerkGridPublicState;
+    const publicState = state.publicState as NexusPublicState;
     const phaseStatus =
       state.phase === "solved"
         ? "solved"
@@ -244,7 +244,7 @@ export const merkGrid = defineDailyGame({
     const score = publicState?.score ?? 0;
     const cells = publicState?.cells ?? [];
 
-    const dateHeader = `Merk Grid — ${ctx.puzzleDate}`;
+    const dateHeader = `Nexus — ${ctx.puzzleDate}`;
     const scoreLine = `${score}/9`;
 
     const gridRows: string[] = [];
@@ -280,6 +280,6 @@ export const merkGrid = defineDailyGame({
   },
 
   ui: {
-    Play: MerkGridPlay,
+    Play: NexusPlay,
   },
 });
