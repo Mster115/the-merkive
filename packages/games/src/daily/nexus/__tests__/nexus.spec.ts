@@ -180,6 +180,23 @@ describe("nexus daily game module", () => {
     expect(pub.score).toBe(2);
   });
 
+  it("an empty guess is rejected and leaves the cell still answerable", () => {
+    const run = createDailyTestRun(nexus, {
+      puzzleDate: "2026-07-24",
+      pack: samplePack,
+    });
+
+    const err = actErr(run, "answer_cell", { row: 0, col: 0, guess: "   " });
+    expect(err.code).toBe("empty_guess");
+
+    // The cell must not have been consumed — one guess per cell means a stray
+    // empty submit would otherwise be unrecoverable.
+    act(run, "answer_cell", { row: 0, col: 0, guess: "Paris" });
+    const pub = run.state.publicState as NexusPublicState;
+    expect(pub.cells[0]!.status).toBe("correct");
+    expect(pub.score).toBe(1);
+  });
+
   it("a locked cell rejects a second guess", () => {
     const run = createDailyTestRun(nexus, {
       puzzleDate: "2026-07-24",

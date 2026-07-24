@@ -96,6 +96,13 @@ export const nexus = defineDailyGame({
         return { error: "Invalid cell coordinates", code: "invalid_payload" };
       }
 
+      // A cell takes exactly one guess, so an empty one must be rejected rather
+      // than scored: a dropped input or a stray submit would otherwise burn the
+      // player's only attempt at this cell with no way back.
+      if (normalizeAnswer(guess) === "") {
+        return { error: "Answer cannot be empty", code: "empty_guess" };
+      }
+
       if (state.phase !== "in_progress") {
         return { error: "Attempt is already over", code: "cell_locked" };
       }
