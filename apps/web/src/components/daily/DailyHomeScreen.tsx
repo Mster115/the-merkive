@@ -85,9 +85,9 @@ export function DailyHomeScreen() {
                 </p>
               </div>
 
-              <Link href={`/daily/${g.id}`}>
+              <Link href={`/daily/${g.id}`} aria-label={t("daily.hub.play.aria", { game: t(g.nameKey) })}>
                 <Button size="lg" block variant="primary">
-                  {t("home.daily.cta")}
+                  {t("daily.hub.play")}
                 </Button>
               </Link>
             </Card>

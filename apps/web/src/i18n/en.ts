@@ -143,6 +143,8 @@ export const en: Record<string, string> = {
   "daily.hub.empty": "No daily games available yet. Check back soon!",
   "daily.hub.empty.body": "New daily puzzles are currently under construction.",
   "daily.hub.tagline": "Solo daily puzzles refreshed every local midnight",
+  "daily.hub.play": "Play",
+  "daily.hub.play.aria": "Play {game}",
   "daily.play.today": "Today's Puzzle",
   "daily.play.archive": "Archive: {date}",
   "daily.play.loading": "Loading puzzle...",
