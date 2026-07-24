@@ -1,4 +1,4 @@
-export interface MerkMiniSlot {
+export interface NutshellSlot {
   number: number;
   row: number;
   col: number;
@@ -7,13 +7,13 @@ export interface MerkMiniSlot {
   answer: string;
 }
 
-export interface MerkMiniPayload {
+export interface NutshellPayload {
   gridPattern: string[]; // 5 rows x 5 chars, "." = open cell, "#" = block
-  across: MerkMiniSlot[];
-  down: MerkMiniSlot[];
+  across: NutshellSlot[];
+  down: NutshellSlot[];
 }
 
-export interface MerkMiniPublicSlot {
+export interface NutshellPublicSlot {
   number: number;
   row: number;
   col: number;
@@ -21,7 +21,7 @@ export interface MerkMiniPublicSlot {
   clue: string;
 }
 
-export interface MerkMiniCell {
+export interface NutshellCell {
   row: number;
   col: number;
   letter: string | null;
@@ -31,17 +31,17 @@ export interface MerkMiniCell {
   revealed?: boolean;
 }
 
-export interface MerkMiniPublicState {
-  grid: MerkMiniCell[][];
-  across: MerkMiniPublicSlot[];
-  down: MerkMiniPublicSlot[];
+export interface NutshellPublicState {
+  grid: NutshellCell[][];
+  across: NutshellPublicSlot[];
+  down: NutshellPublicSlot[];
   checksUsed: number;
   revealsUsed: number;
   startedAtMs: number;
   completedAtMs: number | null;
 }
 
-export type MerkMiniSecretState = MerkMiniPayload;
+export type NutshellSecretState = NutshellPayload;
 
 export interface WordCandidate {
   word: string;

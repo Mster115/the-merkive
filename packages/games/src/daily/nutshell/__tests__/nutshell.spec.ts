@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { createDailyTestRun, act, actErr, ctxOf } from "../../testing";
-import { merkMini } from "../index";
-import type { MerkMiniPayload, MerkMiniPublicState } from "../types";
+import { nutshell } from "../index";
+import type { NutshellPayload, NutshellPublicState } from "../types";
 import type { DailyContentPack } from "../../types";
 
-const samplePayload: MerkMiniPayload = {
+const samplePayload: NutshellPayload = {
   gridPattern: [
     "#....",
     ".....",
@@ -29,21 +29,21 @@ const samplePayload: MerkMiniPayload = {
 };
 
 const samplePack: DailyContentPack = {
-  gameId: "merk-mini",
+  gameId: "nutshell",
   puzzleDate: "2026-07-24",
   payload: samplePayload,
   sourceRefs: [],
 };
 
-describe("merk-mini DailyGameModule", () => {
+describe("nutshell DailyGameModule", () => {
   it("initializes state with matching blocked cells and empty letters", () => {
-    const run = createDailyTestRun(merkMini, {
+    const run = createDailyTestRun(nutshell, {
       puzzleDate: "2026-07-24",
       pack: samplePack,
     });
 
     expect(run.phase).toBe("in_progress");
-    const state = run.state.publicState as MerkMiniPublicState;
+    const state = run.state.publicState as NutshellPublicState;
     expect(state.grid[0]![0]!.blocked).toBe(true);
     expect(state.grid[4]![4]!.blocked).toBe(true);
     expect(state.grid[1]![1]!.blocked).toBe(false);
@@ -53,7 +53,7 @@ describe("merk-mini DailyGameModule", () => {
   });
 
   it("fails submit when grid is incomplete or wrong with error code 'incomplete'", () => {
-    const run = createDailyTestRun(merkMini, {
+    const run = createDailyTestRun(nutshell, {
       puzzleDate: "2026-07-24",
       pack: samplePack,
     });
@@ -68,7 +68,7 @@ describe("merk-mini DailyGameModule", () => {
   });
 
   it("rejects set_cell on blocked or out of bounds cells with error code 'invalid_cell'", () => {
-    const run = createDailyTestRun(merkMini, {
+    const run = createDailyTestRun(nutshell, {
       puzzleDate: "2026-07-24",
       pack: samplePack,
     });
@@ -81,7 +81,7 @@ describe("merk-mini DailyGameModule", () => {
   });
 
   it("fills all correct letters and successfully submits to reach solved phase", () => {
-    const run = createDailyTestRun(merkMini, {
+    const run = createDailyTestRun(nutshell, {
       puzzleDate: "2026-07-24",
       pack: samplePack,
     });
@@ -123,13 +123,13 @@ describe("merk-mini DailyGameModule", () => {
     expect(run.phase).toBe("solved");
     expect(run.over).toBe(true);
 
-    const summary = merkMini.summarize(ctxOf(run), run.state);
+    const summary = nutshell.summarize(ctxOf(run), run.state);
     expect(summary.status).toBe("solved");
     expect(summary.stats.completed).toBe(true);
   });
 
   it("handles check_cell, check_all, and reveal_cell while tracking counts", () => {
-    const run = createDailyTestRun(merkMini, {
+    const run = createDailyTestRun(nutshell, {
       puzzleDate: "2026-07-24",
       pack: samplePack,
     });
@@ -137,24 +137,24 @@ describe("merk-mini DailyGameModule", () => {
     act(run, "set_cell", { row: 0, col: 1, letter: "X" }); // wrong
     act(run, "check_cell", { row: 0, col: 1 });
 
-    let state = run.state.publicState as MerkMiniPublicState;
+    let state = run.state.publicState as NutshellPublicState;
     expect(state.checksUsed).toBe(1);
     expect(state.grid[0]![1]!.checked).toBe(true);
     expect(state.grid[0]![1]!.correct).toBe(false);
 
     act(run, "reveal_cell", { row: 0, col: 1 });
-    state = run.state.publicState as MerkMiniPublicState;
+    state = run.state.publicState as NutshellPublicState;
     expect(state.revealsUsed).toBe(1);
     expect(state.grid[0]![1]!.letter).toBe("T");
     expect(state.grid[0]![1]!.revealed).toBe(true);
 
     act(run, "check_all");
-    state = run.state.publicState as MerkMiniPublicState;
+    state = run.state.publicState as NutshellPublicState;
     expect(state.checksUsed).toBe(2);
   });
 
   it("rejects mutating actions once the attempt is over, but submit/give_up stay idempotent no-ops", () => {
-    const run = createDailyTestRun(merkMini, {
+    const run = createDailyTestRun(nutshell, {
       puzzleDate: "2026-07-24",
       pack: samplePack,
     });
@@ -171,26 +171,26 @@ describe("merk-mini DailyGameModule", () => {
     const err3 = actErr(run, "check_all");
     expect(err3.code).toBe("attempt_over");
 
-    const before = run.state.publicState as MerkMiniPublicState;
+    const before = run.state.publicState as NutshellPublicState;
     act(run, "give_up"); // idempotent no-op, not an error
-    const after = run.state.publicState as MerkMiniPublicState;
+    const after = run.state.publicState as NutshellPublicState;
     expect(after.revealsUsed).toBe(before.revealsUsed);
     expect(after.checksUsed).toBe(before.checksUsed);
   });
 
   it("summarize never leaks answer letters in shareText", () => {
-    const run = createDailyTestRun(merkMini, {
+    const run = createDailyTestRun(nutshell, {
       puzzleDate: "2026-07-24",
       pack: samplePack,
     });
 
-    const inProgressSummary = merkMini.summarize(ctxOf(run), run.state);
+    const inProgressSummary = nutshell.summarize(ctxOf(run), run.state);
     expect(inProgressSummary.shareText).not.toContain("TART");
     expect(inProgressSummary.shareText).not.toContain("HOSTS");
-    expect(inProgressSummary.shareText).toContain("Merk Mini — 2026-07-24");
+    expect(inProgressSummary.shareText).toContain("Nutshell — 2026-07-24");
 
     act(run, "give_up");
-    const failedSummary = merkMini.summarize(ctxOf(run), run.state);
+    const failedSummary = nutshell.summarize(ctxOf(run), run.state);
     expect(failedSummary.status).toBe("failed");
     expect(failedSummary.shareText).not.toContain("TART");
     expect(failedSummary.shareText).not.toContain("HOSTS");

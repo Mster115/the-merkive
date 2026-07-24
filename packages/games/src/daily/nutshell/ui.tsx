@@ -1,6 +1,6 @@
 import * as React from "react";
 import type { DailyPlayProps } from "../types";
-import type { MerkMiniPublicState, MerkMiniCell } from "./types";
+import type { NutshellPublicState, NutshellCell } from "./types";
 import { Button, Card, ConfettiBurst } from "@merky/ui";
 
 export const Play: React.FC<DailyPlayProps> = ({
@@ -9,7 +9,7 @@ export const Play: React.FC<DailyPlayProps> = ({
   act,
   t,
 }) => {
-  const state = publicState as MerkMiniPublicState | null;
+  const state = publicState as NutshellPublicState | null;
 
   const [selectedRow, setSelectedRow] = React.useState<number>(0);
   const [selectedCol, setSelectedCol] = React.useState<number>(0);
@@ -19,16 +19,16 @@ export const Play: React.FC<DailyPlayProps> = ({
   // Announce phase changes
   React.useEffect(() => {
     if (phase === "solved") {
-      setStatusMessage(t("daily.merk-mini.solved"));
+      setStatusMessage(t("daily.nutshell.solved"));
     } else if (phase === "failed") {
-      setStatusMessage(t("daily.merk-mini.failed"));
+      setStatusMessage(t("daily.nutshell.failed"));
     }
   }, [phase, t]);
 
   if (!state || !state.grid) {
     return (
       <div className="p-4 text-center font-bold">
-        {t("daily.merk-mini.loading") ?? "Loading..."}
+        {t("daily.nutshell.loading") ?? "Loading..."}
       </div>
     );
   }
@@ -248,7 +248,7 @@ export const Play: React.FC<DailyPlayProps> = ({
     const res = await act("submit");
     if (!res.ok) {
       setStatusMessage(
-        t("daily.merk-mini.incomplete_error") ?? "Grid is incomplete or incorrect"
+        t("daily.nutshell.incomplete_error") ?? "Grid is incomplete or incorrect"
       );
     }
   };
@@ -275,11 +275,11 @@ export const Play: React.FC<DailyPlayProps> = ({
       {/* Header & Status */}
       <div className="w-full flex items-center justify-between px-2 py-1 mb-2 border-b-2 border-slate-900 dark:border-slate-100">
         <h2 className="text-xl font-black uppercase tracking-wider">
-          {t("daily.merk-mini.name")}
+          {t("daily.nutshell.name")}
         </h2>
         <div className="text-xs font-bold flex gap-3">
-          <span>🔍 {t("daily.merk-mini.checks_used", { count: checksUsed }) ?? `Checks: ${checksUsed}`}</span>
-          <span>💡 {t("daily.merk-mini.reveals_used", { count: revealsUsed }) ?? `Reveals: ${revealsUsed}`}</span>
+          <span>🔍 {t("daily.nutshell.checks_used", { count: checksUsed }) ?? `Checks: ${checksUsed}`}</span>
+          <span>💡 {t("daily.nutshell.reveals_used", { count: revealsUsed }) ?? `Reveals: ${revealsUsed}`}</span>
         </div>
       </div>
 
@@ -287,7 +287,7 @@ export const Play: React.FC<DailyPlayProps> = ({
       {phase === "solved" && (
         <Card className="w-full mb-3 p-3 bg-emerald-100 dark:bg-emerald-950 border-emerald-500 text-center">
           <h3 className="text-lg font-bold text-emerald-800 dark:text-emerald-200">
-            🎉 {t("daily.merk-mini.solved")}
+            🎉 {t("daily.nutshell.solved")}
           </h3>
         </Card>
       )}
@@ -295,7 +295,7 @@ export const Play: React.FC<DailyPlayProps> = ({
       {phase === "failed" && (
         <Card className="w-full mb-3 p-3 bg-rose-100 dark:bg-rose-950 border-rose-500 text-center">
           <h3 className="text-lg font-bold text-rose-800 dark:text-rose-200">
-            {t("daily.merk-mini.failed")}
+            {t("daily.nutshell.failed")}
           </h3>
         </Card>
       )}
@@ -311,7 +311,7 @@ export const Play: React.FC<DailyPlayProps> = ({
           <strong className="uppercase mr-2">
             {activeSlot ? `${activeSlot.number} ${direction}:` : `${direction}:`}
           </strong>
-          {activeSlot?.clue ?? (t("daily.merk-mini.no_clue") ?? "Select a word")}
+          {activeSlot?.clue ?? (t("daily.nutshell.no_clue") ?? "Select a word")}
         </span>
         <span className="text-xs px-2 py-0.5 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 rounded font-black">
           {direction.toUpperCase()} ⟲
@@ -325,7 +325,7 @@ export const Play: React.FC<DailyPlayProps> = ({
         aria-label="Crossword Grid"
       >
         {grid.map((row, r) =>
-          row.map((cell: MerkMiniCell, c: number) => {
+          row.map((cell: NutshellCell, c: number) => {
             const isSelected = r === selectedRow && c === selectedCol;
             const isWordActive = isInActiveWord(r, c);
             const num = getCellNumber(r, c);
@@ -388,7 +388,7 @@ export const Play: React.FC<DailyPlayProps> = ({
           variant="secondary"
           className="min-h-[44px] text-xs font-bold px-3"
         >
-          {t("daily.merk-mini.check_cell")}
+          {t("daily.nutshell.check_cell")}
         </Button>
         <Button
           onClick={handleCheckAll}
@@ -396,7 +396,7 @@ export const Play: React.FC<DailyPlayProps> = ({
           variant="secondary"
           className="min-h-[44px] text-xs font-bold px-3"
         >
-          {t("daily.merk-mini.check_all")}
+          {t("daily.nutshell.check_all")}
         </Button>
         <Button
           onClick={handleRevealCell}
@@ -404,7 +404,7 @@ export const Play: React.FC<DailyPlayProps> = ({
           variant="secondary"
           className="min-h-[44px] text-xs font-bold px-3"
         >
-          {t("daily.merk-mini.reveal_cell")}
+          {t("daily.nutshell.reveal_cell")}
         </Button>
         <Button
           onClick={handleSubmit}
@@ -412,7 +412,7 @@ export const Play: React.FC<DailyPlayProps> = ({
           variant="primary"
           className="min-h-[44px] text-xs font-bold px-4"
         >
-          {t("daily.merk-mini.submit")}
+          {t("daily.nutshell.submit")}
         </Button>
         {phase === "in_progress" && (
           <Button
@@ -420,7 +420,7 @@ export const Play: React.FC<DailyPlayProps> = ({
             variant="danger"
             className="min-h-[44px] text-xs font-bold px-3"
           >
-            {t("daily.merk-mini.give_up")}
+            {t("daily.nutshell.give_up")}
           </Button>
         )}
       </div>

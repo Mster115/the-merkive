@@ -1,4 +1,4 @@
-import type { MerkMiniPayload, MerkMiniSlot, WordCandidate } from "./types";
+import type { NutshellPayload, NutshellSlot, WordCandidate } from "./types";
 import { PATTERN_LIBRARY, type PatternTemplate } from "./patterns";
 
 export interface SolverOptions {
@@ -9,7 +9,7 @@ export interface SolverOptions {
 export function solveGrid(
   candidates: WordCandidate[],
   options?: SolverOptions
-): MerkMiniPayload | null {
+): NutshellPayload | null {
   const patterns = options?.patterns ?? PATTERN_LIBRARY;
   const maxSteps = options?.maxSteps ?? 50_000;
 
@@ -130,7 +130,7 @@ export function solveGrid(
     }
 
     if (backtrack(0)) {
-      const finalAcross: MerkMiniSlot[] = acrossSlots.map((s, idx) => {
+      const finalAcross: NutshellSlot[] = acrossSlots.map((s, idx) => {
         const candidate = assignedSlots[idx]!;
         return {
           number: s.number,
@@ -142,7 +142,7 @@ export function solveGrid(
         };
       });
 
-      const finalDown: MerkMiniSlot[] = downSlots.map((s, idx) => {
+      const finalDown: NutshellSlot[] = downSlots.map((s, idx) => {
         const candidate = assignedSlots[acrossSlots.length + idx]!;
         return {
           number: s.number,

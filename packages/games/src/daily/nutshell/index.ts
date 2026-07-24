@@ -10,18 +10,18 @@ import type {
 } from "../types";
 import { defineDailyGame } from "../types";
 import type {
-  MerkMiniCell,
-  MerkMiniPayload,
-  MerkMiniPublicState,
-  MerkMiniPublicSlot,
-  MerkMiniSecretState,
+  NutshellCell,
+  NutshellPayload,
+  NutshellPublicState,
+  NutshellPublicSlot,
+  NutshellSecretState,
   WordCandidate,
 } from "./types";
 import { solveGrid } from "./grid-solver";
 import { Play } from "./ui";
 
 function getSolutionLetter(
-  payload: MerkMiniPayload,
+  payload: NutshellPayload,
   r: number,
   c: number
 ): string | null {
@@ -38,32 +38,32 @@ function getSolutionLetter(
   return null;
 }
 
-export const merkMini: DailyGameModule = defineDailyGame({
+export const nutshell: DailyGameModule = defineDailyGame({
   meta: {
-    id: "merk-mini",
-    nameKey: "daily.merk-mini.name",
-    descriptionKey: "daily.merk-mini.description",
+    id: "nutshell",
+    nameKey: "daily.nutshell.name",
+    descriptionKey: "daily.nutshell.description",
     estimatedMinutes: 2,
     tags: ["crossword", "word", "puzzle", "daily"],
   },
 
   i18n: {
     en: {
-      "daily.merk-mini.name": "Merk Mini",
-      "daily.merk-mini.description": "A 5x5 daily mini crossword puzzle.",
-      "daily.merk-mini.across": "Across",
-      "daily.merk-mini.down": "Down",
-      "daily.merk-mini.check_cell": "Check Cell",
-      "daily.merk-mini.check_all": "Check All",
-      "daily.merk-mini.reveal_cell": "Reveal Cell",
-      "daily.merk-mini.submit": "Submit",
-      "daily.merk-mini.give_up": "Give Up",
-      "daily.merk-mini.solved": "Puzzle Solved!",
-      "daily.merk-mini.failed": "Puzzle Failed",
-      "daily.merk-mini.checks_used": "Checks: {count}",
-      "daily.merk-mini.reveals_used": "Reveals: {count}",
-      "daily.merk-mini.incomplete_error": "Grid is incomplete or incorrect.",
-      "daily.merk-mini.invalid_cell_error": "Invalid cell selection.",
+      "daily.nutshell.name": "Nutshell",
+      "daily.nutshell.description": "The daily puzzle, in a nutshell — a 5x5 mini crossword.",
+      "daily.nutshell.across": "Across",
+      "daily.nutshell.down": "Down",
+      "daily.nutshell.check_cell": "Check Cell",
+      "daily.nutshell.check_all": "Check All",
+      "daily.nutshell.reveal_cell": "Reveal Cell",
+      "daily.nutshell.submit": "Submit",
+      "daily.nutshell.give_up": "Give Up",
+      "daily.nutshell.solved": "Puzzle Solved!",
+      "daily.nutshell.failed": "Puzzle Failed",
+      "daily.nutshell.checks_used": "Checks: {count}",
+      "daily.nutshell.reveals_used": "Reveals: {count}",
+      "daily.nutshell.incomplete_error": "Grid is incomplete or incorrect.",
+      "daily.nutshell.invalid_cell_error": "Invalid cell selection.",
     },
   },
 
@@ -100,7 +100,7 @@ Instruct:
         return {
           ok: true,
           pack: {
-            gameId: "merk-mini",
+            gameId: "nutshell",
             puzzleDate,
             payload: assembledPayload,
             sourceRefs,
@@ -122,10 +122,10 @@ Instruct:
   init(
     ctx: DailyContext,
     pack: DailyContentPack
-  ): { publicState: MerkMiniPublicState; secretState: MerkMiniSecretState; phase: string } {
-    const payload = pack.payload as MerkMiniPayload;
+  ): { publicState: NutshellPublicState; secretState: NutshellSecretState; phase: string } {
+    const payload = pack.payload as NutshellPayload;
 
-    const grid: MerkMiniCell[][] = Array.from({ length: 5 }, (_, r) =>
+    const grid: NutshellCell[][] = Array.from({ length: 5 }, (_, r) =>
       Array.from({ length: 5 }, (_, c) => {
         const isBlocked = payload.gridPattern[r]?.[c] === "#";
         return {
@@ -137,7 +137,7 @@ Instruct:
       })
     );
 
-    const across: MerkMiniPublicSlot[] = payload.across.map((a) => ({
+    const across: NutshellPublicSlot[] = payload.across.map((a) => ({
       number: a.number,
       row: a.row,
       col: a.col,
@@ -145,7 +145,7 @@ Instruct:
       clue: a.clue,
     }));
 
-    const down: MerkMiniPublicSlot[] = payload.down.map((d) => ({
+    const down: NutshellPublicSlot[] = payload.down.map((d) => ({
       number: d.number,
       row: d.row,
       col: d.col,
@@ -153,7 +153,7 @@ Instruct:
       clue: d.clue,
     }));
 
-    const publicState: MerkMiniPublicState = {
+    const publicState: NutshellPublicState = {
       grid,
       across,
       down,
@@ -175,8 +175,8 @@ Instruct:
     state: DailyStateIn,
     action: DailyAction
   ): DailyReduceResult | DailyReduceError {
-    const pub = state.publicState as MerkMiniPublicState;
-    const sec = state.secretState as MerkMiniSecretState;
+    const pub = state.publicState as NutshellPublicState;
+    const sec = state.secretState as NutshellSecretState;
 
     if (state.phase !== "in_progress") {
       if (action.type === "submit" || action.type === "give_up") {
@@ -415,7 +415,7 @@ Instruct:
   },
 
   summarize(ctx: DailyContext, state: DailyStateIn): DailySummary {
-    const pub = state.publicState as MerkMiniPublicState;
+    const pub = state.publicState as NutshellPublicState;
     const phase = state.phase;
 
     let status: "solved" | "failed" | "in_progress" = "in_progress";
@@ -439,7 +439,7 @@ Instruct:
       shareLine = `In progress | 🔍 ${checksUsed} | 💡 ${revealsUsed}`;
     }
 
-    const shareText = `Merk Mini — ${ctx.puzzleDate}\n${shareLine}`;
+    const shareText = `Nutshell — ${ctx.puzzleDate}\n${shareLine}`;
 
     return {
       status,

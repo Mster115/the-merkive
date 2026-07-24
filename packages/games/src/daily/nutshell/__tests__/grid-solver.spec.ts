@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { solveGrid } from "../grid-solver";
 import type { WordCandidate } from "../types";
 
-describe("grid-solver for merk-mini", () => {
+describe("grid-solver for nutshell", () => {
   it("solves a grid given a valid candidate pool and verifies crossing cells agree", () => {
     const pool: WordCandidate[] = [
       { word: "START", clue: "Begin" },
