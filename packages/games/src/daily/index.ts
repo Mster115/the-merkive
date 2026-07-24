@@ -1,7 +1,8 @@
 import type { DailyGameModule } from "./types";
+import { merkMini } from "./merk-mini";
 
 export const dailyGameRegistry: Record<string, DailyGameModule> = {
-  // game plugins append one line here, e.g.: "merk-mini": merkMini,
+  "merk-mini": merkMini,
 };
 export const dailyGameList: DailyGameModule[] = Object.values(dailyGameRegistry);
 export function getDailyGame(id: string): DailyGameModule | undefined {
