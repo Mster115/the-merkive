@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { createDailyTestRun, act, actErr, ctxOf } from "../../testing";
 import { relay } from "../index";
+import { getDailyGame } from "../../index";
 import type { RelayPublicState } from "../types";
 
 const samplePackRaw = {
@@ -11,6 +12,10 @@ const samplePackRaw = {
 };
 
 describe("relay daily game", () => {
+  it("is registered in the daily game registry", () => {
+    expect(getDailyGame("relay")).toBe(relay);
+  });
+
   it("validatePack accepts a valid pack and rejects an unsolvable pack", () => {
     const valid = relay.validatePack(samplePackRaw, "2026-07-24");
     expect(valid.ok).toBe(true);
