@@ -6,7 +6,7 @@ import { Button, buzz, Card, Modal, Pill, cn } from "@merky/ui";
 import type { EightstormPrivateState, EightstormPublicState } from "./types";
 import type { Card as CardType, DeclareSuit, Suit } from "./cards";
 import { isLegalPlay, isWildCard, SUITS } from "./cards";
-import { CardView, getCardDisplayRank, SuitSVG, SUIT_NAMES, SUIT_THEMES } from "./CardView";
+import { CardView, getCardDisplayRank, getSuitName, SuitSVG, SUIT_THEMES } from "./CardView";
 import { FanIcon, GridIcon, LightningIcon, ReverseIcon } from "./icons";
 
 export function EightstormController({ room, match, seat, privateState, act, t }: ControllerProps) {
@@ -109,7 +109,7 @@ export function EightstormController({ room, match, seat, privateState, act, t }
       {/* Live accessibility region */}
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {isMyTurn ? t("games.eightstorm.ui.your_turn") : t("games.eightstorm.ui.waiting_for", { name: activeName })}
-        {`. Direction is ${pub.direction === 1 ? 'Clockwise' : 'Counter-Clockwise'}`}
+        {`. Direction is ${pub.direction === 1 ? t("games.eightstorm.ui.clockwise") : t("games.eightstorm.ui.counter_clockwise")}`}
         {pub.pendingDraw > 0 ? `. Pending draw penalty: ${pub.pendingDraw}` : ''}
       </div>
 
@@ -127,7 +127,7 @@ export function EightstormController({ room, match, seat, privateState, act, t }
                 : cn(SUIT_THEMES[pub.topCard.suit].bg, SUIT_THEMES[pub.topCard.suit].text)
             )}
           >
-            {getCardDisplayRank(pub.topCard.rank)}
+            {getCardDisplayRank(pub.topCard.rank, t)}
             <SuitSVG suit={pub.topCard.suit} className="w-4 h-4" />
           </span>
         </div>
@@ -145,7 +145,7 @@ export function EightstormController({ room, match, seat, privateState, act, t }
         ) : (
           <span className="text-xs font-black uppercase tracking-wider text-[var(--mb-text-dim)] flex items-center gap-1 [font-family:var(--mb-font-display)]">
             <ReverseIcon className="w-4 h-4 text-[var(--mb-violet)]" />
-            {pub.direction === 1 ? "Clockwise" : "Reverse"}
+            {pub.direction === 1 ? t("games.eightstorm.ui.clockwise") : t("games.eightstorm.ui.counter_clockwise")}
           </span>
         )}
       </Card>
@@ -165,7 +165,7 @@ export function EightstormController({ room, match, seat, privateState, act, t }
             ) : (
               playableCards.length > 0 && (
                 <span className="text-xs font-black px-3 py-1 rounded-lg bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)] border-2 border-black shadow-[2px_2px_0_0_#000] [font-family:var(--mb-font-display)] uppercase">
-                  {playableCards.length} PLAYABLE
+                  {t("games.eightstorm.ui.playable_count", { count: playableCards.length })}
                 </span>
               )
             )}
@@ -241,7 +241,7 @@ export function EightstormController({ room, match, seat, privateState, act, t }
                   : "text-[var(--mb-text-dim)] hover:text-white"
               )}
             >
-              <FanIcon className="w-4 h-4" /> FAN
+              <FanIcon className="w-4 h-4" /> {t("games.eightstorm.ui.view_fan")}
             </button>
             <button
               type="button"
@@ -254,7 +254,7 @@ export function EightstormController({ room, match, seat, privateState, act, t }
                   : "text-[var(--mb-text-dim)] hover:text-white"
               )}
             >
-              <GridIcon className="w-4 h-4" /> GRID
+              <GridIcon className="w-4 h-4" /> {t("games.eightstorm.ui.view_grid")}
             </button>
           </div>
         </div>
@@ -283,6 +283,7 @@ export function EightstormController({ room, match, seat, privateState, act, t }
                       disabled={!playable}
                       onClick={() => handleCardClick(card)}
                       size="md"
+                      t={t}
                       className={cn(
                         playable && "-translate-y-3"
                       )}
@@ -307,6 +308,7 @@ export function EightstormController({ room, match, seat, privateState, act, t }
                   disabled={!playable}
                   onClick={() => handleCardClick(card)}
                   size="md"
+                  t={t}
                 />
               );
             })}
@@ -339,7 +341,7 @@ export function EightstormController({ room, match, seat, privateState, act, t }
               >
                 <SuitSVG suit={suit} className="w-12 h-12" />
                 <span className="capitalize text-sm font-black tracking-wider [font-family:var(--mb-font-display)] uppercase">
-                  {SUIT_NAMES[suit]}
+                  {getSuitName(suit, t)}
                 </span>
               </Button>
             );

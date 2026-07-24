@@ -173,6 +173,12 @@ export const merkade = defineGame({
       "games.merkade.color.cyan": "Cyan",
       "games.merkade.color.gold": "Gold",
       "games.merkade.color.pink": "Pink",
+
+      "games.merkade.ui.default_artist": "Artist",
+      "games.merkade.ui.score_pts": "{score} pts",
+      "games.merkade.ui.fallback_doodle_word": "something funny",
+      "games.merkade.ui.default_option_a": "Option A",
+      "games.merkade.ui.default_option_b": "Option B",
     },
   },
   init(ctx) {

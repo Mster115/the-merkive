@@ -4,7 +4,7 @@ import * as React from "react";
 import type { StageProps } from "@merky/game-sdk";
 import { Card, Panel, Pill, cn, sfx, WhimsicalAvatarFace, WhimsicalPlayerChip } from "@merky/ui";
 import type { EightstormPublicState } from "./types";
-import { CardView, getCardActionLabel, SuitSVG, SUIT_NAMES } from "./CardView";
+import { CardView, getCardActionLabel, SuitSVG } from "./CardView";
 import { DeckIcon, LightningIcon, ReverseIcon, TrophyIcon } from "./icons";
 
 export function EightstormStage({ room, match, t }: StageProps) {
@@ -40,7 +40,7 @@ export function EightstormStage({ room, match, t }: StageProps) {
       <div className="sr-only" aria-live="polite">
         {isGameOver
           ? t("games.eightstorm.phase.game_over")
-          : `${t("games.eightstorm.phase.turn", { name: activeName })}. Direction is ${pub.direction === 1 ? 'Clockwise' : 'Counter-Clockwise'}${pub.pendingDraw > 0 ? `. Pending draw penalty of ${pub.pendingDraw}` : ''}.`}
+          : `${t("games.eightstorm.phase.turn", { name: activeName })}. Direction is ${pub.direction === 1 ? t("games.eightstorm.ui.clockwise") : t("games.eightstorm.ui.counter_clockwise")}${pub.pendingDraw > 0 ? `. Pending draw penalty of ${pub.pendingDraw}` : ''}.`}
       </div>
 
       {/* Top Header Status Bar */}
@@ -56,7 +56,7 @@ export function EightstormStage({ room, match, t }: StageProps) {
                 pub.direction === -1 && "-scale-x-100"
               )}
             />
-            {pub.direction === 1 ? "Clockwise" : "Counter-Clockwise"}
+            {pub.direction === 1 ? t("games.eightstorm.ui.clockwise") : t("games.eightstorm.ui.counter_clockwise")}
           </span>
         </div>
 
@@ -74,7 +74,7 @@ export function EightstormStage({ room, match, t }: StageProps) {
             </span>
             <span className="px-4 py-1.5 rounded-xl border-2 border-black bg-[var(--mb-gold)] text-black font-black text-xl flex items-center gap-2 shadow-[2px_2px_0_0_#000] uppercase [font-family:var(--mb-font-display)]">
               <SuitSVG suit={pub.declaredSuit} className="w-5 h-5 text-black" />
-              {SUIT_NAMES[pub.declaredSuit]}
+              {t(`games.eightstorm.suits.${pub.declaredSuit}`)}
             </span>
           </div>
         )}
@@ -113,14 +113,14 @@ export function EightstormStage({ room, match, t }: StageProps) {
 
             <div className="relative z-10">
               <span key={pub.topCard.id} className="inline-block mb-pop">
-                <CardView card={pub.topCard} size="lg" />
+                <CardView card={pub.topCard} size="lg" t={t} />
               </span>
             </div>
 
             {pub.declaredSuit && (
               <div className="absolute -top-4 -right-4 px-4 py-1.5 rounded-xl bg-[var(--mb-gold)] text-black font-black text-lg shadow-[3px_3px_0_0_#000] border-2 border-black z-20 flex items-center gap-1.5 rotate-3 uppercase [font-family:var(--mb-font-display)]">
                 <SuitSVG suit={pub.declaredSuit} className="w-5 h-5 text-black" />
-                {SUIT_NAMES[pub.declaredSuit]}
+                {t(`games.eightstorm.suits.${pub.declaredSuit}`)}
               </div>
             )}
           </div>
@@ -150,7 +150,7 @@ export function EightstormStage({ room, match, t }: StageProps) {
                   {pub.lastPlay.action === "play"
                     ? t("games.eightstorm.action.played", {
                         name: room.seats.find((s) => s.seatIndex === pub.lastPlay?.seat)?.displayName ?? `Seat ${pub.lastPlay.seat}`,
-                        card: getCardActionLabel(pub.topCard.rank, pub.topCard.suit),
+                        card: getCardActionLabel(pub.topCard.rank, pub.topCard.suit, t),
                       })
                     : pub.lastPlay.action === "draw"
                     ? t("games.eightstorm.action.drew", { name: room.seats.find((s) => s.seatIndex === pub.lastPlay?.seat)?.displayName ?? `Seat ${pub.lastPlay.seat}` })
@@ -159,7 +159,7 @@ export function EightstormStage({ room, match, t }: StageProps) {
               </div>
             ) : (
               <p className="text-xs font-black text-[var(--mb-text-dim)] uppercase tracking-wider [font-family:var(--mb-font-display)]">
-                GAME UNDERWAY!
+                {t("games.eightstorm.ui.game_underway")}
               </p>
             )}
           </Panel>

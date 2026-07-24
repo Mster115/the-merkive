@@ -176,7 +176,7 @@ export function MerkadeController({ seat, match, privateState, act, t }: Control
                 {t("games.merkade.ui.your_doodle_prompt")}
               </span>
               <h3 className="text-xl font-black text-[var(--mb-pink)] uppercase [font-family:var(--mb-font-display)]">
-                "{priv.doodleWord ?? "something funny"}"
+                "{priv.doodleWord ?? t("games.merkade.ui.fallback_doodle_word")}"
               </h3>
             </div>
 
@@ -342,7 +342,7 @@ export function MerkadeController({ seat, match, privateState, act, t }: Control
                     {t("games.merkade.ui.majority_step1")}
                   </span>
                   <div className="grid grid-cols-2 gap-2">
-                    {(pub.majorityOptions ?? ["Option A", "Option B"]).map((opt, idx) => (
+                    {(pub.majorityOptions ?? [t("games.merkade.ui.default_option_a"), t("games.merkade.ui.default_option_b")]).map((opt, idx) => (
                       <button
                         key={idx}
                         type="button"
@@ -366,7 +366,7 @@ export function MerkadeController({ seat, match, privateState, act, t }: Control
                     {t("games.merkade.ui.majority_step2")}
                   </span>
                   <div className="grid grid-cols-2 gap-2">
-                    {(pub.majorityOptions ?? ["Option A", "Option B"]).map((opt, idx) => (
+                    {(pub.majorityOptions ?? [t("games.merkade.ui.default_option_a"), t("games.merkade.ui.default_option_b")]).map((opt, idx) => (
                       <button
                         key={idx}
                         type="button"

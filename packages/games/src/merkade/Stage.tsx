@@ -227,7 +227,7 @@ export function MerkadeStage({ room, match, t }: StageProps) {
             <Panel className="p-4 rounded-2xl bg-[var(--mb-surface-2)] border-[4px] border-black shadow-[var(--mb-shadow)] text-center w-full flex flex-col items-center gap-4">
               <Pill tone="danger" className="text-xs px-3 py-1 font-black uppercase [font-family:var(--mb-font-display)]">
                 {t("games.merkade.ui.artist_spotlight", {
-                  name: room.seats.find((s) => s.seatIndex === pub.doodleCurrentArtist)?.displayName ?? "Artist",
+                  name: room.seats.find((s) => s.seatIndex === pub.doodleCurrentArtist)?.displayName ?? t("games.merkade.ui.default_artist"),
                 })}
               </Pill>
               <DoodleGrid grid={pub.doodleCurrentGrid} readOnly className="max-w-md" />
@@ -242,7 +242,7 @@ export function MerkadeStage({ room, match, t }: StageProps) {
               <Panel className="p-4 rounded-2xl bg-[var(--mb-surface-2)] border-[4px] border-black shadow-[var(--mb-shadow)] text-center flex flex-col items-center gap-2">
                 <Pill tone="danger" className="text-[0.65rem] px-2 py-0.5 font-black uppercase [font-family:var(--mb-font-display)]">
                   {t("games.merkade.ui.artist_drawing_label", {
-                    name: room.seats.find((s) => s.seatIndex === pub.doodleCurrentArtist)?.displayName ?? "Artist",
+                    name: room.seats.find((s) => s.seatIndex === pub.doodleCurrentArtist)?.displayName ?? t("games.merkade.ui.default_artist"),
                   })}
                 </Pill>
                 <DoodleGrid grid={pub.doodleCurrentGrid} readOnly className="w-full" />
@@ -423,7 +423,7 @@ export function MerkadeStage({ room, match, t }: StageProps) {
                       </span>
                     </div>
                     <span className="font-black text-lg [font-family:var(--mb-font-display)]">
-                      {score} pts
+                      {t("games.merkade.ui.score_pts", { score })}
                     </span>
                   </div>
                 );

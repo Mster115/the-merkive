@@ -2,16 +2,13 @@
 
 import * as React from "react";
 import { cn } from "@merky/ui";
+import type { Translate } from "@merky/game-sdk";
 import type { Card as CardType, Rank, Suit } from "./cards";
 import { BlazeIcon, BoltIcon, GaleIcon, LightningIcon, ReverseIcon, SkipIcon, StarIcon, TideIcon } from "./icons";
 
-export const SUIT_NAMES: Record<Suit, string> = {
-  S: "Bolt",
-  H: "Blaze",
-  D: "Gale",
-  C: "Tide",
-  X: "Joker",
-};
+export function getSuitName(suit: Suit, t: Translate): string {
+  return t(`games.eightstorm.suits.${suit}`);
+}
 
 export function SuitSVG({ suit, className = "w-4 h-4" }: { suit: Suit; className?: string }) {
   switch (suit) {
@@ -28,12 +25,12 @@ export function SuitSVG({ suit, className = "w-4 h-4" }: { suit: Suit; className
   }
 }
 
-export function getCardDisplayRank(rank: Rank): string {
+export function getCardDisplayRank(rank: Rank, t: Translate): string {
   switch (rank) {
     case "A":
       return "REV";
     case "J":
-      return "SKIP";
+      return t("games.eightstorm.badge.skip");
     case "2":
       return "+2";
     case "8":
@@ -45,8 +42,8 @@ export function getCardDisplayRank(rank: Rank): string {
   }
 }
 
-export function getCardActionLabel(rank: Rank, suit: Suit): string {
-  const suitName = SUIT_NAMES[suit];
+export function getCardActionLabel(rank: Rank, suit: Suit, t: Translate): string {
+  const suitName = getSuitName(suit, t);
   switch (rank) {
     case "A":
       return `Reverse (${suitName})`;
@@ -70,6 +67,7 @@ interface CardViewProps {
   onClick?: () => void;
   className?: string;
   size?: "sm" | "md" | "lg" | "xl";
+  t: Translate;
 }
 
 export const SUIT_THEMES: Record<Suit, { bg: string; text: string }> = {
@@ -80,9 +78,9 @@ export const SUIT_THEMES: Record<Suit, { bg: string; text: string }> = {
   X: { bg: "bg-[var(--mb-gold)]", text: "text-black" },
 };
 
-export function CardView({ card, selected, disabled, onClick, className, size = "md" }: CardViewProps) {
+export function CardView({ card, selected, disabled, onClick, className, size = "md", t }: CardViewProps) {
   const isWild = card.rank === "8" || card.suit === "X";
-  const displayRank = getCardDisplayRank(card.rank);
+  const displayRank = getCardDisplayRank(card.rank, t);
   const theme = SUIT_THEMES[card.suit];
 
   const sizeClasses = {
@@ -106,7 +104,7 @@ export function CardView({ card, selected, disabled, onClick, className, size = 
     xl: "w-8 h-8",
   }[size];
 
-  const actionLabel = getCardActionLabel(card.rank, card.suit);
+  const actionLabel = getCardActionLabel(card.rank, card.suit, t);
 
   return (
     <button
@@ -139,28 +137,28 @@ export function CardView({ card, selected, disabled, onClick, className, size = 
           <>
             <ReverseIcon className={cn(iconSizeClass, "text-black")} />
             <span className="text-[0.6em] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--mb-paper)] text-black border-2 border-black shadow-[1px_1px_0_0_#000]">
-              REVERSE
+              {t("games.eightstorm.badge.reverse")}
             </span>
           </>
         ) : card.rank === "J" ? (
           <>
             <SkipIcon className={cn(iconSizeClass, "text-black")} />
             <span className="text-[0.6em] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--mb-paper)] text-black border-2 border-black shadow-[1px_1px_0_0_#000]">
-              SKIP
+              {t("games.eightstorm.badge.skip")}
             </span>
           </>
         ) : card.rank === "2" ? (
           <>
             <LightningIcon className={cn(iconSizeClass, "text-black")} />
             <span className="text-[0.65em] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--mb-paper)] text-black border-2 border-black shadow-[1px_1px_0_0_#000]">
-              +2 DRAW
+              {t("games.eightstorm.badge.draw2")}
             </span>
           </>
         ) : isWild ? (
           <>
             <StarIcon className={cn(iconSizeClass, "text-black")} />
             <span className="text-[0.6em] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--mb-paper)] text-black border-2 border-black shadow-[1px_1px_0_0_#000]">
-              {card.rank === "JOKER" ? "JOKER" : "WILD 8"}
+              {card.rank === "JOKER" ? t("games.eightstorm.badge.joker") : t("games.eightstorm.badge.wild8")}
             </span>
           </>
         ) : (

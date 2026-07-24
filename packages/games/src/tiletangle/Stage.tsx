@@ -46,7 +46,7 @@ export const Stage: React.FC<StageProps> = ({ room, match, t }) => {
               {t("games.tiletangle.name")}
             </h1>
             <Pill tone="accent" className="-rotate-2">
-              TILE TANGLE ACTIVE
+              {t("games.tiletangle.ui.active_banner")}
             </Pill>
           </div>
           {!match.over && (
@@ -65,7 +65,7 @@ export const Stage: React.FC<StageProps> = ({ room, match, t }) => {
                 {t("games.tiletangle.drawPile")}
               </div>
               <div className="text-3xl font-black text-[var(--mb-gold)] [font-family:var(--mb-font-display)]">
-                {pub.drawPileCount} TILES
+                {t("games.tiletangle.ui.tiles_count", { count: pub.drawPileCount })}
               </div>
             </div>
           </Card>
@@ -124,7 +124,7 @@ export const Stage: React.FC<StageProps> = ({ room, match, t }) => {
 <PuzzleIcon className="w-5 h-5" /> {t("games.tiletangle.tableMelds")}
           </h2>
           <span className="text-xs font-black uppercase text-[var(--mb-text-dim)] [font-family:var(--mb-font-display)]">
-            {pub.table.length} SETS ON TABLE
+            {t("games.tiletangle.ui.sets_on_table", { count: pub.table.length })}
           </span>
         </div>
 
@@ -135,7 +135,7 @@ export const Stage: React.FC<StageProps> = ({ room, match, t }) => {
               {t("games.tiletangle.emptyTable")}
             </p>
             <p className="text-sm font-bold text-[var(--mb-text-dim)]">
-              WAITING FOR PLAYERS TO LAY DOWN SETS & RUNS
+              {t("games.tiletangle.ui.waiting_for_sets_runs")}
             </p>
           </div>
         ) : (
