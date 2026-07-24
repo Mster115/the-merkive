@@ -2,7 +2,7 @@ insert into daily_puzzles (id, game_id, puzzle_date, status, payload, source_ref
 values
   (
     'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-    'merk-mini',
+    'nutshell',
     '2026-07-25',
     'draft',
     '{"clues": ["Sample clue 1"], "solution": "MERK"}',
@@ -12,7 +12,7 @@ values
   ),
   (
     'b2c3d4e5-f6a7-8901-bcde-f12345678901',
-    'merk-grid',
+    'nexus',
     '2026-07-25',
     'draft',
     '{"grid": [[1,2],[3,4]]}',
