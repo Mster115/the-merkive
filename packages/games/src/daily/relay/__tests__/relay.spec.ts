@@ -16,6 +16,23 @@ describe("relay daily game", () => {
     expect(getDailyGame("relay")).toBe(relay);
   });
 
+  it("validatePack accepts the pipeline's submission envelope, not just a bare payload", () => {
+    // service.submitPack calls validatePack({ gameId, puzzleDate, payload,
+    // sourceRefs }). Reading fields off the envelope's top level rejects every
+    // real submission while a bare-payload spec still passes, so assert the
+    // shape the pipeline actually sends.
+    const { sourceRefs, ...payload } = samplePackRaw;
+    const enveloped = relay.validatePack(
+      { gameId: "relay", puzzleDate: "2026-07-24", payload, sourceRefs },
+      "2026-07-24"
+    );
+    expect(enveloped.ok).toBe(true);
+    if (enveloped.ok) {
+      expect(enveloped.pack.gameId).toBe("relay");
+      expect(enveloped.pack.sourceRefs).toEqual(sourceRefs);
+    }
+  });
+
   it("validatePack accepts a valid pack and rejects an unsolvable pack", () => {
     const valid = relay.validatePack(samplePackRaw, "2026-07-24");
     expect(valid.ok).toBe(true);

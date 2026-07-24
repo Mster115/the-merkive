@@ -61,7 +61,15 @@ export const relay = defineDailyGame({
       return { ok: false as const, error: "Raw pack payload must be an object" };
     }
 
-    const obj = raw as Record<string, unknown>;
+    const envelope = raw as Record<string, unknown>;
+    // The pipeline hands us the submission envelope
+    // ({ gameId, puzzleDate, payload, sourceRefs }); direct callers and tests
+    // may pass the bare payload. Accept both — see daily/types.ts.
+    const obj =
+      typeof envelope.payload === "object" && envelope.payload !== null
+        ? (envelope.payload as Record<string, unknown>)
+        : envelope;
+
     const startWord = typeof obj.startWord === "string" ? obj.startWord.trim().toUpperCase() : "";
     const endWord = typeof obj.endWord === "string" ? obj.endWord.trim().toUpperCase() : "";
     const rawBank = Array.isArray(obj.wordBank) ? obj.wordBank : [];
@@ -93,7 +101,9 @@ export const relay = defineDailyGame({
       };
     }
 
-    const sourceRefs = Array.isArray(obj.sourceRefs)
+    const sourceRefs = Array.isArray(envelope.sourceRefs)
+      ? (envelope.sourceRefs as { url: string; title: string }[])
+      : Array.isArray(obj.sourceRefs)
       ? (obj.sourceRefs as { url: string; title: string }[])
       : [];
 
