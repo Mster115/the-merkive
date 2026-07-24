@@ -230,6 +230,42 @@ export function YouGotItIcon({ className = "w-6 h-6" }: { className?: string }) 
   );
 }
 
+export function NexusIcon({ className = "w-6 h-6" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" fill="var(--mb-surface)" stroke="currentColor" strokeWidth="2" />
+      <rect x="9" y="9" width="6" height="6" fill="var(--mb-gold)" fillOpacity="0.55" stroke="none" />
+      <path d="M9 3.5v17M15 3.5v17M3.5 9h17M3.5 15h17" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
+export function NutshellIcon({ className = "w-6 h-6" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" fill="var(--mb-surface)" stroke="currentColor" strokeWidth="2" />
+      {/* Blocked squares — the thing that reads as "crossword" rather than
+          "grid", and what distinguishes this from Nexus's 3x3 at icon size. */}
+      <rect x="3.6" y="3.6" width="3.6" height="3.6" fill="currentColor" fillOpacity="0.85" stroke="none" />
+      <rect x="16.8" y="16.8" width="3.6" height="3.6" fill="currentColor" fillOpacity="0.85" stroke="none" />
+      <rect x="10.2" y="10.2" width="3.6" height="3.6" fill="var(--mb-accent-2)" fillOpacity="0.55" stroke="none" />
+      <path d="M6.6 3.5v17M10.2 3.5v17M13.8 3.5v17M17.4 3.5v17" stroke="currentColor" strokeWidth="1.1" />
+      <path d="M3.5 6.6h17M3.5 10.2h17M3.5 13.8h17M3.5 17.4h17" stroke="currentColor" strokeWidth="1.1" />
+    </svg>
+  );
+}
+
+export function RelayIcon({ className = "w-6 h-6" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2.5" y="8" width="7" height="8" rx="1.5" fill="var(--mb-accent)" fillOpacity="0.35" stroke="currentColor" strokeWidth="2" />
+      <rect x="14.5" y="8" width="7" height="8" rx="1.5" fill="var(--mb-gold)" fillOpacity="0.45" stroke="currentColor" strokeWidth="2" />
+      <path d="M10 12h4" stroke="currentColor" strokeWidth="2" />
+      <path d="M12.6 10.4 14.6 12l-2 1.6" stroke="currentColor" strokeWidth="2" />
+    </svg>
+  );
+}
+
 export function MerkadeIcon({ className = "w-6 h-6" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -256,6 +292,13 @@ export function GameIcon({ gameId, className }: { gameId: string; className?: st
       return <YouGotItIcon className={className} />;
     case "merkade":
       return <MerkadeIcon className={className} />;
+    // Daily games.
+    case "nexus":
+      return <NexusIcon className={className} />;
+    case "nutshell":
+      return <NutshellIcon className={className} />;
+    case "relay":
+      return <RelayIcon className={className} />;
     default:
       return <PuzzleIcon className={className} />;
   }
