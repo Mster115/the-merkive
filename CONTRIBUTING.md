@@ -78,6 +78,7 @@ DESIGN.md                 → Visual design specification
 | Zone | Who Can Modify | Notes |
 | :--- | :--- | :--- |
 | `packages/games/src/<id>/` | Game authors | Your game plugin lives here |
+| `packages/games/src/daily/**` | Game authors | Daily (solo) game plugins — same contributor rules as `packages/games/src/<game_id>/`, contract in `packages/games/src/daily/types.ts` |
 | `packages/games/src/index.ts` | Maintainers only | Game registry — request wiring via PR |
 | `packages/game-sdk/` | Maintainers only | Plugin contract — changes are rare and policy-gated |
 | `packages/ui/` | Maintainers only | Design system components & tokens |
