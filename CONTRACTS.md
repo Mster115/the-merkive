@@ -132,3 +132,12 @@ them up automatically).
    specified in your task.
 6. Done = your tests pass + `pnpm -r typecheck` clean + registry test suite
    (`packages/games/src/__tests__/registry.spec.ts`) still green.
+
+## Daily Games
+
+`packages/games/src/daily/` defines a separate, additive contract for single-player solo puzzles (Wordle/Connections style).
+
+- **SDK Isolation**: It reuses `@merky/game-sdk`'s `matchRng` primitive, but does not touch or extend `packages/game-sdk` itself (no SDK version bump and no §11 lockstep policy triggered).
+- **Module Shape (`DailyGameModule`)**: High-level contract containing `meta`, pure lifecycle methods (`init`, `reduce`, `summarize`), content pipeline hooks (`generatePrompt`, `validatePack`), and a single-screen `ui.Play` component.
+- **Registry Separation**: Daily games live in `dailyGameRegistry` (`packages/games/src/daily/index.ts`). They are **NOT** part of the room-game registry (`packages/games/src/index.ts`), and daily games must **never** be added to the room-game registry.
+
