@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { getDailyGame } from "@merky/games/daily";
 import { Button, Card } from "@merky/ui";
 import { useT } from "@/i18n";
+import { ensureDailyDevice } from "@/client/dailyDevice";
 import { ShareCard } from "./ShareCard";
 import { HistoryView } from "./HistoryView";
 import { ArchiveList } from "./ArchiveList";
@@ -39,6 +40,7 @@ export function DailyPlayShell({ gameId, explicitDate }: DailyPlayShellProps) {
     setLoading(true);
     setError(null);
     try {
+      await ensureDailyDevice();
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const url = explicitDate
         ? `/api/daily/${gameId}/${explicitDate}`

@@ -2,11 +2,15 @@
 import * as React from "react";
 import type { Locale, Translate } from "@merky/game-sdk";
 import { gameList } from "@merky/games";
+import { dailyGameList } from "@merky/games/daily";
 import { en } from "./en";
 
 function buildDictionary(locale: Locale): Record<string, string> {
   const dict: Record<string, string> = { ...en };
   for (const game of gameList) {
+    Object.assign(dict, game.i18n[locale] ?? game.i18n.en ?? {});
+  }
+  for (const game of dailyGameList) {
     Object.assign(dict, game.i18n[locale] ?? game.i18n.en ?? {});
   }
   return dict;

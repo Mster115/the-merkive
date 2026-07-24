@@ -3,6 +3,7 @@ import * as React from "react";
 import Link from "next/link";
 import { Card, Pill } from "@merky/ui";
 import { useT } from "@/i18n";
+import { ensureDailyDevice } from "@/client/dailyDevice";
 
 export interface ArchiveListProps {
   gameId: string;
@@ -24,6 +25,7 @@ export function ArchiveList({ gameId }: ArchiveListProps) {
     let ignore = false;
     async function fetchArchive() {
       try {
+        await ensureDailyDevice();
         const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
         const res = await fetch(`/api/daily/${gameId}/archive?limit=30`, {
           headers: { "x-mb-tz": tz },

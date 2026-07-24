@@ -2,6 +2,7 @@
 import * as React from "react";
 import { Card } from "@merky/ui";
 import { useT } from "@/i18n";
+import { ensureDailyDevice } from "@/client/dailyDevice";
 
 export interface HistoryViewProps {
   gameId: string;
@@ -28,6 +29,7 @@ export function HistoryView({ gameId }: HistoryViewProps) {
     let ignore = false;
     async function fetchHistory() {
       try {
+        await ensureDailyDevice();
         const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
         const res = await fetch(`/api/daily/${gameId}/history`, {
           headers: { "x-mb-tz": tz },

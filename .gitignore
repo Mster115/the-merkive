@@ -16,3 +16,4 @@ playwright-report/
 blob-report/
 market-research/
 .vercel
+supabase/.temp/
