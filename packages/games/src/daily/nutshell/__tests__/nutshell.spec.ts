@@ -37,6 +37,38 @@ const samplePack: DailyContentPack = {
 };
 
 describe("nutshell DailyGameModule", () => {
+  it("validatePack accepts the pipeline's submission envelope, not just a bare payload", () => {
+    // service.submitPack calls validatePack({ gameId, puzzleDate, payload,
+    // sourceRefs }). Reading the candidate pool off the envelope's top level
+    // rejects every real submission while a bare-payload spec still passes, so
+    // assert the shape the pipeline actually sends.
+    const candidates = [
+      { word: "START", clue: "Begin" },
+      { word: "HOSTS", clue: "Entertains" },
+      { word: "ARENA", clue: "Stadium" },
+      { word: "RESET", clue: "Restart" },
+      { word: "ENDED", clue: "Finished" },
+      { word: "SHARE", clue: "Distribute" },
+      { word: "TOREN", clue: "Tower" },
+      { word: "ASESD", clue: "Word 8" },
+      { word: "RTNEE", clue: "Word 9" },
+      { word: "TSATD", clue: "Word 10" },
+      { word: "EXTRA", clue: "Bonus word" },
+      { word: "ITEMS", clue: "Things" },
+    ];
+    const sourceRefs = [{ url: "https://example.com", title: "Pack source" }];
+
+    const enveloped = nutshell.validatePack(
+      { gameId: "nutshell", puzzleDate: "2026-07-24", payload: { candidates }, sourceRefs },
+      "2026-07-24"
+    );
+    expect(enveloped.ok).toBe(true);
+    if (enveloped.ok) {
+      expect(enveloped.pack.gameId).toBe("nutshell");
+      expect(enveloped.pack.sourceRefs).toEqual(sourceRefs);
+    }
+  });
+
   it("is registered in the daily game registry", () => {
     expect(getDailyGame("nutshell")).toBe(nutshell);
   });

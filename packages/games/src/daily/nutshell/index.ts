@@ -85,15 +85,25 @@ Instruct:
       return { ok: false, error: "Raw pack must be an object" };
     }
 
-    const obj = raw as Record<string, unknown>;
-    const sourceRefs = Array.isArray(obj.sourceRefs)
+    const envelope = raw as Record<string, unknown>;
+    // The pipeline hands us the submission envelope
+    // ({ gameId, puzzleDate, payload, sourceRefs }); direct callers and tests
+    // may pass the bare payload. Accept both — see daily/types.ts.
+    const obj =
+      typeof envelope.payload === "object" && envelope.payload !== null
+        ? (envelope.payload as Record<string, unknown>)
+        : envelope;
+
+    const sourceRefs = Array.isArray(envelope.sourceRefs)
+      ? (envelope.sourceRefs as { url: string; title: string }[])
+      : Array.isArray(obj.sourceRefs)
       ? (obj.sourceRefs as { url: string; title: string }[])
       : [];
 
     // Every submission must go through the solver — that's the only place
     // crossing-letter agreement is actually verified. A pre-assembled grid
     // shortcut would let an inconsistent (unsolvable) grid through unchecked.
-    const pool = (obj.candidates ?? obj.pool ?? obj.words ?? raw) as WordCandidate[];
+    const pool = (obj.candidates ?? obj.pool ?? obj.words ?? obj) as WordCandidate[];
     if (Array.isArray(pool)) {
       const assembledPayload = solveGrid(pool);
       if (assembledPayload) {
