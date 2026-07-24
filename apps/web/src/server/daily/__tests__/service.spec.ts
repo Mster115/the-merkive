@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
+import { dailyGameList } from "@merky/games/daily";
 import { resetDailyStore } from "../store";
 import { MemoryDailyStore } from "../store/memory";
 import * as service from "../service";
@@ -9,9 +10,11 @@ describe("daily service layer", () => {
     resetDailyStore(new MemoryDailyStore());
   });
 
-  it("listGames returns empty array when no games registered", () => {
+  it("listGames returns the meta of every registered daily game", () => {
     const games = service.listGames();
-    expect(games).toEqual([]);
+    expect(games.map((g) => g.id).sort()).toEqual(
+      dailyGameList.map((g) => g.meta.id).sort()
+    );
   });
 
   it("getTodayOrCreateAttempt throws 404 if game is unknown", async () => {
@@ -22,7 +25,19 @@ describe("daily service layer", () => {
 
   it("getQueueStatus returns status for all registered games or single game", async () => {
     const status = await service.getQueueStatus();
-    expect(status).toEqual({});
+    expect(Object.keys(status).sort()).toEqual(
+      dailyGameList.map((g) => g.meta.id).sort()
+    );
+    for (const entry of Object.values(status)) {
+      expect(entry.queuedFutureDays).toBe(0);
+      expect(entry.isSufficient).toBe(false);
+    }
+
+    const [first] = dailyGameList;
+    if (first) {
+      const single = await service.getQueueStatus(first.meta.id);
+      expect(Object.keys(single)).toEqual([first.meta.id]);
+    }
   });
 
   it("listDrafts returns empty array initially", async () => {
