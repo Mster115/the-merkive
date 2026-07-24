@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { createDailyTestRun, act, actErr, ctxOf } from "../../testing";
 import { nexus } from "../index";
+import { getDailyGame } from "../../index";
 import { validatePack, normalizeAnswer } from "../utils";
 import type { DailyContentPack } from "../../types";
 import type { NexusPublicState, NexusPayload } from "../types";
@@ -85,6 +86,10 @@ const samplePack: DailyContentPack = {
 };
 
 describe("nexus daily game module", () => {
+  it("is registered in the daily game registry", () => {
+    expect(getDailyGame("nexus")).toBe(nexus);
+  });
+
   it("normalization helper lowercases, trims, collapses spaces, and strips leading articles", () => {
     expect(normalizeAnswer("The Great Wall of China")).toBe("great wall of china");
     expect(normalizeAnswer("a banana")).toBe("banana");
