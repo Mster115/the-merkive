@@ -11,9 +11,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@merky/db": "workspace:*",
     "@merky/game-sdk": "workspace:*",
     "@merky/games": "workspace:*",
     "@merky/ui": "workspace:*",
+    "@supabase/supabase-js": "^2.49.1",
     "next": "^15.5.0",
     "qrcode": "^1.5.4",
     "react": "^19.1.0",

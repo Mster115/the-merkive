@@ -238,6 +238,19 @@ export function HomeScreen() {
               </button>
             </Card>
 
+            <Card
+              raised
+              className="flex flex-col gap-3 mb-rise rotate-[0.4deg]"
+              style={{ "--mb-i": 4 } as React.CSSProperties}
+            >
+              <h2 className="self-start -rotate-1 bg-[var(--mb-gold)] text-[var(--mb-on-gold)] border-2 border-black shadow-[2px_2px_0_0_#000] px-3 py-1 text-sm font-black uppercase tracking-wider">
+                {t("home.daily.title")}
+              </h2>
+              <Button size="lg" block onClick={() => router.push("/daily")}>
+                {t("home.daily.cta")}
+              </Button>
+            </Card>
+
             {error && (
               <p
                 role="alert"
