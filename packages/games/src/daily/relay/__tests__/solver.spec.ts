@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { findValidChain } from "../solver";
 
-describe("merk-chain solver", () => {
+describe("relay solver", () => {
   it("finds a valid path in a solvable bank and verifies link agreement", () => {
     const startWord = "CAT";
     const endWord = "DOG";

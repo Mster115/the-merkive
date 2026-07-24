@@ -1,8 +1,8 @@
 import type { DailyGameModule } from "./types";
-import { merkChain } from "./merk-chain";
+import { relay } from "./relay";
 
 export const dailyGameRegistry: Record<string, DailyGameModule> = {
-  "merk-chain": merkChain,
+  "relay": relay,
 };
 export const dailyGameList: DailyGameModule[] = Object.values(dailyGameRegistry);
 export function getDailyGame(id: string): DailyGameModule | undefined {

@@ -1,5 +1,5 @@
 /**
- * Deterministic backtracking solver for merk-chain word puzzles.
+ * Deterministic backtracking solver for relay word puzzles.
  * Finds a path from startWord to endWord using words from wordBank.
  */
 

@@ -2,7 +2,7 @@
 import * as React from "react";
 import { Button, Card, Panel, Pill, ConfettiBurst } from "@merky/ui";
 import type { DailyPlayProps } from "../types";
-import type { MerkChainPublicState } from "./types";
+import type { RelayPublicState } from "./types";
 
 export function Play({
   publicState,
@@ -10,7 +10,7 @@ export function Play({
   act,
   t,
 }: DailyPlayProps) {
-  const state = publicState as MerkChainPublicState;
+  const state = publicState as RelayPublicState;
   const [ariaMessage, setAriaMessage] = React.useState<string>("");
   const [copied, setCopied] = React.useState<boolean>(false);
 
@@ -36,7 +36,7 @@ export function Play({
     if (res.ok) {
       const nextLastChar = word.charAt(word.length - 1).toUpperCase();
       setAriaMessage(
-        t("daily.merk-chain.ariaAdded", {
+        t("daily.relay.ariaAdded", {
           word,
           letter: nextLastChar,
         }) || `Added ${word}. Next word must start with ${nextLastChar}.`
@@ -51,7 +51,7 @@ export function Play({
     const res = await act("remove_last");
     if (res.ok) {
       setAriaMessage(
-        t("daily.merk-chain.ariaRemoved") || "Removed last word."
+        t("daily.relay.ariaRemoved") || "Removed last word."
       );
     } else {
       setAriaMessage(res.error);
@@ -62,7 +62,7 @@ export function Play({
     if (isOver) return;
     const res = await act("submit");
     if (res.ok) {
-      setAriaMessage(t("daily.merk-chain.ariaSolved") || "Puzzle solved!");
+      setAriaMessage(t("daily.relay.ariaSolved") || "Puzzle solved!");
     } else {
       setAriaMessage(res.error);
     }
@@ -72,7 +72,7 @@ export function Play({
     if (isOver) return;
     const res = await act("give_up");
     if (res.ok) {
-      setAriaMessage(t("daily.merk-chain.ariaFailed") || "Puzzle failed.");
+      setAriaMessage(t("daily.relay.ariaFailed") || "Puzzle failed.");
     }
   };
 
@@ -89,7 +89,7 @@ export function Play({
       <Card className="flex items-center justify-between gap-2 p-4">
         <div>
           <div className="text-xs uppercase tracking-wider font-extrabold opacity-75">
-            {t("daily.merk-chain.target") || "Target"}
+            {t("daily.relay.target") || "Target"}
           </div>
           <div className="text-lg font-black tracking-wide flex items-center gap-2">
             <span className="text-[var(--mb-accent)]">{startWord}</span>
@@ -100,17 +100,17 @@ export function Play({
 
         <div className="flex flex-col items-end gap-1">
           <Pill tone={isSolved ? "ok" : isFailed ? "danger" : "accent"}>
-            {t("daily.merk-chain.moves") || "Moves"}: {movesUsed}
+            {t("daily.relay.moves") || "Moves"}: {movesUsed}
           </Pill>
-          {isSolved && <Pill tone="ok">{t("daily.merk-chain.solvedTitle") || "Solved!"}</Pill>}
-          {isFailed && <Pill tone="danger">{t("daily.merk-chain.failedTitle") || "Failed"}</Pill>}
+          {isSolved && <Pill tone="ok">{t("daily.relay.solvedTitle") || "Solved!"}</Pill>}
+          {isFailed && <Pill tone="danger">{t("daily.relay.failedTitle") || "Failed"}</Pill>}
         </div>
       </Card>
 
       {/* Chain Container */}
       <Panel className="p-4 space-y-3">
         <div className="text-xs font-extrabold uppercase tracking-wider opacity-75">
-          {t("daily.merk-chain.chainHeader") || "Current Chain"}
+          {t("daily.relay.chainHeader") || "Current Chain"}
         </div>
 
         <div className="flex flex-wrap items-center gap-2 min-h-[56px] p-2 bg-[var(--mb-surface)] rounded-md border-2 border-black">
@@ -153,10 +153,10 @@ export function Play({
       <Panel className="p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="text-xs font-extrabold uppercase tracking-wider opacity-75">
-            {t("daily.merk-chain.bankHeader") || "Word Bank"}
+            {t("daily.relay.bankHeader") || "Word Bank"}
           </div>
           <div className="text-xs opacity-75">
-            {t("daily.merk-chain.nextLetterPrompt") || "Starts with"}:{" "}
+            {t("daily.relay.nextLetterPrompt") || "Starts with"}:{" "}
             <span className="font-black text-red-500 text-sm">{currentLastChar}</span>
           </div>
         </div>
@@ -198,7 +198,7 @@ export function Play({
             disabled={isOver || chain.length <= 1}
             onClick={handleRemoveLast}
           >
-            {t("daily.merk-chain.undo") || "Undo"}
+            {t("daily.relay.undo") || "Undo"}
           </Button>
 
           <Button
@@ -208,7 +208,7 @@ export function Play({
             disabled={isOver || !targetReached}
             onClick={handleSubmit}
           >
-            {t("daily.merk-chain.submit") || "Submit Chain"}
+            {t("daily.relay.submit") || "Submit Chain"}
           </Button>
         </div>
 
@@ -219,7 +219,7 @@ export function Play({
             block
             onClick={handleGiveUp}
           >
-            {t("daily.merk-chain.giveUp") || "Give Up"}
+            {t("daily.relay.giveUp") || "Give Up"}
           </Button>
         )}
       </div>
@@ -229,8 +229,8 @@ export function Play({
         <Card className="p-4 text-center space-y-3 border-4">
           <div className="text-xl font-black uppercase">
             {isSolved
-              ? t("daily.merk-chain.solvedTitle") || "Puzzle Solved!"
-              : t("daily.merk-chain.failedTitle") || "Puzzle Failed"}
+              ? t("daily.relay.solvedTitle") || "Puzzle Solved!"
+              : t("daily.relay.failedTitle") || "Puzzle Failed"}
           </div>
           <p className="text-sm opacity-80">
             {isSolved

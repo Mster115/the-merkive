@@ -10,40 +10,40 @@ import type {
   DailyStatus,
 } from "../types";
 import { isDailyReduceError } from "../types";
-import type { MerkChainPayload, MerkChainPublicState } from "./types";
+import type { RelayPayload, RelayPublicState } from "./types";
 import { findValidChain } from "./solver";
 import { Play } from "./Play";
 
-export const merkChain = defineDailyGame({
+export const relay = defineDailyGame({
   meta: {
-    id: "merk-chain",
-    nameKey: "daily.merk-chain.title",
-    descriptionKey: "daily.merk-chain.description",
-    taglineKey: "daily.merk-chain.tagline",
+    id: "relay",
+    nameKey: "daily.relay.title",
+    descriptionKey: "daily.relay.description",
+    taglineKey: "daily.relay.tagline",
     estimatedMinutes: 3,
     tags: ["word", "puzzle", "solo"],
   },
 
   i18n: {
     en: {
-      "daily.merk-chain.title": "Merk Chain",
-      "daily.merk-chain.description":
-        "Link words from start to end by matching first and last letters.",
-      "daily.merk-chain.tagline": "Find the missing links!",
-      "daily.merk-chain.target": "Target",
-      "daily.merk-chain.moves": "Moves",
-      "daily.merk-chain.chainHeader": "Current Chain",
-      "daily.merk-chain.bankHeader": "Word Bank",
-      "daily.merk-chain.nextLetterPrompt": "Starts with",
-      "daily.merk-chain.undo": "Undo",
-      "daily.merk-chain.submit": "Submit Chain",
-      "daily.merk-chain.giveUp": "Give Up",
-      "daily.merk-chain.solvedTitle": "Puzzle Solved!",
-      "daily.merk-chain.failedTitle": "Puzzle Failed",
-      "daily.merk-chain.ariaAdded": "Added {word}. Next word must start with {letter}.",
-      "daily.merk-chain.ariaRemoved": "Removed last word.",
-      "daily.merk-chain.ariaSolved": "Puzzle solved!",
-      "daily.merk-chain.ariaFailed": "Puzzle failed.",
+      "daily.relay.title": "Relay",
+      "daily.relay.description":
+        "Pass the word baton — link start to end by matching first and last letters.",
+      "daily.relay.tagline": "Daily Word Relay",
+      "daily.relay.target": "Target",
+      "daily.relay.moves": "Moves",
+      "daily.relay.chainHeader": "Current Chain",
+      "daily.relay.bankHeader": "Word Bank",
+      "daily.relay.nextLetterPrompt": "Starts with",
+      "daily.relay.undo": "Undo",
+      "daily.relay.submit": "Submit Chain",
+      "daily.relay.giveUp": "Give Up",
+      "daily.relay.solvedTitle": "Puzzle Solved!",
+      "daily.relay.failedTitle": "Puzzle Failed",
+      "daily.relay.ariaAdded": "Added {word}. Next word must start with {letter}.",
+      "daily.relay.ariaRemoved": "Removed last word.",
+      "daily.relay.ariaSolved": "Puzzle solved!",
+      "daily.relay.ariaFailed": "Puzzle failed.",
     },
   },
 
@@ -97,7 +97,7 @@ export const merkChain = defineDailyGame({
       ? (obj.sourceRefs as { url: string; title: string }[])
       : [];
 
-    const payload: MerkChainPayload = {
+    const payload: RelayPayload = {
       startWord,
       endWord,
       wordBank,
@@ -105,7 +105,7 @@ export const merkChain = defineDailyGame({
     };
 
     const pack: DailyContentPack = {
-      gameId: "merk-chain",
+      gameId: "relay",
       puzzleDate,
       payload,
       sourceRefs,
@@ -115,8 +115,8 @@ export const merkChain = defineDailyGame({
   },
 
   init(ctx: DailyContext, pack: DailyContentPack) {
-    const payload = pack.payload as MerkChainPayload;
-    const publicState: MerkChainPublicState = {
+    const payload = pack.payload as RelayPayload;
+    const publicState: RelayPublicState = {
       startWord: payload.startWord,
       endWord: payload.endWord,
       wordBank: payload.wordBank,
@@ -139,7 +139,7 @@ export const merkChain = defineDailyGame({
     state: DailyStateIn,
     action: DailyAction
   ): DailyReduceResult | DailyReduceError {
-    const pub = state.publicState as MerkChainPublicState;
+    const pub = state.publicState as RelayPublicState;
 
     // Post-completion guard
     if (state.phase !== "in_progress") {
@@ -187,7 +187,7 @@ export const merkChain = defineDailyGame({
           };
         }
 
-        const nextPublicState: MerkChainPublicState = {
+        const nextPublicState: RelayPublicState = {
           ...pub,
           chain: [...pub.chain, word],
           usedWords: [...pub.usedWords, word],
@@ -213,7 +213,7 @@ export const merkChain = defineDailyGame({
         const nextChain = pub.chain.slice(0, -1);
         const nextUsedWords = pub.usedWords.filter((w) => w !== removedWord);
 
-        const nextPublicState: MerkChainPublicState = {
+        const nextPublicState: RelayPublicState = {
           ...pub,
           chain: nextChain,
           usedWords: nextUsedWords,
@@ -235,7 +235,7 @@ export const merkChain = defineDailyGame({
           };
         }
 
-        const nextPublicState: MerkChainPublicState = {
+        const nextPublicState: RelayPublicState = {
           ...pub,
           completedAtMs: ctx.now,
         };
@@ -249,7 +249,7 @@ export const merkChain = defineDailyGame({
       }
 
       case "give_up": {
-        const nextPublicState: MerkChainPublicState = {
+        const nextPublicState: RelayPublicState = {
           ...pub,
           completedAtMs: ctx.now,
         };
@@ -272,8 +272,8 @@ export const merkChain = defineDailyGame({
   },
 
   summarize(ctx: DailyContext, state: DailyStateIn): DailySummary {
-    const pub = state.publicState as MerkChainPublicState;
-    const sec = state.secretState as MerkChainPayload | undefined;
+    const pub = state.publicState as RelayPublicState;
+    const sec = state.secretState as RelayPayload | undefined;
 
     const status: DailyStatus =
       state.phase === "solved"
@@ -294,7 +294,7 @@ export const merkChain = defineDailyGame({
       timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
     }
 
-    let shareText = `Merk Chain — ${ctx.puzzleDate}\n`;
+    let shareText = `Relay — ${ctx.puzzleDate}\n`;
     if (status === "solved") {
       shareText += `Solved in ${pub?.movesUsed ?? 0} moves (${timeStr})`;
     } else if (status === "failed") {

@@ -1,11 +1,11 @@
-export interface MerkChainPayload {
+export interface RelayPayload {
   startWord: string;
   endWord: string;
   wordBank: string[];
   parMoves: number;
 }
 
-export interface MerkChainPublicState {
+export interface RelayPublicState {
   startWord: string;
   endWord: string;
   wordBank: string[];
