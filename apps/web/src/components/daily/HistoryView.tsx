@@ -6,6 +6,12 @@ import { ensureDailyDevice } from "@/client/dailyDevice";
 
 export interface HistoryViewProps {
   gameId: string;
+  /**
+   * Changes when the attempt reaches a terminal state, so the streak panel
+   * refetches on solve instead of showing the pre-attempt numbers until the
+   * player reloads.
+   */
+  refreshKey?: string | number;
 }
 
 export interface HistoryData {
@@ -21,7 +27,7 @@ export interface HistoryData {
   };
 }
 
-export function HistoryView({ gameId }: HistoryViewProps) {
+export function HistoryView({ gameId, refreshKey }: HistoryViewProps) {
   const t = useT();
   const [data, setData] = React.useState<HistoryData | null>(null);
 
@@ -46,7 +52,7 @@ export function HistoryView({ gameId }: HistoryViewProps) {
     return () => {
       ignore = true;
     };
-  }, [gameId]);
+  }, [gameId, refreshKey]);
 
   if (!data) return null;
 

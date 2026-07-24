@@ -182,7 +182,7 @@ export function DailyPlayShell({ gameId, explicitDate }: DailyPlayShellProps) {
             <ShareCard shareText={shareText} />
           )}
 
-          <HistoryView gameId={gameId} />
+          <HistoryView gameId={gameId} refreshKey={`${attemptOver}:${status}`} />
           <ArchiveList gameId={gameId} />
         </div>
       )}
