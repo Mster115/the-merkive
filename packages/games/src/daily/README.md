@@ -26,7 +26,7 @@ Defined in `packages/games/src/daily/types.ts`:
 Daily games use `@merky/game-sdk`'s `matchRng(seed, version)` for deterministic random number generation. The puzzle seed is constructed as:
 
 ```ts
-const seed = `${gameId}:${puzzleDate}`; // e.g. "merk-mini:2026-07-24"
+const seed = `${gameId}:${puzzleDate}`; // e.g. "nutshell:2026-07-24"
 ```
 
 All state transitions in `init`, `reduce`, and `summarize` must be pure and deterministic — never use `Math.random()`, `Date.now()`, or I/O. Use `ctx.rng` and `ctx.now` exclusively.
