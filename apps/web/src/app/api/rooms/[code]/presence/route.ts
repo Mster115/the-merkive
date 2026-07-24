@@ -3,7 +3,7 @@ import { jsonError, readJson, type RouteParams } from "@/server/api";
 import { normalizeCode } from "@/server/codes";
 import { readIdentity } from "@/server/identity";
 import { withRoomLock } from "@/server/lock";
-import { unabandonSeatOnReconnect } from "@/server/service";
+import { sweepRoom, unabandonSeatOnReconnect } from "@/server/service";
 import { getStore } from "@/server/store";
 import { roomView } from "@/server/views";
 
@@ -78,6 +78,12 @@ export async function POST(req: Request, { params }: RouteParams): Promise<NextR
         room: roomView(room, freshSeats, freshSpectators.filter((s) => s.connected).length),
       });
     });
+
+    try {
+      await withRoomLock(code, () => sweepRoom(store, code));
+    } catch {
+      // a sweep hiccup must never break the heartbeat response
+    }
 
     return NextResponse.json({ ok: true });
   } catch (err) {

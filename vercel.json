@@ -4,5 +4,5 @@
   "buildCommand": "pnpm --filter @merky/web build",
   "outputDirectory": "apps/web/.next",
   "installCommand": "pnpm install --no-frozen-lockfile",
-  "crons": [{ "path": "/api/sweep", "schedule": "* * * * *" }]
+  "crons": [{ "path": "/api/sweep", "schedule": "0 3 * * *" }]
 }
