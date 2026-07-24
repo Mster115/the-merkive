@@ -75,8 +75,14 @@ export function DailyHomeScreen() {
             >
               <div>
                 <div className="flex items-center gap-3 mb-2">
-                  <GameIcon gameId={g.id} className="w-8 h-8 text-[var(--mb-violet)]" />
-                  <h2 className="text-2xl font-black uppercase text-[var(--mb-text)] [font-family:var(--mb-font-display)]">
+                  {/* shrink-0: without it the flex row steals width from the
+                      icon to fit a long title — "NUTSHELL" collapsed it to
+                      under 2px on narrow viewports. */}
+                  <GameIcon gameId={g.id} className="w-8 h-8 shrink-0 text-[var(--mb-violet)]" />
+                  {/* min-w-0 lets a long name wrap instead of overflowing the
+                      card — a flex child will not shrink below its content
+                      width without it. */}
+                  <h2 className="min-w-0 break-words text-2xl font-black uppercase text-[var(--mb-text)] [font-family:var(--mb-font-display)]">
                     {t(g.nameKey)}
                   </h2>
                 </div>
