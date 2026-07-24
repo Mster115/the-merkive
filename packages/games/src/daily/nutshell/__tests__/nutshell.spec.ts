@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { createDailyTestRun, act, actErr, ctxOf } from "../../testing";
 import { nutshell } from "../index";
+import { getDailyGame } from "../../index";
 import type { NutshellPayload, NutshellPublicState } from "../types";
 import type { DailyContentPack } from "../../types";
 
@@ -36,6 +37,10 @@ const samplePack: DailyContentPack = {
 };
 
 describe("nutshell DailyGameModule", () => {
+  it("is registered in the daily game registry", () => {
+    expect(getDailyGame("nutshell")).toBe(nutshell);
+  });
+
   it("initializes state with matching blocked cells and empty letters", () => {
     const run = createDailyTestRun(nutshell, {
       puzzleDate: "2026-07-24",
