@@ -126,22 +126,45 @@ A 5×5 mini is a dense interlock — the layouts have 0–8 blocked squares, so 
 slots cross several others. Constructing one by hand is real crossword work, and
 it was the single hardest thing in this pipeline.
 
-`daily_grid` fills a grid from [`wordlist.ts`](../../packages/games/src/daily/nutshell/wordlist.ts)
-(2,657 curated everyday words) against the `corners_3x3` patterns, checks the
-result has not been used, and hands back ten words. The routine writes ten
-clues. That is the whole job.
+`daily_grid` returns ten interlocking words that have never been used. The
+routine writes ten clues. That is the whole job.
 
-Two constraints worth knowing:
+### Searching is offline; serving is instant
 
-- **Supply is finite.** Measured, the current list yields 40+ consecutive
-  distinct grids without exhausting; each proposal takes ~1s. When
-  `daily_grid` reports it cannot find a fresh grid, the fix is more words in
-  `wordlist.ts`, and a test will start failing before that becomes silent.
-- **Fill quality varies.** Some proposals are lovely (`GLARE`, `PEACH`,
-  `PLANT`), others are serviceable but dull (`BRA`, `YEW`, `EON`). Call
-  `daily_grid` again with `avoidWords` to reroll. The words are all everyday —
-  that is guaranteed by the list — but "everyday" is not the same as
-  "interesting".
+Grid quality and grid cost turn out to be the same axis:
+
+| Pattern | Typical score | Time to fill | Character |
+| --- | --- | --- | --- |
+| `corners_3x3` | ~13–16 | 20 ms | eight 3-letter words — a vocabulary check |
+| `staircase_*` | ~39–42 | ~5 s | two 3s, four 4s, four 5s |
+| `tl_br_blocked` | ~49 | ~226 s | four 4s, six 5s |
+
+A tool call cannot spend four minutes, so the two are separated.
+[`scripts/build-nutshell-grids.mjs`](../../scripts/build-nutshell-grids.mjs)
+searches richest-pattern-first with a time budget and writes
+`packages/games/src/daily/nutshell/grids.json`, which is **committed**.
+`daily_grid` then scans that bank for the best unused entry and returns
+immediately, falling back to a live search only if the bank is exhausted or
+missing.
+
+Committing the bank also makes the supply of puzzles an artifact you can read
+and review, rather than something each machine regenerates differently.
+
+Rebuild after editing the word list or the patterns, or when the bank runs low:
+
+```bash
+node scripts/build-nutshell-grids.mjs 70 --minutes 18
+```
+
+### Why grids are scored at all
+
+The solver takes the first fill that fits, and "fits" says nothing about whether
+the result is any fun. Left to itself it produced **DUD / IRE / BRA / YEW / DIE
+/ URN / ENROL / DERBY / ORE / LAW** — every word legitimate, the grid as a whole
+funereal, and deterministic enough to have been the first Nutshell puzzle ever
+shipped. `scoreGrid` rewards longer entries and varied initial letters and
+penalises vowel-poor stubs; words that only read badly in company were removed
+from the curated list outright. Tone is part of the bar for a party game.
 
 ## Relationship to the CLI
 

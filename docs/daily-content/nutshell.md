@@ -71,8 +71,10 @@ you did not design.
 Both fixes that were proposed here have shipped:
 
 1. **A curated word list** — [`wordlist.ts`](../../packages/games/src/daily/nutshell/wordlist.ts),
-   2,657 everyday 3–5 letter words. Not used by the game at runtime; it exists
-   so tooling can propose a fill without a constructor.
+   ~2,600 everyday 3–5 letter words. Not used by the game at runtime; it exists
+   so tooling can propose a fill without a constructor. At this size the richer
+   staircase layouts fill too, which they could not at 1,200 — grid quality is a
+   function of vocabulary depth.
 2. **Sparser patterns** — `corners_3x3` and its mirror, which leave eight
    3-letter slots and two 5-letter ones. Any new pattern must avoid runs shorter
    than 3 (the solver only accepts 3–5 letter words) and must leave no open cell
@@ -80,8 +82,11 @@ Both fixes that were proposed here have shipped:
 
 Together they make Nutshell the *easiest* game to supply rather than the
 hardest: `daily_grid` returns ten interlocking words and you write ten clues.
-Supply is finite but deep — 40+ consecutive distinct grids without exhausting,
-about a second each. When it runs dry, add words to the list.
+Grids are searched offline by
+[`build-nutshell-grids.mjs`](../../scripts/build-nutshell-grids.mjs) and served
+from a committed bank, because the layouts worth using take seconds to minutes
+to fill. When the bank runs low, rebuild it; if that stops producing new grids,
+add words to the list.
 
 Optionally add ~10 spare candidates (verified harmless: a designed 10 plus 12
 spares still solves instantly). Spares give the solver alternates if one of your
@@ -126,23 +131,32 @@ slots.
 
 ## The layouts
 
-Patterns are tried in order; the first one that fills wins. Each needs 10 words
-(5 across + 5 down), no word used twice.
+Every pattern needs 10 words (5 across + 5 down), no word used twice. This table
+is generated from `PATTERN_LIBRARY`; if it disagrees with the code, the code is
+right.
 
 | Pattern | Grid | Slot lengths |
 | --- | --- | --- |
-| `staircase_tr_bl` | `...## / ..... / ..... / ..... / ##...` | across 3,5,5,5,3 · down 4,4,5,4,4 |
-| `staircase_tl_br` | `##... / ..... / ..... / ..... / ...##` | across 3,5,5,5,3 · down 5,4,4,4,4 |
-| `tl_br_blocked` | `#.... / … / ....#` | 4×4-letter, 6×5-letter |
-| `tr_bl_blocked` | `....# / … / #....` | 4×4-letter, 6×5-letter |
-| `four_corners_blocked` | `#...# / … / #...#` | 4×3-letter, 6×5-letter |
-| `tl_bl_blocked` | `#.... / … / #....` | 1×3, 2×4, 7×5 |
-| `all_open` | no blocks | 10 five-letter words |
+| `corners_3x3` | `...## / ...## / ..... / ##... / ##...` | across 3,3,5,3,3 · down 3,3,5,3,3 — 8×3, 2×5 |
+| `corners_3x3_mirror` | `##... / ##... / ..... / ...## / ...##` | across 3,3,5,3,3 · down 5,3,3,3,3 — 8×3, 2×5 |
+| `staircase_tr_bl` | `...## / ..... / ..... / ..... / ##...` | across 3,5,5,5,3 · down 4,4,5,4,4 — 2×3, 4×4, 4×5 |
+| `staircase_tl_br` | `##... / ..... / ..... / ..... / ...##` | across 3,5,5,5,3 · down 5,4,4,4,4 — 2×3, 4×4, 4×5 |
+| `tl_br_blocked` | `#.... / ..... / ..... / ..... / ....#` | across 4,5,5,5,4 · down 5,5,5,4,4 — 4×4, 6×5 |
+| `tr_bl_blocked` | `....# / ..... / ..... / ..... / #....` | across 4,5,5,5,4 · down 4,5,5,5,4 — 4×4, 6×5 |
+| `four_corners_blocked` | `#...# / ..... / ..... / ..... / #...#` | across 3,5,5,5,3 · down 5,5,5,3,3 — 4×3, 6×5 |
+| `tl_bl_blocked` | `#.... / ..... / ..... / ..... / #....` | across 4,5,5,5,4 · down 5,5,5,5,3 — 1×3, 2×4, 7×5 |
+| `all_open` | `..... / ..... / ..... / ..... / .....` | across 5,5,5,5,5 · down 5,5,5,5,5 — 10×5 |
 
-The staircases lead deliberately. `all_open` needs a double word square — ten
-five-letter words whose rows and columns all agree — which English essentially
-cannot supply from everyday vocabulary. **Design for `staircase_tl_br` or
-`staircase_tr_bl`**: two 3-letter, four 4-letter, four 5-letter words.
+Order matters: `solveGrid` takes the **first** pattern it can fill. The corner
+layouts lead because they are the only ones a modest word pool can fill at all,
+so a pool submission always has somewhere to land. The staircases follow — they
+make much better puzzles (two 3s, four 4s, four 5s rather than eight 3s) and a
+richer vocabulary does fill them, which is what the grid bank is built from.
+`all_open` needs a double word square and stays last.
+
+**Constructing by hand? Design for a staircase**: two 3-letter, four 4-letter,
+four 5-letter words. A hand-built staircase still solves instantly when its ten
+words are submitted.
 
 ## How to construct a grid
 

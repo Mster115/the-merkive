@@ -38,6 +38,40 @@ If you cannot meet that bar for a game on a given run, submit nothing for that
 game and say so. An empty run is a success. Padding the queue with unverified
 content is the one failure that matters.
 
+## Start every run by reading the room
+
+Before producing anything, spend a few searches on what is actually going on in
+the world this week: releases and results, awards, sport, science and space,
+things people are talking about. You are making a daily puzzle, and a daily
+puzzle that could have been written five years ago feels like it was.
+
+Carry that into all three games:
+
+- NEXUS — at least three of the nine cells should touch something from the last
+  few months, and at least one from the last few weeks. The rest can be durable
+  general knowledge; a grid of nothing but current events is exhausting and ages
+  badly.
+- NUTSHELL — the words come from a fixed list, so relevance lives entirely in
+  the CLUES. Clue a word through something current where it fits naturally
+  ("Streaming hit about ___" beats "A large body of water"). Never force it: a
+  strained topical clue is worse than a clean plain one.
+- RELAY — theme the word bank loosely around something in the air this week
+  (a sporting event, a season, a release) when the letters allow it.
+
+Two hard limits on topicality, and they are not negotiable:
+
+- IT MUST STILL BE TRUE LATER. Puzzles are replayed from the archive months
+  afterwards. "The current champion" is wrong by then; "the 2026 champion" is
+  permanent. Never write "this week", "recently", or "currently".
+- NOTHING YOUNGER THAN 72 HOURS. Retractions and corrections cluster in the
+  first days, and a puzzle that ships a story that later collapsed is worse
+  than a puzzle that ignored it. Last month's news is current enough.
+
+Cultural does not mean American, and it does not mean celebrity gossip. Sport,
+science, film, music, food, language, space, and technology all count, and a
+question that lands for someone in Manila as well as Chicago is worth more than
+one that does not.
+
 ## Run procedure
 
 1. `daily_plan` — it returns, per game, which dates are already taken and which
@@ -61,12 +95,16 @@ content is the one failure that matters.
        draft for a human. Never mark a pack passed because the queue is short.
      - Call `daily_history` with your candidate answers before you commit to
        them, and use something else for any it reports as already used.
+     - Mix the timescales: current material for some cells, durable knowledge
+       for the rest, per the topicality rules above.
 
    RELAY — a word chain.
      `daily_brief` gives the schema. Aim for a 4-6 word intended chain and a
      12-18 word bank. Decoys should chain plausibly and dead-end. Do not create
      a second, shorter route to the end word — `daily_check` will tell you the
-     shortest chain it found, so read it.
+     shortest chain it found, so read it. Theme the bank around something
+     current when the letters allow, and drop the theme rather than mangle the
+     chain for it.
 
    NUTSHELL — a 5x5 mini crossword.
      Call `daily_grid`. It returns ten interlocking words that have never been
@@ -75,6 +113,9 @@ content is the one failure that matters.
      speech matching the answer, never containing the answer word, and signal
      abbreviations ("Doctor, briefly"). If a grid's words are dull, call
      `daily_grid` again with `avoidWords` to reroll.
+     The clues are where this puzzle earns its place in a given week — see the
+     topicality rules above. A few clued through current culture, the rest
+     clean definitions and wordplay.
 
 3. `daily_check` every pack. Fix what it blocks; read what it warns. Re-check.
 
@@ -118,7 +159,8 @@ LANGUAGE. English. Question and clue text ships exactly as written.
 
 End every run with a short report: what `daily_plan` showed, what you submitted
 and where it landed, per-cell fact-check verdicts and sources for any Nexus
-pack, and anything you dropped and why. Be plain about shortfalls — "nexus
+pack, which current-culture threads you drew on, and anything you dropped and
+why. Be plain about shortfalls — "nexus
 skipped: could not independently verify two of nine cells" is a good outcome,
 not something to hide.
 
