@@ -2,18 +2,41 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button, Card, GameIcon } from "@merky/ui";
+import { Button, Card, GameIcon, Pill } from "@merky/ui";
 import { useT } from "@/i18n";
 import { Ticker } from "@/components/Ticker";
-import { useDailyTickerItems } from "./useDailyTicker";
+import { buildTickerItems } from "./useDailyTicker";
+import { useDailySummary, type SummaryGame } from "./useDailySummary";
 import type { DailyGameMeta } from "@merky/games/daily/types";
+
+/** How a card's call to action reads and looks, given today's progress. */
+function ctaFor(status: SummaryGame["status"] | undefined) {
+  switch (status) {
+    case "solved":
+    case "failed":
+      // Distinct colour as well as distinct words: "Results" in the same violet
+      // as "Play" still reads as an invitation to play again.
+      return { key: "daily.hub.results", variant: "secondary" as const };
+    case "in_progress":
+      return { key: "daily.hub.continue", variant: "gold" as const };
+    default:
+      return { key: "daily.hub.play", variant: "primary" as const };
+  }
+}
 
 export function DailyHomeScreen() {
   const t = useT();
   const router = useRouter();
   const [games, setGames] = React.useState<DailyGameMeta[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const tickerItems = useDailyTickerItems();
+  // One fetch for both the cards and the strip beneath them, so a card can
+  // never offer "Play" for a game the ticker has already called finished.
+  const { summary, elapsedMs } = useDailySummary();
+  const tickerItems = buildTickerItems(summary, elapsedMs, undefined, t);
+  const statusById = React.useMemo(
+    () => new Map((summary?.games ?? []).map((g) => [g.id, g])),
+    [summary]
+  );
 
   React.useEffect(() => {
     let ignore = false;
@@ -89,7 +112,7 @@ export function DailyHomeScreen() {
               }
             >
               <div>
-                <div className="flex items-center gap-3 mb-2">
+                <div className="flex items-center gap-3 mb-2 flex-wrap">
                   {/* shrink-0: without it the flex row steals width from the
                       icon to fit a long title — "NUTSHELL" collapsed it to
                       under 2px on narrow viewports. */}
@@ -99,15 +122,30 @@ export function DailyHomeScreen() {
                   <h2 className="min-w-0 text-2xl font-black uppercase text-[var(--mb-text)] [font-family:var(--mb-font-display)]">
                     {t(g.nameKey)}
                   </h2>
+                  {/* State at a glance, before you get as far as the button. */}
+                  {statusById.get(g.id)?.status === "solved" && (
+                    <Pill tone="ok" className="whitespace-nowrap">{t("daily.hub.status.solved")}</Pill>
+                  )}
+                  {statusById.get(g.id)?.status === "failed" && (
+                    <Pill tone="neutral" className="whitespace-nowrap">{t("daily.hub.status.done")}</Pill>
+                  )}
+                  {statusById.get(g.id)?.status === "in_progress" && (
+                    <Pill tone="gold" className="whitespace-nowrap">{t("daily.hub.status.inProgress")}</Pill>
+                  )}
                 </div>
                 <p className="text-sm font-semibold text-[var(--mb-text-dim)] leading-relaxed">
                   {t(g.descriptionKey)}
                 </p>
               </div>
 
-              <Link href={`/daily/${g.id}`} aria-label={t("daily.hub.play.aria", { game: t(g.nameKey) })}>
-                <Button size="lg" block variant="primary">
-                  {t("daily.hub.play")}
+              <Link
+                href={`/daily/${g.id}`}
+                aria-label={t(`${ctaFor(statusById.get(g.id)?.status).key}.aria`, {
+                  game: t(g.nameKey),
+                })}
+              >
+                <Button size="lg" block variant={ctaFor(statusById.get(g.id)?.status).variant}>
+                  {t(ctaFor(statusById.get(g.id)?.status).key)}
                 </Button>
               </Link>
             </Card>

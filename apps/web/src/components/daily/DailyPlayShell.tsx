@@ -171,6 +171,13 @@ export function DailyPlayShell({ gameId, explicitDate }: DailyPlayShellProps) {
                 : t("daily.play.today")}
             </p>
           )}
+          {/* The hub cards carry a one-line description of each game and the
+              playtest note was that it only lives there — "adding them to the
+              games too would be good". Carrying it in means a player who lands
+              here from a shared link still gets told what they are playing. */}
+          <p className="mt-1 text-sm font-semibold text-[var(--mb-text-dim)] leading-snug">
+            {t(game.meta.descriptionKey)}
+          </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {/* Always available, not just on first launch: the playtest note was

@@ -62,6 +62,7 @@ export const nutshell: DailyGameModule = defineDailyGame({
       "daily.nutshell.give_up": "Give Up",
       "daily.nutshell.solved": "Puzzle Solved!",
       "daily.nutshell.failed": "Puzzle Failed",
+      "daily.nutshell.progressLabel": "Progress",
       "daily.nutshell.checks_used": "Checks: {count}",
       "daily.nutshell.reveals_used": "Reveals: {count}",
       "daily.nutshell.incomplete_error": "Grid is incomplete or incorrect.",

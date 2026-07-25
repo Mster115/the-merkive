@@ -4,8 +4,6 @@ import type { NexusPublicState, NexusCellPublic } from "./types";
 import { Button, Card, Panel, Pill, CheckIcon, CloseIcon, EyeIcon, QuestionIcon } from "@merky/ui";
 
 export const NexusPlay: React.FC<DailyPlayProps> = ({
-  meta,
-  puzzleDate,
   publicState,
   phase,
   act,
@@ -102,14 +100,15 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
 
       {/* Header */}
       <Card className="p-3 bg-[var(--mb-surface)] border-2 border-black shadow-[var(--mb-shadow)]">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-black uppercase tracking-wide text-[var(--mb-violet)]">
-              {t(meta.nameKey)}
-            </h1>
-            <p className="text-xs text-[var(--mb-text-dim)]">{puzzleDate}</p>
+        {/* No game title here: the shell's header already carries the name,
+            the date and the description. */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <span className="text-sm font-black uppercase tracking-wide text-[var(--mb-violet)]">
+              {t("daily.nexus.tagline")}
+            </span>
           </div>
-          <div className="text-right">
+          <div className="text-right shrink-0">
             <span className="text-xs uppercase font-extrabold text-[var(--mb-text-dim)] block">
               {t("daily.nexus.scoreLabel")}
             </span>

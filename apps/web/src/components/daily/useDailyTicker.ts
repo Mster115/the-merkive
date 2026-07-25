@@ -1,22 +1,9 @@
 "use client";
 import * as React from "react";
 import { useT } from "@/i18n";
-import { ensureDailyDevice } from "@/client/dailyDevice";
+import type { Translate } from "@merky/game-sdk";
 import type { TickerItem } from "@/components/Ticker";
-
-interface SummaryGame {
-  id: string;
-  nameKey: string;
-  hasPuzzle: boolean;
-  status: "unplayed" | "in_progress" | "solved" | "failed";
-  currentStreak: number;
-}
-
-interface Summary {
-  today: string;
-  msUntilRollover: number;
-  games: SummaryGame[];
-}
+import { useDailySummary, type Summary } from "./useDailySummary";
 
 /** "6h 12m" / "48m" / "40s" — coarse on purpose; this is glanceable, not a timer. */
 function formatCountdown(ms: number): string {
@@ -40,40 +27,21 @@ function formatCountdown(ms: number): string {
  */
 export function useDailyTickerItems(gameId?: string, refreshKey?: string | number): TickerItem[] {
   const t = useT();
-  const [summary, setSummary] = React.useState<Summary | null>(null);
-  // Fetched once, then ticked down locally — no polling just to move a clock.
-  const [elapsedMs, setElapsedMs] = React.useState(0);
+  const { summary, elapsedMs } = useDailySummary(refreshKey);
 
-  React.useEffect(() => {
-    let ignore = false;
-    async function load() {
-      try {
-        await ensureDailyDevice();
-        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        const res = await fetch("/api/daily/summary", { headers: { "x-mb-tz": tz } });
-        if (!res.ok) return;
-        const json = (await res.json()) as Summary;
-        if (!ignore) {
-          setSummary(json);
-          setElapsedMs(0);
-        }
-      } catch {
-        // A ticker is ambient; failing to load it must not surface an error.
-      }
-    }
-    void load();
-    return () => {
-      ignore = true;
-    };
-  }, [refreshKey]);
+  return React.useMemo(
+    () => buildTickerItems(summary, elapsedMs, gameId, t),
+    [summary, elapsedMs, gameId, t]
+  );
+}
 
-  React.useEffect(() => {
-    if (!summary) return;
-    const id = setInterval(() => setElapsedMs((e) => e + 30_000), 30_000);
-    return () => clearInterval(id);
-  }, [summary]);
-
-  return React.useMemo(() => {
+/** The strip's contents for a given summary. Pure, so it can be shared. */
+export function buildTickerItems(
+  summary: Summary | null,
+  elapsedMs: number,
+  gameId: string | undefined,
+  t: Translate
+): TickerItem[] {
     if (!summary) return [];
 
     const remaining = summary.msUntilRollover - elapsedMs;
@@ -125,5 +93,4 @@ export function useDailyTickerItems(gameId?: string, refreshKey?: string | numbe
 
     items.push({ text: t("daily.ticker.tagline") });
     return items;
-  }, [summary, elapsedMs, gameId, t]);
 }

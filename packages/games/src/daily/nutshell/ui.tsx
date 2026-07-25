@@ -403,8 +403,9 @@ export const Play: React.FC<DailyPlayProps> = ({
         {/* Wraps at the 320px floor instead of letting the counters collide
             with the title — DESIGN.md §7b. */}
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-          <h2 className="text-lg sm:text-xl font-black uppercase tracking-wider text-[var(--mb-violet)]">
-            {t("daily.nutshell.name")}
+          {/* The shell's header owns the game name; this row is just counters. */}
+          <h2 className="text-sm font-black uppercase tracking-wider text-[var(--mb-violet)]">
+            {t("daily.nutshell.progressLabel")}
           </h2>
           <div className="text-xs font-bold flex gap-3 text-[var(--mb-text-dim)]">
             <span className="flex items-center gap-1 whitespace-nowrap">
