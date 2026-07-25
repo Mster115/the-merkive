@@ -67,6 +67,31 @@ describe("daily-content preflight", () => {
     expect(problems).toContainEqual(expect.stringContaining("exactly 9 entries"));
   });
 
+  it("catches a Nexus question that gives away another cell's answer", () => {
+    // Found by running the pipeline for real: "named after the Titans" handed
+    // over the TITAN cell, and "when a volcano's magma reservoir empties" handed
+    // over MAGMA. Questions ship in publicState from the first render.
+    const cells = [
+      { row: 0, col: 0, question: "Which element is named after the Titans?", answer: "Titanium", acceptableAnswers: ["Ti"] },
+      { row: 0, col: 1, question: "Saturn's largest moon?", answer: "Titan", acceptableAnswers: ["Titan"] },
+      { row: 0, col: 2, question: "Sixth element?", answer: "Carbon", acceptableAnswers: ["C"] },
+      { row: 1, col: 0, question: "Fourth planet?", answer: "Mars", acceptableAnswers: ["Mars"] },
+      { row: 1, col: 1, question: "Long ocean waves?", answer: "Tsunami", acceptableAnswers: ["Tsunami"] },
+      { row: 1, col: 2, question: "Jupiter moon?", answer: "Callisto", acceptableAnswers: ["Callisto"] },
+      { row: 2, col: 0, question: "Molten rock below ground?", answer: "Magma", acceptableAnswers: ["Magma"] },
+      { row: 2, col: 1, question: "Twelfth element?", answer: "Magnesium", acceptableAnswers: ["Mg"] },
+      { row: 2, col: 2, question: "Basin left when a magma reservoir collapses?", answer: "Caldera", acceptableAnswers: ["Caldera"] },
+    ];
+    const { problems } = preflight({
+      gameId: "nexus",
+      puzzleDate: "2026-07-27",
+      sourceRefs: [{ url: "https://example.gov/x", title: "X" }],
+      payload: { rowLabels: ["a", "b", "c"], colLabels: ["d", "e", "f"], cells },
+    });
+    expect(problems).toContainEqual(expect.stringContaining('"Titan"'));
+    expect(problems).toContainEqual(expect.stringContaining('"Magma"'));
+  });
+
   it("names the Nutshell candidates the solver would silently drop", () => {
     const { problems } = preflight({
       gameId: "nutshell",

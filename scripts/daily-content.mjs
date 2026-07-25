@@ -189,6 +189,23 @@ export function preflight(pack) {
         warnings.push(`cell ${key} lists no acceptableAnswers — one guess per cell is unforgiving`);
       }
     }
+
+    // Questions are broadcast in publicState from the first render, so a
+    // question containing another cell's answer hands that cell away for free.
+    // Easy to do by accident: "named after the Titans" gives away TITAN, and
+    // "when a volcano's magma reservoir collapses" gives away MAGMA.
+    for (const q of cells) {
+      const text = String(q?.question ?? "").toLowerCase();
+      for (const a of cells) {
+        if (a === q) continue;
+        const answer = String(a?.answer ?? "").trim().toLowerCase();
+        if (answer.length >= 4 && text.includes(answer)) {
+          problems.push(
+            `cell (${q.row},${q.col}) question contains the answer to cell (${a.row},${a.col}) — "${a.answer}"`
+          );
+        }
+      }
+    }
   }
 
   if (pack.gameId === "nutshell") {
