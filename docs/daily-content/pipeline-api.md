@@ -32,7 +32,7 @@ local calls need no header.
 > exactly one place — on a Mac, the login Keychain:
 >
 > ```bash
-> security add-generic-password -a "$USER" -s merkive-daily-pipeline -w
+> security add-generic-password -U -a "$USER" -s merkive-daily-pipeline -w
 > ```
 >
 > Both the CLI and the MCP server read it from there via

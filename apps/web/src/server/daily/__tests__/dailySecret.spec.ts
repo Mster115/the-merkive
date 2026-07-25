@@ -82,6 +82,8 @@ describe("daily pipeline secret resolution", () => {
     } catch (e) {
       const message = String((e as Error).message);
       expect(message).toContain("security add-generic-password");
+      // -U or the command refuses when an entry exists, leaving the old value.
+      expect(message).toContain("-U");
       expect(message).toContain(KEYCHAIN_SERVICE);
       // The hint tells you where to put it, never what it is.
       expect(message).not.toMatch(/Bearer\s+\S/);

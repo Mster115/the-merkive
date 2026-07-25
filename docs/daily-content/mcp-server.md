@@ -17,7 +17,7 @@ Add to your Claude Desktop MCP config:
 the value, so it never enters your shell history:
 
 ```bash
-security add-generic-password -a "$USER" -s merkive-daily-pipeline -w
+security add-generic-password -U -a "$USER" -s merkive-daily-pipeline -w
 ```
 
 **2. Point Claude Desktop at the server.** Note there is no secret here:
@@ -39,6 +39,15 @@ security add-generic-password -a "$USER" -s merkive-daily-pipeline -w
 ```bash
 pnpm daily secret
 ```
+
+It reports the length and a hash prefix — enough to tell "I stored the wrong
+thing" from "the deployment disagrees" — then makes a real authenticated call
+and reports the status code.
+
+> **`-U` is not optional.** Without it, `add-generic-password` refuses when an
+> entry already exists and leaves the old value in place. The failure reads like
+> a harmless duplicate warning, so a correcting re-run appears to work while the
+> wrong secret quietly survives.
 
 ### Where the secret lives
 
