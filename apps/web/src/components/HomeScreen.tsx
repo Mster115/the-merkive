@@ -446,7 +446,7 @@ export function HomeScreen() {
         items={[
           t("ticker.status"),
           t("ticker.join"),
-          "Active Pack: The Merk-ining",
+          t("ticker.pack", { pack: "The Merk-ining" }),
           t("ticker.round"),
           t("ticker.stay"),
         ]}
