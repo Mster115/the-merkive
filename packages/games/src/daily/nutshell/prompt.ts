@@ -99,13 +99,16 @@ function describeExample(pattern: PatternTemplate): string {
  *
  * It asks for a *constructed* grid rather than a loose pool of nice words,
  * because `solveGrid` verifies an interlock — it does not discover one.
- * Measured against randomly chosen everyday 3-5 letter words, well distributed
- * by length: 0 grids from pools of 22-700 words over 20 attempts, 0 of 4 at
- * 1,000, only 3 of 4 at 1,300 — while ten words chosen to interlock solve
- * instantly, and still solve with ~12 spares added. The patterns are densely
- * crossed, so a valid fill is a rare structure that has to be designed. Asking
- * for a pool produces submissions `validatePack` rejects with "Failed to
- * assemble valid crossword grid from candidate pool".
+ * Measured: a pool of ~1,200 curated everyday 3-5 letter words yields NO fill
+ * on any of the seven patterns — the search exhausts, and neither a 20M step
+ * budget nor twelve shuffled restarts changes that — while ten words chosen to
+ * interlock solve instantly, and still solve with ~12 spares added. Fills do
+ * appear once the word list reaches a few thousand entries, but at that depth
+ * they are archaic (URARE, NEUME, IWIS): of 400 grids solved from a 14k
+ * dictionary, none had all ten words in everyday vocabulary. With 0-2 blocked
+ * squares a fill is close to a double word square, so it has to be designed
+ * rather than discovered. Asking for a pool produces submissions `validatePack`
+ * rejects with "Failed to assemble valid crossword grid from candidate pool".
  *
  * Every geometry fact below is derived from `PATTERN_LIBRARY`, so editing the
  * library updates the brief rather than silently making it wrong.
@@ -122,8 +125,8 @@ export function generatePrompt(puzzleDate: string): string {
 
 IMPORTANT: you must design the interlocking grid yourself. The server's solver
 verifies a construction; it does not discover one. Submitting an assortment of
-words and hoping a grid is found inside them fails almost every time — random
-everyday vocabulary yields no valid grid even at several hundred words, while
+words and hoping a grid is found inside them does not work — a pool of ~1,200
+everyday words yields no valid grid at all, on any layout, while
 ${totalSlots} words chosen to interlock are accepted immediately.
 
 Design for this layout ("#" is a blocked square, "." is a letter):

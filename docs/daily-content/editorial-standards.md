@@ -30,6 +30,13 @@ Corollaries:
   almanacs, sport/league official record books.
 - Major wire services and papers of record for events: AP, Reuters, BBC, AFP.
 
+**Retrievability is part of the tier.** A source that cannot be fetched cannot
+verify anything, and several obvious Tier-1 candidates block automated access:
+Britannica and the CIA World Factbook both return `403`, and guessed URLs on
+government sites usually `404`. What worked in practice: `science.nasa.gov`,
+`periodic-table.rsc.org`, `usgs.gov` glossaries, `tsunami.gov`. **Search first
+and fetch the URL the search returns** — do not guess URLs.
+
 **Tier 2 — supporting only** (never the sole basis for an answer):
 - Wikipedia (use it to *find* the primary source, then cite the primary one).
 - Specialist enthusiast databases (IMDb, Discogs, Baseball-Reference) for

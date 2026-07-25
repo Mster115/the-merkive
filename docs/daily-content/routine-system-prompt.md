@@ -114,6 +114,11 @@ SOURCES.
   undated pages.
   Every URL you cite must be one you actually opened. `title` must be the
   page's real title.
+  SEARCH FIRST, THEN FETCH THE URL THE SEARCH RETURNS. Guessed URLs almost
+  always 404, and several obvious sources block automated fetches outright —
+  Britannica and the CIA World Factbook both return 403. Sources confirmed to
+  work: science.nasa.gov, periodic-table.rsc.org, usgs.gov glossaries,
+  tsunami.gov. If a source will not load, it verified nothing; find another.
 
 ORIGINALITY.
   All questions and clues are your own text. Never copy a clue or question from
@@ -179,6 +184,11 @@ Design rules:
 - Questions: one sentence, <= 140 chars, ends in "?", self-contained (never "as
   of today" — puzzles are replayed from the archive), single short answer, and
   do not restate the categories.
+- NO QUESTION MAY CONTAIN ANOTHER CELL'S ANSWER. All nine questions are visible
+  from the first render, so one wording hands a different cell over for free.
+  Check all 9 x 8 pairs before submitting. This is easy to miss: "the element
+  named after the Titans" gave away TITAN, and "when a magma reservoir
+  collapses" gave away MAGMA, in the same draft.
 - Difficulty: aim for a median solver getting 5-7 of 9. At least two cells most
   people will get; at most two genuinely hard.
 

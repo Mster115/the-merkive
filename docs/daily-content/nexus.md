@@ -115,6 +115,12 @@ Rules:
 - No compound questions; one answer, one cell.
 - Don't restate the categories in the question ("Which 1980s film…" when the row
   is already `1980s`) — it wastes the grid's premise. Let the axes do that work.
+- **No question may contain another cell's answer.** All nine questions are in
+  `publicState` from the first render, so one wording gives a different cell
+  away for free. This is easy to do without noticing — a real draft asked for
+  the element "named after the **Titans**" while another cell's answer was
+  TITAN, and described a caldera as what forms when a "**magma** reservoir"
+  collapses while another answer was MAGMA. `pnpm daily verify` rejects this.
 - Aim for a single-token or short-phrase answer; anything needing a sentence is
   wrong for a one-shot text input.
 

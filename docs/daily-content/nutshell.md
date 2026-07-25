@@ -27,26 +27,54 @@ this is the single thing that determines whether a submission is accepted.
 
 It is tempting to assume the solver will find an interlocking grid inside any
 decent pool of everyday words — the brief used to say as much. **Measured
-against the real solver, it will not.** Randomly chosen common English words,
-all 3–5 letters and well distributed by length:
+against the real solver, it will not.** All 3–5 letters, well distributed by
+length:
 
-| Pool size | Grids found |
+| Pool | Grids found |
 | --- | --- |
-| 22 – 700 words | 0 of 20 attempts |
-| 1,000 words | 0 of 4 |
-| 1,300 words | 3 of 4 (~6 s each) |
-| 1,836 words (a full common vocabulary) | solves, seconds |
+| ~1,200 curated **everyday** words | **0**, on all seven patterns — the search exhausts, and raising the budget to 20M steps or shuffling the pool 12 times changes nothing |
+| 2,000 words from `/usr/share/dict/words` | 3 of 3, ~600 ms |
+| 5,000+ dictionary words | instant (~20 ms) |
+| 400 solved grids, filtered to all-everyday fill | **0** |
 | **10 words chosen to interlock** | **solves instantly** |
 
-That is not a solver defect — the patterns are densely crossed (every one of the
-10 slots crosses several others), so a valid fill is a rare structure that a
-small arbitrary vocabulary simply does not contain.
+Read those rows together and the shape of the problem is clear. The solver is
+sound and fast; it exhausts rather than gives up. What it needs is *vocabulary
+depth*, and the depth that makes fills appear is exactly the depth that makes
+them archaic: the dictionary runs produce `URARE`, `NEUME`, `PALUS`, `IWIS`,
+`LEUCH`, `AAL`, `ARARA` — technically valid, unshippable as a daily mini. Of 400
+solved grids sampled from the full 14,008-word list, not one had all ten words
+in everyday vocabulary.
+
+This is the classic crossword-construction squeeze, and the patterns make it
+acute: with only 0–2 blocked squares, every one of the ten slots crosses several
+others, so a fill is close to a double word square.
+
+> **Earlier versions of this document reported that ~1,300 random common words
+> solved 3 times in 4.** That was an artifact: those random subsets happened to
+> contain all ten words of the repo fixture's hand-built grid, and the fixture
+> grid was what the solver kept finding. Remove those ten and the same
+> vocabulary yields nothing.
 
 **The working content model is therefore: construct the grid yourself, then
 submit its words.** You choose the layout, work out ten words whose crossing
 letters agree, and submit those ten with their clues. The solver's job is to
 *verify* your construction and turn it into a payload — not to discover a grid
 you did not design.
+
+Be honest about the cost: this is real crossword construction, and it is the
+hardest task in the whole content pipeline. Nexus needs research; Relay needs
+half an hour of care; Nutshell needs a constructor. Two things would change
+that, and both are repo-side rather than content-side:
+
+1. **Ship a large curated word list** — several thousand *common* 3–5 letter
+   words with clues. At that depth the solver fills in milliseconds and the fill
+   stays everyday. This is how real minis are made, and it is the fix that makes
+   Nutshell automatable.
+2. **Add sparser patterns** — more blocked squares means shorter, less
+   cross-constrained slots, which loosens the squeeze dramatically. Any new
+   pattern must avoid runs shorter than 3, since the solver only accepts 3–5
+   letter words.
 
 Optionally add ~10 spare candidates (verified harmless: a designed 10 plus 12
 spares still solves instantly). Spares give the solver alternates if one of your
