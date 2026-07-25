@@ -4,7 +4,9 @@ Paste-ready, and short, because the rules it used to recite are now enforced by
 the [`merkive-daily` MCP server](mcp-server.md). Set that up first — the prompt
 below assumes those tools exist and does nothing useful without them.
 
-The secret goes in the MCP server's env, never in this prompt.
+The secret is not in this prompt and not in the MCP config either — it lives in
+your macOS Keychain, and the server reads it at the moment of use. See
+[mcp-server.md](mcp-server.md#setup).
 
 ## The prompt
 

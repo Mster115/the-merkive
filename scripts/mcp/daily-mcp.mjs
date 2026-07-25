@@ -26,8 +26,11 @@
  * surface a server this small needs is about a hundred lines, and pulling in an
  * SDK for it would be the heaviest thing in the repo's tooling.
  *
+ * The pipeline secret is never configured here. `scripts/secret.mjs` reads it
+ * from the macOS Keychain at the moment of use, so the MCP config file, this
+ * repo, and every transcript stay free of it.
+ *
  * Env:
- *   DAILY_PIPELINE_SECRET  required
  *   MERKY_BASE_URL         default https://the-merkive.vercel.app
  *   MERKY_LEDGER           default scripts/mcp/.daily-ledger.json
  */
@@ -39,6 +42,7 @@ import { createHash } from "node:crypto";
 import process from "node:process";
 
 import { preflight, todayUtc, queueRisk } from "../daily-content.mjs";
+import { requireSecret } from "../secret.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const BASE_URL = (process.env.MERKY_BASE_URL ?? "https://the-merkive.vercel.app").replace(/\/$/, "");
@@ -276,12 +280,9 @@ const itemToken = (gameId, item) => sha(`${gameId}|item|${item}`);
 // --- api --------------------------------------------------------------------
 
 async function api(path, init = {}) {
-  const secret = process.env.DAILY_PIPELINE_SECRET;
-  if (!secret) {
-    throw new Error(
-      "DAILY_PIPELINE_SECRET is not set for the MCP server. Add it to the server's env in your MCP config — never to a prompt."
-    );
-  }
+  // Resolved per call (cached in-process) rather than captured at startup, so
+  // the secret is never held in this module's scope longer than it is needed.
+  const secret = requireSecret();
   const res = await fetch(`${BASE_URL}${path}`, {
     ...init,
     headers: {
