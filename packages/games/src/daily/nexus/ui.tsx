@@ -1,7 +1,7 @@
 import * as React from "react";
 import type { DailyPlayProps } from "../types";
 import type { NexusPublicState, NexusCellPublic } from "./types";
-import { Button, Card, Panel, Pill } from "@merky/ui";
+import { Button, Card, Panel, Pill, CheckIcon, CloseIcon, EyeIcon, QuestionIcon } from "@merky/ui";
 
 export const NexusPlay: React.FC<DailyPlayProps> = ({
   meta,
@@ -20,7 +20,6 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
   const [guessText, setGuessText] = React.useState("");
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [copied, setCopied] = React.useState(false);
 
   // Clear input when selection changes
   React.useEffect(() => {
@@ -84,23 +83,6 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
     if (!res.ok) {
       setErrorMsg(res.error);
     }
-  };
-
-  const handleCopy = () => {
-    const text = `Nexus — ${puzzleDate}\n${state.score}/9\n\n` +
-      [0, 1, 2]
-        .map((r) =>
-          [0, 1, 2]
-            .map((c) => {
-              const cell = state.cells.find((cell) => cell.row === r && cell.col === c);
-              return cell?.status === "correct" ? "🟩" : "⬜";
-            })
-            .join("")
-        )
-        .join("\n");
-    void navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   const announceText = isGameOver
@@ -171,17 +153,17 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
                   selectedCoords?.col === colIdx;
 
                 let cellBg = "bg-[var(--mb-surface)] text-[var(--mb-text)]";
-                let statusBadge = "❓";
+                let StatusBadge: React.ComponentType<{ className?: string }> = QuestionIcon;
 
                 if (cell?.status === "correct") {
                   cellBg = "bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)]";
-                  statusBadge = "✓";
+                  StatusBadge = CheckIcon;
                 } else if (cell?.status === "incorrect") {
                   cellBg = "bg-[var(--mb-danger)] text-[var(--mb-on-danger)]";
-                  statusBadge = "✗";
+                  StatusBadge = CloseIcon;
                 } else if (cell?.status === "revealed") {
                   cellBg = "bg-[var(--mb-surface-3)] text-[var(--mb-text-dim)]";
-                  statusBadge = "👁️";
+                  StatusBadge = EyeIcon;
                 }
 
                 return (
@@ -197,8 +179,8 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
                     <span className="text-[10px] sm:text-xs font-bold leading-tight line-clamp-2 w-full text-center">
                       {cell?.question}
                     </span>
-                    <span className="text-xs font-black self-end">
-                      {statusBadge}
+                    <span className="self-end">
+                      <StatusBadge className="w-3.5 h-3.5" />
                     </span>
                   </button>
                 );
@@ -330,15 +312,6 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
               {state.score} / 9
             </span>
           </p>
-          <Button
-            variant="secondary"
-            size="md"
-            block
-            onClick={handleCopy}
-            className="min-h-[44px] font-bold"
-          >
-            {copied ? t("daily.nexus.copied") : t("daily.nexus.copyShare")}
-          </Button>
         </Card>
       )}
     </div>

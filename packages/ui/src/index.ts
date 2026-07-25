@@ -38,4 +38,11 @@ export {
   YouGotItIcon,
   GameIcon,
   RankBadge,
+  CheckIcon,
+  EyeIcon,
+  QuestionIcon,
+  SearchIcon,
+  LightbulbIcon,
+  BackspaceIcon,
+  SwapIcon,
 } from "./icons";

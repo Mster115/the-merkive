@@ -278,6 +278,70 @@ export function MerkadeIcon({ className = "w-6 h-6" }: { className?: string }) {
   );
 }
 
+export function CheckIcon({ className = "w-5 h-5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4.5 12.5l5 5 10-11" />
+    </svg>
+  );
+}
+
+export function EyeIcon({ className = "w-5 h-5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" fill="currentColor" fillOpacity="0.15" />
+      <circle cx="12" cy="12" r="3" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function QuestionIcon({ className = "w-5 h-5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9.5" fill="currentColor" fillOpacity="0.12" />
+      <path d="M9.3 9.3a2.7 2.7 0 1 1 3.9 2.4c-.8.45-1.2.9-1.2 1.8" />
+      <circle cx="12" cy="16.9" r="1.1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function SearchIcon({ className = "w-5 h-5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="10.5" cy="10.5" r="6.5" fill="currentColor" fillOpacity="0.12" />
+      <line x1="15.3" y1="15.3" x2="20.5" y2="20.5" />
+    </svg>
+  );
+}
+
+export function LightbulbIcon({ className = "w-5 h-5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 15.5a5.5 5.5 0 1 1 8 0c-.7.7-1 1.4-1 2.5h-6c0-1.1-.3-1.8-1-2.5z" fill="currentColor" fillOpacity="0.18" />
+      <path d="M10 21h4" />
+      <path d="M12 2.5v1.5" />
+    </svg>
+  );
+}
+
+export function BackspaceIcon({ className = "w-5 h-5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 5h10.5a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9l-6.2-6.6a1 1 0 0 1 0-1.4L9 5z" fill="currentColor" fillOpacity="0.15" />
+      <line x1="13" y1="9.5" x2="18" y2="14.5" />
+      <line x1="18" y1="9.5" x2="13" y2="14.5" />
+    </svg>
+  );
+}
+
+export function SwapIcon({ className = "w-5 h-5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 8h13.5M17.5 8L14 4.5M20 16H6.5M6.5 16L10 19.5" />
+    </svg>
+  );
+}
+
 export function GameIcon({ gameId, className }: { gameId: string; className?: string }) {
   switch (gameId) {
     case "zaplash":

@@ -1,7 +1,16 @@
 import * as React from "react";
 import type { DailyPlayProps } from "../types";
 import type { NutshellPublicState, NutshellCell } from "./types";
-import { Button, Card, ConfettiBurst } from "@merky/ui";
+import {
+  Button,
+  Card,
+  ConfettiBurst,
+  TrophyIcon,
+  SearchIcon,
+  LightbulbIcon,
+  SwapIcon,
+  BackspaceIcon,
+} from "@merky/ui";
 
 export const Play: React.FC<DailyPlayProps> = ({
   publicState,
@@ -264,7 +273,7 @@ export const Play: React.FC<DailyPlayProps> = ({
   ];
 
   return (
-    <div className="flex flex-col items-center justify-between w-full max-w-md mx-auto p-2 min-h-[500px] select-none text-slate-900 dark:text-slate-100">
+    <div className="flex flex-col items-center justify-between w-full max-w-md mx-auto p-2 min-h-[500px] select-none text-[var(--mb-text)]">
       {/* Screen Reader Announcements */}
       <div aria-live="polite" className="sr-only">
         {statusMessage}
@@ -273,28 +282,37 @@ export const Play: React.FC<DailyPlayProps> = ({
       {phase === "solved" && <ConfettiBurst />}
 
       {/* Header & Status */}
-      <div className="w-full flex items-center justify-between px-2 py-1 mb-2 border-b-2 border-slate-900 dark:border-slate-100">
-        <h2 className="text-xl font-black uppercase tracking-wider">
-          {t("daily.nutshell.name")}
-        </h2>
-        <div className="text-xs font-bold flex gap-3">
-          <span>🔍 {t("daily.nutshell.checks_used", { count: checksUsed }) ?? `Checks: ${checksUsed}`}</span>
-          <span>💡 {t("daily.nutshell.reveals_used", { count: revealsUsed }) ?? `Reveals: ${revealsUsed}`}</span>
+      <Card className="w-full mb-2 p-3 bg-[var(--mb-surface)] border-2 border-black shadow-[var(--mb-shadow)]">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-black uppercase tracking-wider text-[var(--mb-violet)]">
+            {t("daily.nutshell.name")}
+          </h2>
+          <div className="text-xs font-bold flex gap-3 text-[var(--mb-text-dim)]">
+            <span className="flex items-center gap-1">
+              <SearchIcon className="w-3.5 h-3.5" />
+              {t("daily.nutshell.checks_used", { count: checksUsed }) ?? `Checks: ${checksUsed}`}
+            </span>
+            <span className="flex items-center gap-1">
+              <LightbulbIcon className="w-3.5 h-3.5" />
+              {t("daily.nutshell.reveals_used", { count: revealsUsed }) ?? `Reveals: ${revealsUsed}`}
+            </span>
+          </div>
         </div>
-      </div>
+      </Card>
 
       {/* End state notifications */}
       {phase === "solved" && (
-        <Card className="w-full mb-3 p-3 bg-emerald-100 dark:bg-emerald-950 border-emerald-500 text-center">
-          <h3 className="text-lg font-bold text-emerald-800 dark:text-emerald-200">
-            🎉 {t("daily.nutshell.solved")}
+        <Card className="w-full mb-3 p-3 bg-[var(--mb-accent-2)] border-2 border-black text-center">
+          <h3 className="flex items-center justify-center gap-2 text-lg font-bold text-[var(--mb-on-accent-2)]">
+            <TrophyIcon className="w-5 h-5" />
+            {t("daily.nutshell.solved")}
           </h3>
         </Card>
       )}
 
       {phase === "failed" && (
-        <Card className="w-full mb-3 p-3 bg-rose-100 dark:bg-rose-950 border-rose-500 text-center">
-          <h3 className="text-lg font-bold text-rose-800 dark:text-rose-200">
+        <Card className="w-full mb-3 p-3 bg-[var(--mb-danger)] border-2 border-black text-center">
+          <h3 className="text-lg font-bold text-[var(--mb-on-danger)]">
             {t("daily.nutshell.failed")}
           </h3>
         </Card>
@@ -304,23 +322,24 @@ export const Play: React.FC<DailyPlayProps> = ({
       <button
         type="button"
         onClick={() => setDirection((d) => (d === "across" ? "down" : "across"))}
-        className="w-full min-h-[44px] p-2 mb-2 bg-amber-100 dark:bg-amber-950 border-2 border-slate-900 dark:border-slate-100 rounded-md font-bold text-sm text-left flex items-center justify-between hover:bg-amber-200 dark:hover:bg-amber-900 transition-colors"
+        className="w-full min-h-[44px] p-2 mb-2 bg-[var(--mb-surface-2)] border-2 border-black rounded-md font-bold text-sm text-left flex items-center justify-between hover:bg-[var(--mb-surface-3)] transition-colors"
         aria-label="Active clue, tap to toggle direction"
       >
         <span>
-          <strong className="uppercase mr-2">
+          <strong className="uppercase mr-2 text-[var(--mb-violet)]">
             {activeSlot ? `${activeSlot.number} ${direction}:` : `${direction}:`}
           </strong>
           {activeSlot?.clue ?? (t("daily.nutshell.no_clue") ?? "Select a word")}
         </span>
-        <span className="text-xs px-2 py-0.5 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 rounded font-black">
-          {direction.toUpperCase()} ⟲
+        <span className="flex items-center gap-1 text-xs px-2 py-0.5 bg-[var(--mb-accent)] text-[var(--mb-on-accent)] rounded font-black">
+          {direction.toUpperCase()}
+          <SwapIcon className="w-3.5 h-3.5" />
         </span>
       </button>
 
       {/* 5x5 Grid */}
       <div
-        className="grid grid-cols-5 gap-1.5 p-2 bg-slate-900 dark:bg-slate-800 rounded-lg shadow-md border-4 border-slate-900 dark:border-slate-100"
+        className="grid grid-cols-5 gap-1.5 p-2 bg-[var(--mb-surface-3)] rounded-lg shadow-md border-4 border-black"
         role="grid"
         aria-label="Crossword Grid"
       >
@@ -334,17 +353,17 @@ export const Play: React.FC<DailyPlayProps> = ({
               return (
                 <div
                   key={`${r}-${c}`}
-                  className="w-12 h-12 sm:w-14 sm:h-14 bg-slate-950 rounded-sm border border-slate-950"
+                  className="w-12 h-12 sm:w-14 sm:h-14 bg-[var(--mb-ink)] rounded-sm border border-black"
                   role="gridcell"
                 />
               );
             }
 
-            let cellBg = "bg-white dark:bg-slate-900";
+            let cellBg = "bg-[var(--mb-paper)] text-[var(--mb-ink)]";
             if (isSelected) {
-              cellBg = "bg-amber-300 dark:bg-amber-600 font-black";
+              cellBg = "bg-[var(--mb-gold)] text-[var(--mb-on-gold)] font-black";
             } else if (isWordActive) {
-              cellBg = "bg-amber-100 dark:bg-amber-900";
+              cellBg = "bg-[var(--mb-gold)]/30 text-[var(--mb-ink)]";
             }
 
             return (
@@ -352,12 +371,12 @@ export const Play: React.FC<DailyPlayProps> = ({
                 key={`${r}-${c}`}
                 type="button"
                 onClick={() => handleCellClick(r, c)}
-                className={`relative w-12 h-12 sm:w-14 sm:h-14 border-2 border-slate-900 dark:border-slate-100 rounded-sm flex items-center justify-center font-extrabold text-xl sm:text-2xl transition-all ${cellBg}`}
+                className={`relative w-12 h-12 sm:w-14 sm:h-14 border-2 border-black rounded-sm flex items-center justify-center font-extrabold text-xl sm:text-2xl transition-all ${cellBg}`}
                 aria-label={`Row ${r + 1}, Column ${c + 1}, ${cell.letter ?? "empty"}`}
                 role="gridcell"
               >
                 {num !== null && (
-                  <span className="absolute top-0.5 left-1 text-[10px] leading-none font-bold text-slate-700 dark:text-slate-300">
+                  <span className="absolute top-0.5 left-1 text-[10px] leading-none font-black text-[var(--mb-accent-down)]">
                     {num}
                   </span>
                 )}
@@ -365,11 +384,11 @@ export const Play: React.FC<DailyPlayProps> = ({
                   className={
                     cell.checked
                       ? cell.correct
-                        ? "text-emerald-600 dark:text-emerald-400"
-                        : "text-rose-600 dark:text-rose-400 line-through"
+                        ? "text-[var(--mb-accent-2-down)]"
+                        : "text-[var(--mb-danger)] line-through"
                       : cell.revealed
-                      ? "text-blue-600 dark:text-blue-400 font-bold"
-                      : "text-slate-900 dark:text-slate-100"
+                      ? "text-[var(--mb-on-accent)] font-bold"
+                      : ""
                   }
                 >
                   {cell.letter ?? ""}
@@ -435,7 +454,7 @@ export const Play: React.FC<DailyPlayProps> = ({
                   key={key}
                   type="button"
                   onClick={() => handleInputLetter(key)}
-                  className="min-w-[30px] sm:min-w-[36px] min-h-[44px] px-1 bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100 font-bold border-2 border-slate-900 dark:border-slate-100 rounded hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+                  className="min-w-[30px] sm:min-w-[36px] min-h-[44px] px-1 bg-[var(--mb-surface-2)] text-[var(--mb-text)] font-bold border-2 border-black rounded hover:bg-[var(--mb-surface-3)] transition-colors"
                 >
                   {key}
                 </button>
@@ -444,10 +463,10 @@ export const Play: React.FC<DailyPlayProps> = ({
                 <button
                   type="button"
                   onClick={handleBackspace}
-                  className="min-w-[44px] min-h-[44px] px-2 bg-rose-200 dark:bg-rose-900 text-slate-900 dark:text-slate-100 font-bold border-2 border-slate-900 dark:border-slate-100 rounded hover:bg-rose-300 dark:hover:bg-rose-800 transition-colors"
+                  className="min-w-[44px] min-h-[44px] px-2 flex items-center justify-center bg-[var(--mb-danger)]/25 text-[var(--mb-text)] font-bold border-2 border-black rounded hover:bg-[var(--mb-danger)]/40 transition-colors"
                   aria-label="Backspace"
                 >
-                  ⌫
+                  <BackspaceIcon className="w-5 h-5" />
                 </button>
               )}
             </div>

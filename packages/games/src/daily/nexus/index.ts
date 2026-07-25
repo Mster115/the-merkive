@@ -37,8 +37,6 @@ export const en: Record<string, string> = {
   "daily.nexus.submitGrid": "Submit Grid",
   "daily.nexus.solvedTitle": "Puzzle Solved!",
   "daily.nexus.failedTitle": "Puzzle Complete",
-  "daily.nexus.copyShare": "Copy Result",
-  "daily.nexus.copied": "Copied to clipboard!",
   "daily.nexus.scoreLabel": "Score",
   "daily.nexus.selectCellHint": "Select a cell to answer",
   "daily.nexus.cellLocked": "Cell is locked",
@@ -254,15 +252,25 @@ export const nexus = defineDailyGame({
     const dateHeader = `Nexus — ${ctx.puzzleDate}`;
     const scoreLine = `${score}/9`;
 
+    // Spoiler-free "route" grid, Wordle-style: shows which cells landed
+    // correct/incorrect/revealed without ever printing a question or answer.
     const gridRows: string[] = [];
     for (let r = 0; r < 3; r++) {
       let rowStr = "";
       for (let c = 0; c < 3; c++) {
         const cell = cells.find((cell) => cell.row === r && cell.col === c);
-        if (cell && cell.status === "correct") {
-          rowStr += "🟩";
-        } else {
-          rowStr += "⬜";
+        switch (cell?.status) {
+          case "correct":
+            rowStr += "🟩";
+            break;
+          case "incorrect":
+            rowStr += "🟥";
+            break;
+          case "revealed":
+            rowStr += "🟨";
+            break;
+          default:
+            rowStr += "⬜";
         }
       }
       gridRows.push(rowStr);

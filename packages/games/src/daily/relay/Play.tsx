@@ -133,16 +133,16 @@ export function Play({
                       : "bg-[var(--mb-surface-2)] text-[var(--mb-text)]"
                   }`}
                 >
-                  <span className="text-red-500 font-black">{firstChar}</span>
+                  <span className="text-[var(--mb-accent)] font-black">{firstChar}</span>
                   <span>{midChars}</span>
-                  <span className="text-blue-500 font-black">{lastChar}</span>
+                  <span className="text-[var(--mb-gold)] font-black">{lastChar}</span>
                 </div>
               </React.Fragment>
             );
           })}
 
           {!targetReached && (
-            <div className="inline-flex items-center justify-center px-3 py-1.5 rounded border-2 border-dashed border-black font-black text-sm text-[var(--mb-text-muted)] min-h-[44px] min-w-[44px]">
+            <div className="inline-flex items-center justify-center px-3 py-1.5 rounded border-2 border-dashed border-black font-black text-sm text-[var(--mb-text-dim)] min-h-[44px] min-w-[44px]">
               ? ({currentLastChar})
             </div>
           )}
@@ -157,7 +157,7 @@ export function Play({
           </div>
           <div className="text-xs opacity-75">
             {t("daily.relay.nextLetterPrompt") || "Starts with"}:{" "}
-            <span className="font-black text-red-500 text-sm">{currentLastChar}</span>
+            <span className="font-black text-[var(--mb-accent)] text-sm">{currentLastChar}</span>
           </div>
         </div>
 
@@ -174,13 +174,13 @@ export function Play({
                 onClick={() => handleAddWord(w)}
                 className={`flex items-center justify-center px-3 py-2 rounded-md border-2 border-black font-black uppercase text-sm transition-all min-h-[44px] select-none ${
                   isUsed
-                    ? "opacity-30 bg-gray-300 dark:bg-gray-800 line-through cursor-not-allowed border-gray-400"
+                    ? "opacity-30 bg-[var(--mb-surface-3)] line-through cursor-not-allowed border-[var(--mb-outline)]"
                     : links
                     ? "bg-[var(--mb-surface)] hover:bg-[var(--mb-surface-3)] shadow-[2px_2px_0_0_#000] active:translate-x-0.5 active:translate-y-0.5"
                     : "bg-[var(--mb-surface)] opacity-70 hover:opacity-100 shadow-[2px_2px_0_0_#000]"
                 }`}
               >
-                <span className="text-red-500">{w.charAt(0)}</span>
+                <span className="text-[var(--mb-accent)]">{w.charAt(0)}</span>
                 <span>{w.slice(1)}</span>
               </button>
             );

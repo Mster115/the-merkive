@@ -5,15 +5,27 @@ import { useT } from "@/i18n";
 
 export interface ShareCardProps {
   shareText: string;
+  gameId: string;
 }
 
-export function ShareCard({ shareText }: ShareCardProps) {
+export function ShareCard({ shareText, gameId }: ShareCardProps) {
   const t = useT();
   const [copied, setCopied] = React.useState(false);
 
+  // Every result doubles as an invite: the link is appended here, client-side,
+  // rather than inside the game's pure summarize() (which also runs
+  // server-side and has no window/origin to read).
+  const [origin, setOrigin] = React.useState("");
+  React.useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
+
+  const playUrl = origin ? `${origin}/daily/${gameId}` : `/daily/${gameId}`;
+  const fullText = `${shareText}\n\n${t("daily.share.playCta")}: ${playUrl}`;
+
   async function handleCopy() {
     try {
-      await navigator.clipboard.writeText(shareText);
+      await navigator.clipboard.writeText(fullText);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -27,7 +39,7 @@ export function ShareCard({ shareText }: ShareCardProps) {
         {t("daily.share.title")}
       </h3>
       <pre className="whitespace-pre-wrap font-mono text-sm bg-black text-[var(--mb-accent-2)] p-3 rounded border-2 border-black">
-        {shareText}
+        {fullText}
       </pre>
       <Button
         variant="primary"
