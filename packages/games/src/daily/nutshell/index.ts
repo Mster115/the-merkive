@@ -18,6 +18,7 @@ import type {
   WordCandidate,
 } from "./types";
 import { solveGrid } from "./grid-solver";
+import { generatePrompt } from "./prompt";
 import { Play } from "./ui";
 
 function getSolutionLetter(
@@ -67,15 +68,7 @@ export const nutshell: DailyGameModule = defineDailyGame({
     },
   },
 
-  generatePrompt(puzzleDate: string): string {
-    return `Generate a pool of 15-25 candidate 3, 4, or 5-letter word and clue pairs for a daily 5x5 mini crossword puzzle for date ${puzzleDate}.
-Each candidate must be formatted as a JSON object with "word" (uppercase A-Z, 3-5 letters) and "clue" (original text).
-Instruct:
-- No obscure proper nouns or niche trivia requiring specific knowledge.
-- No copyrighted phrases.
-- Clues must be original text, favor wordplay and clear definitions.
-- Words should contain common English letters that can interlock easily in a 5x5 grid.`;
-  },
+  generatePrompt,
 
   validatePack(
     raw: unknown,

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "pnpm --filter @merky/web dev",
     "build": "pnpm --filter @merky/web build",
+    "daily": "node scripts/daily-content.mjs",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck"
   },
