@@ -27,6 +27,22 @@ export class MemoryDailyStore implements DailyStore {
     }
   }
 
+  async getDevice(id: string): Promise<DailyDeviceRow | null> {
+    return this.devices.get(id) ?? null;
+  }
+
+  async setRecoveryCode(deviceId: string, code: string): Promise<void> {
+    const device = this.devices.get(deviceId);
+    if (device) device.recovery_code = code;
+  }
+
+  async findDeviceByRecoveryCode(code: string): Promise<DailyDeviceRow | null> {
+    for (const device of this.devices.values()) {
+      if (device.recovery_code === code) return device;
+    }
+    return null;
+  }
+
   async getPuzzle(gameId: string, puzzleDate: string): Promise<DailyPuzzleRow | null> {
     for (const p of this.puzzles.values()) {
       if (p.game_id === gameId && p.puzzle_date === puzzleDate && p.status === "queued") {

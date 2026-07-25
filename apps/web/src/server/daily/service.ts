@@ -13,6 +13,35 @@ import { getDailyStore } from "./store";
 import { localDateFor, msUntilLocalRollover } from "./timezone";
 import { computeStreaks } from "./streaks";
 
+/**
+ * The timezone a device's "today" should be computed in.
+ *
+ * `x-mb-tz` reports wherever the device is right now, so travelling rewrites
+ * the local date mid-day. Moving west can push it *backwards*, re-serving a
+ * puzzle the device already played and letting the same day be scored twice.
+ *
+ * The stored zone therefore wins unless the incoming one does not rewind the
+ * local date: travelling forward is adopted immediately, travelling back waits
+ * until the new zone catches up. Devices with no row yet take the header.
+ */
+export async function effectiveTimezone(
+  deviceId: string,
+  requestTimezone: string,
+  /** Injectable so the comparison can be pinned; any two zones share a local
+   *  date for part of every day, which would otherwise make this untestable. */
+  nowMs: number = Date.now()
+): Promise<string> {
+  const device = await getDailyStore().getDevice(deviceId);
+  if (!device) return requestTimezone;
+
+  const stored = device.timezone;
+  if (stored === requestTimezone) return stored;
+
+  return localDateFor(requestTimezone, nowMs) >= localDateFor(stored, nowMs)
+    ? requestTimezone
+    : stored;
+}
+
 export function listGames() {
   return dailyGameList.map((g) => g.meta);
 }
@@ -29,7 +58,8 @@ export async function getOrCreateAttempt(
     throw new ServiceError("game_unknown", `Unknown daily game: ${gameId}`, 404);
   }
 
-  const today = localDateFor(timezone);
+  const tz = await effectiveTimezone(deviceId, timezone);
+  const today = localDateFor(tz);
   if (puzzleDate > today) {
     throw new ServiceError("future_puzzle", "Cannot access a future puzzle.", 400);
   }
@@ -39,7 +69,7 @@ export async function getOrCreateAttempt(
     throw new ServiceError("no_puzzle_today", `No puzzle found for date: ${puzzleDate}`, 404);
   }
 
-  await store.upsertDevice(deviceId, timezone);
+  await store.upsertDevice(deviceId, tz);
 
   let attempt = await store.getAttempt(deviceId, puzzle.id);
   if (!attempt) {
@@ -119,8 +149,9 @@ export async function getTodayOrCreateAttempt(
   deviceId: string,
   timezone: string
 ) {
-  const today = localDateFor(timezone);
-  return getOrCreateAttempt(gameId, today, deviceId, timezone);
+  const tz = await effectiveTimezone(deviceId, timezone);
+  const today = localDateFor(tz);
+  return getOrCreateAttempt(gameId, today, deviceId, tz);
 }
 
 export async function applyAction(
@@ -136,7 +167,8 @@ export async function applyAction(
     throw new ServiceError("game_unknown", `Unknown daily game: ${gameId}`, 404);
   }
 
-  const today = localDateFor(timezone);
+  const tz = await effectiveTimezone(deviceId, timezone);
+  const today = localDateFor(tz);
   if (puzzleDate > today) {
     throw new ServiceError("future_puzzle", "Cannot apply action to a future puzzle.", 400);
   }
@@ -201,7 +233,7 @@ export async function applyAction(
     // falls on puzzleDate itself in the device's own timezone. An archive
     // puzzle solved later is still recorded (and counts toward totalSolved)
     // but must never patch a gap in current/longest — see streaks.ts.
-    attempt.on_time = localDateFor(timezone, Date.now()) === puzzleDate;
+    attempt.on_time = localDateFor(tz, Date.now()) === puzzleDate;
   }
 
   await store.upsertAttempt(attempt);
@@ -225,7 +257,8 @@ export async function getArchive(
   limit = 30
 ) {
   const store = getDailyStore();
-  const beforeDate = before || localDateFor(timezone);
+  const tz = await effectiveTimezone(deviceId, timezone);
+  const beforeDate = before || localDateFor(tz);
   const puzzles = await store.listArchivePuzzles(gameId, beforeDate, limit);
 
   const results = await Promise.all(
@@ -246,7 +279,8 @@ export async function getArchive(
 
 export async function getHistory(gameId: string, deviceId: string, timezone: string) {
   const store = getDailyStore();
-  const today = localDateFor(timezone);
+  const tz = await effectiveTimezone(deviceId, timezone);
+  const today = localDateFor(tz);
   const rows = await store.listAttemptsForStreak(deviceId, gameId, 365);
   const streaks = computeStreaks(rows, today);
 
@@ -282,7 +316,8 @@ export interface DailyGameSummary {
  */
 export async function getSummary(deviceId: string, timezone: string) {
   const store = getDailyStore();
-  const today = localDateFor(timezone);
+  const tz = await effectiveTimezone(deviceId, timezone);
+  const today = localDateFor(tz);
 
   const games: DailyGameSummary[] = await Promise.all(
     dailyGameList.map(async (game) => {
@@ -313,9 +348,76 @@ export async function getSummary(deviceId: string, timezone: string) {
 
   return {
     today,
-    msUntilRollover: msUntilLocalRollover(timezone),
+    msUntilRollover: msUntilLocalRollover(tz),
     games,
   };
+}
+
+/**
+ * Crockford-style alphabet: no I, L, O or U, so a code read off one screen and
+ * typed into another cannot be garbled by 1/I, 0/O, or spelled into a word.
+ */
+const RECOVERY_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+const RECOVERY_GROUPS = 4;
+const RECOVERY_GROUP_LEN = 4;
+
+function generateRecoveryCode(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(RECOVERY_GROUPS * RECOVERY_GROUP_LEN));
+  const chars = Array.from(bytes, (b) => RECOVERY_ALPHABET[b % RECOVERY_ALPHABET.length]);
+  const groups: string[] = [];
+  for (let i = 0; i < RECOVERY_GROUPS; i++) {
+    groups.push(chars.slice(i * RECOVERY_GROUP_LEN, (i + 1) * RECOVERY_GROUP_LEN).join(""));
+  }
+  return groups.join("-");
+}
+
+/** Accepts a code however it was typed: any case, with or without dashes. */
+export function normalizeRecoveryCode(raw: string): string {
+  const cleaned = raw.toUpperCase().replace(/[^0-9A-Z]/g, "");
+  const groups: string[] = [];
+  for (let i = 0; i < cleaned.length; i += RECOVERY_GROUP_LEN) {
+    groups.push(cleaned.slice(i, i + RECOVERY_GROUP_LEN));
+  }
+  return groups.join("-");
+}
+
+/**
+ * This device's recovery code, generated on first request and stable after.
+ * Clearing cookies or switching device otherwise loses all history — the code
+ * is the only way back to it, so it is issued lazily rather than to every
+ * visitor who never asks.
+ */
+export async function getOrCreateRecoveryCode(deviceId: string, timezone: string) {
+  const store = getDailyStore();
+  await store.upsertDevice(deviceId, await effectiveTimezone(deviceId, timezone));
+
+  const device = await store.getDevice(deviceId);
+  if (device?.recovery_code) return { code: device.recovery_code };
+
+  const code = generateRecoveryCode();
+  await store.setRecoveryCode(deviceId, code);
+  return { code };
+}
+
+/**
+ * Resolves a recovery code to the device that owns it. The caller adopts that
+ * id as its own cookie, so both browsers then share one history — that is the
+ * point, and why the code is a bearer credential worth ~80 bits.
+ *
+ * Deliberately not single-use: someone restoring onto a third device (or
+ * retyping after a typo) must not be locked out by their own first attempt.
+ */
+export async function redeemRecoveryCode(code: string) {
+  const normalized = normalizeRecoveryCode(code);
+  if (!normalized) {
+    throw new ServiceError("invalid_code", "Enter a recovery code.", 400);
+  }
+
+  const device = await getDailyStore().findDeviceByRecoveryCode(normalized);
+  if (!device) {
+    throw new ServiceError("unknown_code", "That recovery code does not match a device.", 404);
+  }
+  return { deviceId: device.id };
 }
 
 // --- Admin Services ---
