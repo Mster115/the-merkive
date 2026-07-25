@@ -20,6 +20,7 @@ import type {
 import { solveGrid } from "./grid-solver";
 import { generatePrompt } from "./prompt";
 import { Play } from "./ui";
+import { HowToPlay } from "./HowToPlay";
 
 function getSolutionLetter(
   payload: NutshellPayload,
@@ -65,6 +66,27 @@ export const nutshell: DailyGameModule = defineDailyGame({
       "daily.nutshell.reveals_used": "Reveals: {count}",
       "daily.nutshell.incomplete_error": "Grid is incomplete or incorrect.",
       "daily.nutshell.invalid_cell_error": "Invalid cell selection.",
+      "daily.nutshell.howto.goal":
+        "Fill the 5×5 grid so every across and down clue reads correctly.",
+      "daily.nutshell.howto.step1":
+        "Tap a square to select its word. Tap the same square again to switch between the across word and the down word it belongs to.",
+      "daily.nutshell.howto.step2":
+        "Type letters with your keyboard, or use the on-screen one. Every square is shared by two words, so filling one clue gives you letters in the other.",
+      "daily.nutshell.howto.step3":
+        "Check Cell and Check All mark what you have so far. Reveal Cell fills a square for you. Both are counted in your result.",
+      "daily.nutshell.howto.note":
+        "Hit Submit when the grid is full — the puzzle only ends when you say so.",
+      "daily.nutshell.howto.keysTitle": "Keyboard",
+      "daily.nutshell.howto.keySpace": "switch between across and down",
+      "daily.nutshell.howto.keyArrows": "move around the grid",
+      "daily.nutshell.howto.keyBackspace": "clear the current square",
+      "daily.nutshell.howto.legendAcross": "Across word",
+      "daily.nutshell.howto.legendDown": "Down word",
+      "daily.nutshell.howto.legendCross": "Shared square",
+      "daily.nutshell.howto.diagramCaption":
+        "The shared square belongs to both — tap it twice to swap clues",
+      "daily.nutshell.howto.diagramAlt":
+        "A grid where one horizontal word and one vertical word cross. The square where they meet belongs to both clues.",
     },
   },
 
@@ -484,5 +506,6 @@ export const nutshell: DailyGameModule = defineDailyGame({
 
   ui: {
     Play,
+    HowToPlay,
   },
 });

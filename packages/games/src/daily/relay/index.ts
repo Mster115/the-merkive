@@ -13,6 +13,7 @@ import { isDailyReduceError } from "../types";
 import type { RelayPayload, RelayPublicState } from "./types";
 import { findValidChain } from "./solver";
 import { Play } from "./Play";
+import { HowToPlay } from "./HowToPlay";
 
 export const relay = defineDailyGame({
   meta: {
@@ -44,6 +45,19 @@ export const relay = defineDailyGame({
       "daily.relay.ariaRemoved": "Removed last word.",
       "daily.relay.ariaSolved": "Puzzle solved!",
       "daily.relay.ariaFailed": "Puzzle failed.",
+      "daily.relay.howto.goal":
+        "Get from the start word to the target word, one word at a time.",
+      "daily.relay.howto.step1":
+        "Each word must begin with the letter the word before it ended on. The first and last letters are marked for you.",
+      "daily.relay.howto.step2":
+        "Tap words from the bank to add them to your chain. Undo takes the last one back — you can change your mind as often as you like.",
+      "daily.relay.howto.step3":
+        "Land on the target word, then hit Submit Chain. Fewer moves is a better score.",
+      "daily.relay.howto.note":
+        "You will not need every word in the bank — some are there to tempt you.",
+      "daily.relay.howto.diagramCaption": "ends in S → starts with S",
+      "daily.relay.howto.diagramAlt":
+        "CIRCUS links to SUNSET because CIRCUS ends in S and SUNSET starts with S; SUNSET then links to TANGO through the letter T.",
     },
   },
 
@@ -344,5 +358,6 @@ export const relay = defineDailyGame({
 
   ui: {
     Play,
+    HowToPlay,
   },
 });

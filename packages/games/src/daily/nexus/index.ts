@@ -16,6 +16,7 @@ import type {
 } from "./types";
 import { generatePrompt, normalizeAnswer, validatePack } from "./utils";
 import { NexusPlay } from "./ui";
+import { HowToPlay } from "./HowToPlay";
 
 export const nexusMeta: DailyGameMeta = {
   id: "nexus",
@@ -41,6 +42,23 @@ export const en: Record<string, string> = {
   "daily.nexus.selectCellHint": "Select a cell to answer",
   "daily.nexus.cellLocked": "Cell is locked",
   "daily.nexus.answerWas": "Answer:",
+  "daily.nexus.howto.goal":
+    "Nine questions, each sitting where a row category crosses a column category.",
+  "daily.nexus.howto.step1":
+    "Tap a square to open its question. The answer has to satisfy both of its categories at once.",
+  "daily.nexus.howto.step2":
+    "Type your answer and submit it. Spelling is forgiving, and common alternative names are accepted.",
+  "daily.nexus.howto.step3":
+    "Once all nine squares are resolved, submit the grid to lock in your score.",
+  "daily.nexus.howto.note":
+    "Stuck on one? Reveal shows you the answer, but that square scores nothing.",
+  "daily.nexus.howto.colA": "Symbols",
+  "daily.nexus.howto.colB": "Firsts",
+  "daily.nexus.howto.rowA": "Astronomy",
+  "daily.nexus.howto.rowB": "Chemistry",
+  "daily.nexus.howto.diagramCaption": "Astronomy × Symbols → one question",
+  "daily.nexus.howto.diagramAlt":
+    "A grid with Astronomy and Chemistry as row categories and Symbols and Firsts as column categories. The highlighted square is where Astronomy meets Symbols.",
 };
 
 export const nexus = defineDailyGame({
@@ -296,5 +314,6 @@ export const nexus = defineDailyGame({
 
   ui: {
     Play: NexusPlay,
+    HowToPlay,
   },
 });

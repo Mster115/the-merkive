@@ -23,8 +23,16 @@ export class MemoryDailyStore implements DailyStore {
         created_at: now,
         last_seen_at: now,
         recovery_code: null,
+        seen_howto: [],
       });
     }
+  }
+
+  async markHowToSeen(deviceId: string, gameId: string): Promise<void> {
+    const device = this.devices.get(deviceId);
+    if (!device) return;
+    const seen = device.seen_howto ?? [];
+    if (!seen.includes(gameId)) device.seen_howto = [...seen, gameId];
   }
 
   async getDevice(id: string): Promise<DailyDeviceRow | null> {

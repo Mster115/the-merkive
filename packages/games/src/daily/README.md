@@ -20,6 +20,33 @@ Defined in `packages/games/src/daily/types.ts`:
 - `reduce(ctx, state, action)`: Pure function validating and applying a player action to produce a new state (`DailyReduceResult`) or rejection (`DailyReduceError`).
 - `summarize(ctx, state)`: Pure function deriving final `DailySummary` (status, spoiler-free emoji share text, stats) from state. Used both server-side on puzzle completion and client-side for instant share card rendering.
 - `ui.Play`: React component rendering the puzzle controller UI.
+- `ui.HowToPlay` *(optional but expected)*: React component taking `{ t }` and
+  rendering the game's rules. See below.
+
+## How to play
+
+Every daily game should implement `ui.HowToPlay`. A playtester abandoned Relay
+with "I'm not entirely sure what to do" — a solo game has no host to explain
+itself and no other players to copy, so the rules have to be in the game.
+
+`DailyPlayShell` handles the plumbing: it renders a persistent **How to play**
+button in the header whenever the game provides the component, and auto-opens
+the modal the first time a device opens that game. "First time" is tracked
+server-side in `daily_devices.seen_howto` (migration `0002`), not in browser
+storage, so it travels with a player's recovery code instead of re-teaching
+them the game on every new device. The flag rides along on the puzzle response
+as `howToSeen`; closing the modal POSTs to `/api/daily/<gameId>/howto-seen`,
+which is idempotent and fire-and-forget.
+
+What to put in one, in order: a one-line goal, a diagram of whatever is *not*
+obvious from looking at the board, then three numbered steps. Diagrams are
+inline SVG using `var(--mb-*)` tokens so they follow the theme, and they carry
+an `aria-label` describing what they show — the diagram usually *is* the
+explanation, so a screen reader must get the same content. Keep every string
+behind `t("daily.<id>.howto.*")`.
+
+Do not document behaviour before it ships. Nutshell's keyboard section lists
+only the keys the game actually binds today.
 
 ## Determinism
 

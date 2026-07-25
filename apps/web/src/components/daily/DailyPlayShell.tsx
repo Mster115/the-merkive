@@ -3,7 +3,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getDailyGame } from "@merky/games/daily";
-import { Button, Card } from "@merky/ui";
+import { Button, Card, Modal, QuestionIcon } from "@merky/ui";
 import { useT } from "@/i18n";
 import { ensureDailyDevice } from "@/client/dailyDevice";
 import { ShareCard } from "./ShareCard";
@@ -31,6 +31,7 @@ export function DailyPlayShell({ gameId, explicitDate }: DailyPlayShellProps) {
   const [status, setStatus] = React.useState<string>("in_progress");
   const [shareText, setShareText] = React.useState<string | null>(null);
   const [now, setNow] = React.useState(() => Date.now());
+  const [howToOpen, setHowToOpen] = React.useState(false);
 
   React.useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 500);
@@ -64,6 +65,10 @@ export function DailyPlayShell({ gameId, explicitDate }: DailyPlayShellProps) {
       setAttemptOver(Boolean(data.attemptOver));
       setStatus(data.status ?? "in_progress");
       setShareText(data.shareText ?? null);
+      // Auto-open on a device's first visit to this game. `howToSeen` rides
+      // along on the puzzle response so there is no second round-trip and no
+      // flash of the board for a returning player.
+      if (!data.howToSeen) setHowToOpen(true);
     } catch {
       setError(t("error.internal"));
     } finally {
@@ -74,6 +79,13 @@ export function DailyPlayShell({ gameId, explicitDate }: DailyPlayShellProps) {
   React.useEffect(() => {
     void loadPuzzle();
   }, [loadPuzzle]);
+
+  const closeHowTo = React.useCallback(() => {
+    setHowToOpen(false);
+    // Fire-and-forget: this is a preference, not puzzle state. If it fails the
+    // worst outcome is the modal greeting the player once more.
+    void fetch(`/api/daily/${gameId}/howto-seen`, { method: "POST" }).catch(() => {});
+  }, [gameId]);
 
   const act = React.useCallback(
     async (type: string, payload?: unknown) => {
@@ -133,6 +145,7 @@ export function DailyPlayShell({ gameId, explicitDate }: DailyPlayShellProps) {
   }
 
   const PlayComponent = game.ui.Play;
+  const HowToPlay = game.ui.HowToPlay;
 
   // No Ticker on this screen: the marquee is a lobby affordance that gives
   // context before you commit to a puzzle. Mid-game it competes with the board
@@ -159,13 +172,46 @@ export function DailyPlayShell({ gameId, explicitDate }: DailyPlayShellProps) {
             </p>
           )}
         </div>
-        <Link href="/daily" className="shrink-0">
-          <Button variant="secondary" size="sm" aria-label={t("daily.back.hub")}>
-            <span className="sm:hidden">{t("daily.back.hub.short")}</span>
-            <span className="hidden sm:inline">{t("daily.back.hub")}</span>
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Always available, not just on first launch: the playtest note was
+              "I'm not entirely sure what to do", and that lands mid-game as
+              often as it does on arrival. */}
+          {HowToPlay && (
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label={t("daily.howto.open")}
+              onClick={() => setHowToOpen(true)}
+            >
+              <QuestionIcon className="w-4 h-4" />
+              <span className="hidden sm:inline">{t("daily.howto.open")}</span>
+            </Button>
+          )}
+          <Link href="/daily">
+            <Button variant="secondary" size="sm" aria-label={t("daily.back.hub")}>
+              <span className="sm:hidden">{t("daily.back.hub.short")}</span>
+              <span className="hidden sm:inline">{t("daily.back.hub")}</span>
+            </Button>
+          </Link>
+        </div>
       </header>
+
+      {HowToPlay && (
+        <Modal
+          open={howToOpen}
+          onClose={closeHowTo}
+          title={t("daily.howto.title", { game: t(game.meta.nameKey) })}
+          closeLabel={t("daily.howto.close")}
+          className="max-w-lg"
+        >
+          <div className="flex flex-col gap-4">
+            <HowToPlay t={t} />
+            <Button variant="primary" block onClick={closeHowTo}>
+              {t("daily.howto.start")}
+            </Button>
+          </div>
+        </Modal>
+      )}
 
       {loading ? (
         <Card raised className="p-8 text-center text-lg font-bold">

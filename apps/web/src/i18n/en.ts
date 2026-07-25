@@ -194,4 +194,8 @@ export const en: Record<string, string> = {
   // the screen at 375px and crowd out the title beside them (DESIGN.md §7b).
   "daily.back.home.short": "Home",
   "daily.back.hub.short": "Daily",
+  "daily.howto.open": "How to play",
+  "daily.howto.title": "How to play {game}",
+  "daily.howto.close": "Close how to play",
+  "daily.howto.start": "Got it — let's play",
 };
