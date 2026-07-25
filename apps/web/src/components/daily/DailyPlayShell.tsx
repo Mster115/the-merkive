@@ -140,10 +140,15 @@ export function DailyPlayShell({ gameId, explicitDate }: DailyPlayShellProps) {
   // viewports. Multiplayer already draws this line — StageApp renders the
   // Ticker in StageLobby only, never in the in-game Stage branch.
   return (
-    <main className="mx-auto max-w-2xl min-h-dvh flex flex-col gap-6 p-4 sm:p-6 pb-10">
-      <header className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black uppercase text-[var(--mb-text)] [font-family:var(--mb-font-display)]">
+    // This shell owns the responsive column for every daily game (DESIGN.md
+    // §7a) — games render `w-full` inside it rather than centering themselves,
+    // so a desktop player doesn't get a phone-width strip of phone-sized type.
+    <main className="mx-auto w-full max-w-xl sm:max-w-2xl lg:max-w-4xl min-h-dvh flex flex-col gap-6 p-4 sm:p-6 pb-10">
+      <header className="flex items-center justify-between gap-3 sm:gap-4">
+        {/* min-w-0 so a long game name absorbs the pressure instead of
+            shoving the button out of the row — DESIGN.md §7b. */}
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-black uppercase text-[var(--mb-text)] [font-family:var(--mb-font-display)]">
             {t(game.meta.nameKey)}
           </h1>
           {puzzleDate && (
@@ -154,9 +159,10 @@ export function DailyPlayShell({ gameId, explicitDate }: DailyPlayShellProps) {
             </p>
           )}
         </div>
-        <Link href="/daily">
-          <Button variant="secondary" size="sm">
-            {t("daily.back.hub")}
+        <Link href="/daily" className="shrink-0">
+          <Button variant="secondary" size="sm" aria-label={t("daily.back.hub")}>
+            <span className="sm:hidden">{t("daily.back.hub.short")}</span>
+            <span className="hidden sm:inline">{t("daily.back.hub")}</span>
           </Button>
         </Link>
       </header>

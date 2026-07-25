@@ -92,7 +92,9 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
     : `Phase: ${phase}. Current score: ${state.score} of 9.`;
 
   return (
-    <div className="w-full max-w-md mx-auto p-3 sm:p-4 space-y-4 text-[var(--mb-text)]">
+    // No max-width here: DailyPlayShell owns the responsive column (DESIGN.md
+    // §7a). Pinning this to max-w-md kept desktop players in a phone strip.
+    <div className="w-full space-y-4 text-[var(--mb-text)]">
       {/* Live Region for Screen Readers */}
       <div className="sr-only" aria-live="polite">
         {announceText}
@@ -120,18 +122,26 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
 
       {/* 3x3 Trivia Matrix Grid */}
       <Card className="p-2 sm:p-3 bg-[var(--mb-surface-2)] border-[3px] border-black shadow-[var(--mb-shadow-lg)]">
+        {/* Labels and questions grow with the viewport instead of clamping
+            harder: at 375px they stay small, but a tablet or desktop player
+            gets type they can actually read. Category names carry a `title`
+            because they are the one place a clamp can still bite. */}
         <div className="grid grid-cols-4 gap-1.5 sm:gap-2 text-center">
           {/* Top-Left Corner */}
-          <div className="flex items-center justify-center p-1 bg-[var(--mb-surface-3)] border border-black rounded text-[10px] sm:text-xs font-black uppercase text-[var(--mb-text-dim)]">
+          <div className="flex items-center justify-center p-1 bg-[var(--mb-surface-3)] border border-black rounded text-[10px] sm:text-xs lg:text-sm font-black uppercase text-[var(--mb-text-dim)]">
             3x3
           </div>
           {/* Column Labels */}
           {state.colLabels.map((colLabel, colIdx) => (
             <div
               key={`col-hdr-${colIdx}`}
-              className="p-1 sm:p-1.5 bg-[var(--mb-surface-3)] border border-black rounded text-[10px] sm:text-xs font-extrabold uppercase text-[var(--mb-violet)] flex items-center justify-center min-h-[36px] line-clamp-2 leading-tight"
+              title={colLabel}
+              className="min-w-0 p-1 sm:p-1.5 bg-[var(--mb-surface-3)] border border-black rounded text-[10px] sm:text-sm lg:text-base font-extrabold uppercase text-[var(--mb-violet)] flex items-center justify-center min-h-[40px] sm:min-h-[48px] leading-tight"
             >
-              {colLabel}
+              {/* w-full, not a bare text node: an anonymous flex item sizes to
+                  max-content, so `break-words` never gets a narrower line box
+                  to break against and "SUPERLATIVES" just clipped. */}
+              <span className="w-full break-words">{colLabel}</span>
             </div>
           ))}
 
@@ -139,8 +149,11 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
           {[0, 1, 2].map((rowIdx) => (
             <React.Fragment key={`row-${rowIdx}`}>
               {/* Row Label */}
-              <div className="p-1 sm:p-1.5 bg-[var(--mb-surface-3)] border border-black rounded text-[10px] sm:text-xs font-extrabold uppercase text-[var(--mb-violet)] flex items-center justify-center min-h-[50px] line-clamp-2 leading-tight">
-                {state.rowLabels[rowIdx]}
+              <div
+                title={state.rowLabels[rowIdx]}
+                className="min-w-0 p-1 sm:p-1.5 bg-[var(--mb-surface-3)] border border-black rounded text-[10px] sm:text-sm lg:text-base font-extrabold uppercase text-[var(--mb-violet)] flex items-center justify-center min-h-[56px] sm:min-h-[72px] leading-tight"
+              >
+                <span className="w-full break-words">{state.rowLabels[rowIdx]}</span>
               </div>
 
               {/* Row Cells */}
@@ -171,16 +184,20 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
                     key={`cell-${rowIdx}-${colIdx}`}
                     type="button"
                     onClick={() => setSelectedCoords({ row: rowIdx, col: colIdx })}
-                    className={`min-h-[50px] sm:min-h-[56px] w-full border-2 border-black rounded-md p-1 flex flex-col items-center justify-between transition-all focus:outline-none focus:ring-2 focus:ring-[var(--mb-accent)] ${cellBg} ${
+                    className={`min-w-0 min-h-[56px] sm:min-h-[72px] lg:min-h-[88px] w-full border-2 border-black rounded-md p-1 sm:p-1.5 flex flex-col items-center justify-between gap-1 transition-all focus:outline-none focus:ring-2 focus:ring-[var(--mb-accent)] ${cellBg} ${
                       isSelected ? "ring-4 ring-[var(--mb-accent)] scale-[1.02]" : ""
                     }`}
                     aria-label={`Row ${rowIdx + 1} Col ${colIdx + 1}: ${cell?.status}`}
                   >
-                    <span className="text-[10px] sm:text-xs font-bold leading-tight line-clamp-2 w-full text-center">
+                    {/* The clamp stays — a full question cannot fit a grid cell
+                        — but it now breaks at a word boundary and gets more
+                        room to work with as the viewport grows. The full text
+                        is always readable in the panel below. */}
+                    <span className="text-[11px] sm:text-xs lg:text-sm font-bold leading-tight line-clamp-2 lg:line-clamp-3 w-full text-center break-words">
                       {cell?.question}
                     </span>
                     <span className="self-end">
-                      <StatusBadge className="w-3.5 h-3.5" />
+                      <StatusBadge className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
                     </span>
                   </button>
                 );
@@ -231,12 +248,16 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
           {/* Answer Input and Action Buttons if Unanswered */}
           {selectedCell.status === "unanswered" && !isGameOver && (
             <div className="space-y-2 pt-1">
+              {/* Stacked at phone width, side-by-side from sm. A single row
+                  here gave the input `flex-1` and squeezed the button below
+                  its label width, so "Submit Answer" painted outside its own
+                  border as a clipped "UBMI/NSWE". See DESIGN.md §7b. */}
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
                   void handleAnswer();
                 }}
-                className="flex gap-2"
+                className="flex flex-col sm:flex-row gap-2"
               >
                 <input
                   type="text"
@@ -244,14 +265,14 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
                   onChange={(e) => setGuessText(e.target.value)}
                   placeholder={t("daily.nexus.guessPlaceholder")}
                   disabled={isSubmitting}
-                  className="flex-1 px-3 py-2 text-sm bg-[var(--mb-surface-2)] border-2 border-black rounded text-[var(--mb-text)] focus:outline-none focus:ring-2 focus:ring-[var(--mb-accent)] placeholder:text-[var(--mb-text-dim)] min-h-[44px]"
+                  className="w-full sm:flex-1 sm:min-w-0 px-3 py-2 text-base bg-[var(--mb-surface-2)] border-2 border-black rounded text-[var(--mb-text)] focus:outline-none focus:ring-2 focus:ring-[var(--mb-accent)] placeholder:text-[var(--mb-text-dim)] min-h-[44px]"
                 />
                 <Button
                   variant="primary"
                   size="md"
                   type="submit"
                   disabled={isSubmitting || !guessText.trim()}
-                  className="min-h-[44px] px-4 font-bold"
+                  className="w-full sm:w-auto min-h-[44px] px-4 font-bold"
                 >
                   {t("daily.nexus.submitGuess")}
                 </Button>

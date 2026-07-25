@@ -273,7 +273,10 @@ export const Play: React.FC<DailyPlayProps> = ({
   ];
 
   return (
-    <div className="flex flex-col items-center justify-between w-full max-w-md mx-auto p-2 min-h-[500px] select-none text-[var(--mb-text)]">
+    // A crossword is square, so unlike Nexus and Relay this one keeps a cap —
+    // but it is a cap on the *board*, not on the page, and it rises with the
+    // viewport rather than freezing at phone width. See DESIGN.md §7a.
+    <div className="flex flex-col items-center justify-between w-full max-w-md lg:max-w-xl mx-auto p-2 min-h-[500px] select-none text-[var(--mb-text)]">
       {/* Screen Reader Announcements */}
       <div aria-live="polite" className="sr-only">
         {statusMessage}
@@ -283,17 +286,19 @@ export const Play: React.FC<DailyPlayProps> = ({
 
       {/* Header & Status */}
       <Card className="w-full mb-2 p-3 bg-[var(--mb-surface)] border-2 border-black shadow-[var(--mb-shadow)]">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-black uppercase tracking-wider text-[var(--mb-violet)]">
+        {/* Wraps at the 320px floor instead of letting the counters collide
+            with the title — DESIGN.md §7b. */}
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+          <h2 className="text-lg sm:text-xl font-black uppercase tracking-wider text-[var(--mb-violet)]">
             {t("daily.nutshell.name")}
           </h2>
           <div className="text-xs font-bold flex gap-3 text-[var(--mb-text-dim)]">
-            <span className="flex items-center gap-1">
-              <SearchIcon className="w-3.5 h-3.5" />
+            <span className="flex items-center gap-1 whitespace-nowrap">
+              <SearchIcon className="w-3.5 h-3.5 shrink-0" />
               {t("daily.nutshell.checks_used", { count: checksUsed }) ?? `Checks: ${checksUsed}`}
             </span>
-            <span className="flex items-center gap-1">
-              <LightbulbIcon className="w-3.5 h-3.5" />
+            <span className="flex items-center gap-1 whitespace-nowrap">
+              <LightbulbIcon className="w-3.5 h-3.5 shrink-0" />
               {t("daily.nutshell.reveals_used", { count: revealsUsed }) ?? `Reveals: ${revealsUsed}`}
             </span>
           </div>
@@ -353,7 +358,7 @@ export const Play: React.FC<DailyPlayProps> = ({
               return (
                 <div
                   key={`${r}-${c}`}
-                  className="w-12 h-12 sm:w-14 sm:h-14 bg-[var(--mb-ink)] rounded-sm border border-black"
+                  className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 bg-[var(--mb-ink)] rounded-sm border border-black"
                   role="gridcell"
                 />
               );
@@ -371,7 +376,7 @@ export const Play: React.FC<DailyPlayProps> = ({
                 key={`${r}-${c}`}
                 type="button"
                 onClick={() => handleCellClick(r, c)}
-                className={`relative w-12 h-12 sm:w-14 sm:h-14 border-2 border-black rounded-sm flex items-center justify-center font-extrabold text-xl sm:text-2xl transition-all ${cellBg}`}
+                className={`relative w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 border-2 border-black rounded-sm flex items-center justify-center font-extrabold text-xl sm:text-2xl lg:text-3xl transition-all ${cellBg}`}
                 aria-label={`Row ${r + 1}, Column ${c + 1}, ${cell.letter ?? "empty"}`}
                 role="gridcell"
               >
@@ -454,7 +459,7 @@ export const Play: React.FC<DailyPlayProps> = ({
                   key={key}
                   type="button"
                   onClick={() => handleInputLetter(key)}
-                  className="min-w-[30px] sm:min-w-[36px] min-h-[44px] px-1 bg-[var(--mb-surface-2)] text-[var(--mb-text)] font-bold border-2 border-black rounded hover:bg-[var(--mb-surface-3)] transition-colors"
+                  className="min-w-[28px] sm:min-w-[36px] lg:min-w-[44px] min-h-[44px] lg:min-h-[52px] px-1 bg-[var(--mb-surface-2)] text-[var(--mb-text)] font-bold border-2 border-black rounded hover:bg-[var(--mb-surface-3)] transition-colors"
                 >
                   {key}
                 </button>

@@ -38,17 +38,27 @@ export function DailyHomeScreen() {
 
   return (
     <main className="mx-auto max-w-md lg:max-w-4xl min-h-dvh flex flex-col gap-8 p-4 sm:p-6 lg:p-10 pb-24">
-      <header className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-4xl sm:text-5xl [font-family:var(--mb-font-display)] font-black italic uppercase text-[var(--mb-violet)] leading-none">
+      <header className="flex items-start justify-between gap-3 sm:gap-4">
+        {/* min-w-0 lets the three-word title absorb the squeeze; without it the
+            title held its width and "Back to Home" broke across two lines
+            beside it at 375px. See DESIGN.md §7b. */}
+        <div className="min-w-0">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl [font-family:var(--mb-font-display)] font-black italic uppercase text-[var(--mb-violet)] leading-none">
             {t("daily.hub.title")}
           </h1>
           <p className="mt-2 text-sm font-bold text-[var(--mb-text-dim)]">
             {t("daily.hub.tagline")}
           </p>
         </div>
-        <Button variant="secondary" onClick={() => router.push("/")}>
-          {t("daily.back.home")}
+        <Button
+          variant="secondary"
+          size="sm"
+          className="sm:min-h-12 sm:px-5 sm:text-base"
+          aria-label={t("daily.back.home")}
+          onClick={() => router.push("/")}
+        >
+          <span className="sm:hidden">{t("daily.back.home.short")}</span>
+          <span className="hidden sm:inline">{t("daily.back.home")}</span>
         </Button>
       </header>
 

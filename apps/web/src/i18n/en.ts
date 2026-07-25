@@ -190,4 +190,8 @@ export const en: Record<string, string> = {
   "daily.share.playCta": "Play",
   "daily.back.home": "Back to Home",
   "daily.back.hub": "Back to Daily Games",
+  // Phone-width forms of the two back labels. The full phrases are a third of
+  // the screen at 375px and crowd out the title beside them (DESIGN.md §7b).
+  "daily.back.home.short": "Home",
+  "daily.back.hub.short": "Daily",
 };

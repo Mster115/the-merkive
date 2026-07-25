@@ -113,7 +113,8 @@ export function Play({
   };
 
   return (
-    <div className="w-full max-w-md mx-auto p-4 space-y-5 text-[var(--mb-text)]">
+    // DailyPlayShell owns the page column — see DESIGN.md §7a.
+    <div className="w-full space-y-5 text-[var(--mb-text)]">
       {/* Screen Reader ARIA Live Region */}
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {ariaMessage}
@@ -122,20 +123,24 @@ export function Play({
       {isSolved && <ConfettiBurst />}
 
       {/* Header Info */}
-      <Card className="flex items-center justify-between gap-2 p-4">
-        <div>
+      <Card className="flex items-center justify-between gap-3 p-4">
+        <div className="min-w-0">
           <div className="text-xs uppercase tracking-wider font-extrabold opacity-75">
             {t("daily.relay.target") || "Target"}
           </div>
-          <div className="text-lg font-black tracking-wide flex items-center gap-2">
+          <div className="text-lg sm:text-xl font-black tracking-wide flex flex-wrap items-center gap-x-2">
             <span className="text-[var(--mb-accent)]">{startWord}</span>
             <span>→</span>
             <span className="text-[var(--mb-gold)]">{endWord}</span>
           </div>
         </div>
 
-        <div className="flex flex-col items-end gap-1">
-          <Pill tone={isSolved ? "ok" : isFailed ? "danger" : "accent"}>
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          {/* whitespace-nowrap: "Moves: 4" broke after the colon at 375px. */}
+          <Pill
+            tone={isSolved ? "ok" : isFailed ? "danger" : "accent"}
+            className="whitespace-nowrap"
+          >
             {t("daily.relay.moves") || "Moves"}: {movesUsed}
           </Pill>
           {isSolved && <Pill tone="ok">{t("daily.relay.solvedTitle") || "Solved!"}</Pill>}

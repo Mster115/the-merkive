@@ -101,6 +101,7 @@ The Tailwind radius scale is globally squashed in `tokens.css` for squarer neo-b
 ```
 - Variants: `primary`, `secondary`, `gold`, `danger`, `ghost`
 - Sizes: `lg` (`min-h-14`), `md` (`min-h-12`), `sm` (`min-h-11`)
+- `shrink-0` by default, so a greedy flex sibling cannot crush the label (§7b).
 - Built-in audio click sound (`sfx.play("click")`) and haptic tap (`buzz(10)`).
 
 ### `Card` & `Panel`
@@ -144,3 +145,45 @@ All animations respect `prefers-reduced-motion` and are frozen when reduced moti
 2. **Stage Readability**: Stage TV layouts must read effortlessly at 10 feet distance (use `text-3xl` to `text-8xl`, thick borders, high-contrast text tokens).
 3. **Controller Layout**: Controllers must work down to 360px screen width without horizontal overflow.
 4. **Screen Readers & ARIA**: Every phase change must update an `aria-live="polite"` region. Interactive buttons must have explicit `aria-label` or visible text.
+
+### 7a. Size classes
+
+Solo/Daily surfaces are played on whatever the player owns, so every one of
+them has to hold up across three size classes. Check all three before calling a
+screen done:
+
+| Class | Width | What it has to survive |
+| --- | --- | --- |
+| Phone | 320–480px | The floor. 320px is the real minimum, not 360px. |
+| Tablet | 481–1024px | Two-column card grids begin here. |
+| Desktop | >1024px | Must not stay a phone-width column with phone-sized type. |
+
+**Daily games do not set their own page width.** `DailyPlayShell` owns the
+responsive column and every game renders `w-full` inside it. A game that
+hard-codes `max-w-md mx-auto` pins desktop players to a phone column — that was
+the bug this rule exists to prevent. Scale a game's *internals* (grid cells,
+type) with the same breakpoints; don't re-center it.
+
+### 7b. Text and control wrapping
+
+**No interactive label may clip, overflow its own box, or break mid-word.**
+Wrapping onto two lines is acceptable; painting outside the control is not.
+
+The failure is nearly always a flex row where a text control and a button
+compete for width. Flex children default to `flex-shrink: 1`, so the button is
+squeezed below its intrinsic width and its label spills outside the border —
+this is exactly how Nexus's "Submit Answer" rendered as a clipped `UBMI/NSWE`.
+The pairing that fixes it:
+
+- `min-w-0` on the element that *should* absorb the pressure (headings, text
+  blocks) — without it a long word refuses to shrink and shoves its sibling out.
+- `shrink-0` on the element that must keep its intrinsic width (buttons, icons,
+  badges). `Button` sets this itself; anything hand-rolled needs it.
+- `flex-col sm:flex-row` when a row simply cannot hold both at phone width.
+  Stacking beats crushing.
+- Prefer a shorter label over a smaller font. Truncation with `line-clamp-*` is
+  a last resort, and a clamped label needs a `title` so the full text is
+  recoverable.
+
+Never rely on `truncate`/`line-clamp` to "handle" a layout that overflows — it
+hides the symptom at the size where the information matters most.
