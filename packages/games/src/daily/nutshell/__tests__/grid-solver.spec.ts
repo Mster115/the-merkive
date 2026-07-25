@@ -47,6 +47,38 @@ describe("grid-solver for nutshell", () => {
     }
   });
 
+  it("fills a grid from everyday words, not just contrived fill", () => {
+    // The original search placed every across word against an empty grid and
+    // only met a constraint at the down slots, so it enumerated tuples and
+    // could not finish on a real vocabulary — a 10k-word dictionary ran for ten
+    // minutes without converging. The only pools that worked were hand-made
+    // ones containing nonsense fill, which is not shippable content. Assert an
+    // ordinary vocabulary produces an ordinary grid, quickly.
+    const words = [
+      "ARC","MINOR","ANGLE","SCREW","SHY","ANGRY","ROLE","CREW","MASS","INCH",
+      "ABOUT","BRAVE","CHAIR","DREAM","EAGLE","FLAME","GRAPE","HOUSE","IMAGE",
+      "CARD","DESK","EAST","FARM","GATE","HAND","IRON","JUMP","KIND","LAMP",
+      "ACE","BAT","CAT","DOG","EAR","FAN","GAP","HAT","ICE","JAR","KEY","LAP",
+    ];
+    const pool: WordCandidate[] = words.map((w) => ({ word: w, clue: `Clue for ${w}` }));
+
+    const startedAt = Date.now();
+    const result = solveGrid(pool);
+    const elapsedMs = Date.now() - startedAt;
+
+    expect(result).not.toBeNull();
+    expect(elapsedMs).toBeLessThan(20_000);
+    if (!result) return;
+
+    // Every answer must come from the supplied pool — no invented fill.
+    for (const slot of [...result.across, ...result.down]) {
+      expect(words).toContain(slot.answer);
+    }
+    // And each slot takes a distinct word.
+    const used = [...result.across, ...result.down].map((s) => s.answer);
+    expect(new Set(used).size).toBe(used.length);
+  });
+
   it("returns null for an unsolvable pool without throwing or hanging", () => {
     const unsolvablePool: WordCandidate[] = [
       { word: "AAAAA", clue: "All A" },
