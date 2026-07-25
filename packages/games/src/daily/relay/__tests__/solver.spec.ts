@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { findValidChain } from "../solver";
+import { findValidChain, findInterchangeableWords } from "../solver";
 
 describe("relay solver", () => {
   it("finds a valid path in a solvable bank and verifies link agreement", () => {
@@ -50,5 +50,38 @@ describe("relay solver", () => {
     const res1 = findValidChain(startWord, endWord, wordBank);
     const res2 = findValidChain(startWord, endWord, wordBank);
     expect(res1).toEqual(res2);
+  });
+});
+
+describe("findInterchangeableWords", () => {
+  it("flags two words that share a first and last letter", () => {
+    // The reported pair: both start T and end O, so either links identically
+    // and choosing between them decides nothing.
+    expect(findInterchangeableWords(["TANGO", "TEMPO", "SUNSET"])).toEqual([
+      ["TANGO", "TEMPO"],
+    ]);
+  });
+
+  it("says nothing about a clean bank", () => {
+    expect(findInterchangeableWords(["SUNSET", "TANGO", "OCEAN", "NEBULA"])).toEqual([]);
+  });
+
+  it("groups more than two, and reports the biggest group first", () => {
+    const groups = findInterchangeableWords(["TANGO", "TEMPO", "TORNADO", "SILVER", "SUMMER"]);
+    expect(groups[0]).toEqual(["TANGO", "TEMPO", "TORNADO"]);
+    expect(groups[1]).toEqual(["SILVER", "SUMMER"]);
+  });
+
+  it("ignores case and surrounding space", () => {
+    expect(findInterchangeableWords([" tango ", "TEMPO"])).toEqual([["TANGO", "TEMPO"]]);
+  });
+
+  it("does not report a word against itself when the bank repeats one", () => {
+    expect(findInterchangeableWords(["TANGO", "TANGO"])).toEqual([]);
+  });
+
+  it("shrugs off junk rather than throwing — it runs on unreviewed drafts", () => {
+    expect(findInterchangeableWords([])).toEqual([]);
+    expect(findInterchangeableWords(["A", "", "OK"] as string[])).toEqual([]);
   });
 });

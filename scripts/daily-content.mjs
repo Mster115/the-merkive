@@ -586,6 +586,8 @@ async function cmdReview(args) {
     console.log(`\n${d.id}  ${d.game_id}  ${d.puzzle_date}`);
     console.log(`  fact check: ${d.fact_check ? JSON.stringify(d.fact_check).slice(0, 300) : "none"}`);
     console.log(`  sources: ${(d.source_refs ?? []).map((r) => r.url).join(", ") || "none"}`);
+    // Quality smells, not blockers — the draft is approvable either way.
+    for (const w of d.warnings ?? []) console.log(`  ⚠ ${w}`);
     // Payloads contain answer keys, so they are opt-in rather than printed by
     // default — this output ends up in terminals, logs and transcripts.
     if (full) console.log(`  payload: ${JSON.stringify(d.payload, null, 2)}`);

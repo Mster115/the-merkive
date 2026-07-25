@@ -62,3 +62,38 @@ export function findValidChain(
 
   return backtrack(start, [], new Set());
 }
+
+/**
+ * Bank words that are drop-in substitutes for one another.
+ *
+ * Two words that share a first and last letter link to exactly the same things,
+ * so picking between them decides nothing — a playtester found TANGO and TEMPO
+ * in one bank and could take either. It does not make the puzzle wrong (Relay
+ * scores on moves, and both paths are the same length), which is why this is a
+ * warning for the human reviewing a draft rather than a validator rejection:
+ * `validatePack` also runs against packs already sitting in the queue, so
+ * tightening it there could strand content scheduled to go live.
+ *
+ * Returns one entry per interchangeable group, largest first, deterministically
+ * ordered so the same bank always reports the same way.
+ */
+export function findInterchangeableWords(wordBank: string[]): string[][] {
+  const groups = new Map<string, string[]>();
+
+  for (const raw of wordBank) {
+    const word = String(raw ?? "").trim().toUpperCase();
+    if (word.length < 2) continue;
+    const key = `${word.charAt(0)}:${word.charAt(word.length - 1)}`;
+    const bucket = groups.get(key);
+    if (bucket) {
+      if (!bucket.includes(word)) bucket.push(word);
+    } else {
+      groups.set(key, [word]);
+    }
+  }
+
+  return [...groups.values()]
+    .filter((g) => g.length > 1)
+    .map((g) => [...g].sort())
+    .sort((a, b) => b.length - a.length || a[0]!.localeCompare(b[0]!));
+}

@@ -11,9 +11,24 @@ import type {
 } from "../types";
 import { isDailyReduceError } from "../types";
 import type { RelayPayload, RelayPublicState } from "./types";
-import { findValidChain } from "./solver";
+import { findValidChain, findInterchangeableWords } from "./solver";
 import { Play } from "./Play";
 import { HowToPlay } from "./HowToPlay";
+
+/**
+ * Advisory notes for a human reviewing a Relay draft. Never blocks a pack —
+ * see findInterchangeableWords for why this is a warning and not a rejection.
+ */
+export function relayContentWarnings(payload: unknown): string[] {
+  const bank = (payload as RelayPayload | null)?.wordBank;
+  if (!Array.isArray(bank)) return [];
+
+  return findInterchangeableWords(bank).map(
+    (group) =>
+      `interchangeable bank words: ${group.join(" / ")} — same first and last letter, ` +
+      `so choosing between them decides nothing. Consider swapping one.`
+  );
+}
 
 export const relay = defineDailyGame({
   meta: {
@@ -66,6 +81,14 @@ export const relay = defineDailyGame({
       `Generate a daily word-chain puzzle for ${puzzleDate}. ` +
       `Provide a startWord, an endWord, a valid connecting word chain where each word's first letter ` +
       `matches the previous word's last letter, and several decoy words. ` +
+      // A decoy that starts and ends on the same letters as a chain word is a
+      // drop-in substitute for it — a playtester hit TANGO and TEMPO in one
+      // bank and could take either. It does not make the puzzle wrong (the
+      // score is the number of moves), but the choice stops meaning anything.
+      // Cheaper to ask for good decoys than to detect bad ones later.
+      `Decoys must not be interchangeable with chain words: no two words in the bank should share ` +
+      `the same first letter and the same last letter, or the player's choice between them carries no weight. ` +
+      `Prefer decoys that start on a letter the chain actually reaches, so they are tempting rather than obviously wrong. ` +
       `Ensure original content, commonly recognized English words, no copyrighted material, and no obscure terms.`
     );
   },

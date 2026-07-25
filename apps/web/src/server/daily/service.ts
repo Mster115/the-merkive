@@ -1,5 +1,5 @@
 import { matchRng } from "@merky/game-sdk";
-import { dailyGameList, getDailyGame } from "@merky/games/daily";
+import { contentWarnings, dailyGameList, getDailyGame } from "@merky/games/daily";
 import {
   isDailyReduceError,
   type DailyContentPack,
@@ -584,7 +584,13 @@ export async function submitPack(
 
 export async function listDrafts(gameId?: string) {
   const store = getDailyStore();
-  return store.listDraftPacks(gameId);
+  const drafts = await store.listDraftPacks(gameId);
+  // Advisory only — a draft with warnings is still approvable. They exist so a
+  // reviewer sees a quality smell before it goes live, not to gate the queue.
+  return drafts.map((d) => ({
+    ...d,
+    warnings: contentWarnings(d.game_id, d.payload),
+  }));
 }
 
 export async function decideDraft(id: string, approve: boolean) {
