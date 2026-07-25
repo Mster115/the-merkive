@@ -98,6 +98,7 @@ export function HowToPlay({ t }: { t: Translate }) {
         <li>{t("daily.nexus.howto.step1")}</li>
         <li>{t("daily.nexus.howto.step2")}</li>
         <li>{t("daily.nexus.howto.step3")}</li>
+        <li>{t("daily.nexus.howto.step4")}</li>
       </ol>
 
       <p className="text-xs text-[var(--mb-text-dim)] font-semibold">

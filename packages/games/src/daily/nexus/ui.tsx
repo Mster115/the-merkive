@@ -1,6 +1,7 @@
 import * as React from "react";
 import type { DailyPlayProps } from "../types";
 import type { NexusPublicState, NexusCellPublic } from "./types";
+import { pointsForAttempt } from "./types";
 import { Button, Card, Panel, Pill, CheckIcon, CloseIcon, EyeIcon, QuestionIcon } from "@merky/ui";
 
 export const NexusPlay: React.FC<DailyPlayProps> = ({
@@ -42,6 +43,9 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
   const allResolved = state.cells.every((c) => c.status !== "unanswered");
   const isGameOver = phase === "solved" || phase === "failed";
 
+  const attempts = selectedCell?.attempts ?? 0;
+  const nextValue = pointsForAttempt(attempts);
+
   const handleAnswer = async () => {
     if (!selectedCoords || !guessText.trim()) return;
     setErrorMsg(null);
@@ -54,9 +58,23 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
     setIsSubmitting(false);
     if (!res.ok) {
       setErrorMsg(res.error);
-    } else {
-      setGuessText("");
+      return;
     }
+    // Cleared whether right or wrong — a wrong guess leaves the cell open, and
+    // re-submitting the same wrong word is never what the player meant.
+    setGuessText("");
+  };
+
+  const handleSkip = async () => {
+    if (!selectedCoords) return;
+    setErrorMsg(null);
+    setIsSubmitting(true);
+    const res = await act("skip_cell", {
+      row: selectedCoords.row,
+      col: selectedCoords.col,
+    });
+    setIsSubmitting(false);
+    if (!res.ok) setErrorMsg(res.error);
   };
 
   const handleReveal = async () => {
@@ -170,6 +188,10 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
                 if (cell?.status === "correct") {
                   cellBg = "bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)]";
                   StatusBadge = CheckIcon;
+                } else if (cell?.status === "unanswered" && (cell?.attempts ?? 0) > 0) {
+                  // Missed at least once but still open — worth less, not lost.
+                  cellBg = "bg-[var(--mb-warn)] text-[var(--mb-on-gold)]";
+                  StatusBadge = QuestionIcon;
                 } else if (cell?.status === "incorrect") {
                   cellBg = "bg-[var(--mb-danger)] text-[var(--mb-on-danger)]";
                   StatusBadge = CloseIcon;
@@ -220,13 +242,18 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
               </Pill>
             </div>
             {selectedCell.status === "correct" && (
-              <Pill tone="ok">Correct</Pill>
+              <Pill tone="ok" className="whitespace-nowrap">
+                {t("daily.nexus.correctIn", {
+                  points: String(selectedCell.points ?? 1),
+                  attempts: String(selectedCell.attempts ?? 1),
+                })}
+              </Pill>
             )}
             {selectedCell.status === "incorrect" && (
-              <Pill tone="danger">Incorrect</Pill>
+              <Pill tone="danger" className="whitespace-nowrap">{t("daily.nexus.skipped")}</Pill>
             )}
             {selectedCell.status === "revealed" && (
-              <Pill tone="gold">Revealed</Pill>
+              <Pill tone="gold" className="whitespace-nowrap">{t("daily.nexus.revealed")}</Pill>
             )}
           </div>
 
@@ -244,7 +271,7 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
             </div>
           )}
 
-          {/* Answer Input and Action Buttons if Unanswered */}
+          {/* Answer input stays available for as long as the cell is open. */}
           {selectedCell.status === "unanswered" && !isGameOver && (
             <div className="space-y-2 pt-1">
               {/* Stacked at phone width, side-by-side from sm. A single row
@@ -277,13 +304,37 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
                 </Button>
               </form>
 
-              <div className="flex justify-end">
+              {/* What the *next* correct answer is worth, rather than lives
+                  remaining — that is the actual decision in front of the
+                  player. Guessing stays open even at zero, so someone chasing
+                  a complete grid is never locked out of a square. */}
+              <p className="text-xs font-bold text-[var(--mb-text-dim)]">
+                {attempts === 0
+                  ? t("daily.nexus.worthFull")
+                  : nextValue > 0
+                  ? t("daily.nexus.worthNext", {
+                      points: String(nextValue),
+                      attempts: String(attempts),
+                    })
+                  : t("daily.nexus.worthNothing", { attempts: String(attempts) })}
+              </p>
+
+              <div className="flex flex-wrap justify-end gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSkip}
+                  disabled={isSubmitting}
+                  className="text-xs text-[var(--mb-text-dim)]"
+                >
+                  {t("daily.nexus.skipCell")}
+                </Button>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleReveal}
                   disabled={isSubmitting}
-                  className="text-xs text-[var(--mb-text-dim)] hover:text-[var(--mb-danger)] min-h-[44px]"
+                  className="text-xs text-[var(--mb-text-dim)] hover:text-[var(--mb-danger)]"
                 >
                   {t("daily.nexus.revealCell")}
                 </Button>
