@@ -66,6 +66,28 @@ function loadWordList() {
   return body.split(/\s+/).filter((w) => /^[A-Z]{3,5}$/.test(w));
 }
 
+/**
+ * The precomputed grid bank, or null if it has not been built.
+ *
+ * Serving must be instant and searching is expensive — the richest layouts take
+ * seconds to minutes per fill — so the search happens offline in
+ * scripts/build-nutshell-grids.mjs and its output is committed. Falling back to
+ * a live search keeps the tool working on a fresh checkout, just slower and
+ * with duller grids.
+ */
+function loadGridBank() {
+  try {
+    const raw = readFileSync(
+      resolve(HERE, "../../packages/games/src/daily/nutshell/grids.json"),
+      "utf8"
+    );
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed.grids) && parsed.grids.length ? parsed.grids : null;
+  } catch {
+    return null;
+  }
+}
+
 function loadPatterns() {
   const src = readFileSync(
     resolve(HERE, "../../packages/games/src/daily/nutshell/patterns.ts"),
@@ -108,7 +130,7 @@ function slotsOf(gridPattern) {
 }
 
 /** Ordered, forward-checked fill — the same shape of search the game uses. */
-function fillGrid(words, pattern, avoid = new Set(), seed = 1) {
+function fillGrid(words, pattern, avoid = new Set(), seed = 1, maxSteps = 400_000) {
   const { across, down } = slotsOf(pattern.gridPattern);
   const slots = [...across, ...down];
   const cells = slots.map((s) =>
@@ -163,7 +185,7 @@ function fillGrid(words, pattern, avoid = new Set(), seed = 1) {
 
   const backtrack = (depth) => {
     if (depth === slots.length) return true;
-    if (steps++ > 400_000) return false;
+    if (steps++ > maxSteps) return false;
     const i = order[depth];
     for (const word of optionsFor(i)) {
       const prev = cells[i].map((x) => grid[x.r][x.c]);
@@ -203,21 +225,99 @@ function fillGrid(words, pattern, avoid = new Set(), seed = 1) {
  * fingerprint has been used before are skipped, which is what makes "never the
  * same puzzle twice" hold for Nutshell.
  */
-function proposeGrid(words, patterns, { avoidWords = new Set(), usedFingerprints = new Set(), seeds = 200 } = {}) {
-  // Patterns outer, seeds inner. Most of the library cannot be filled from an
-  // everyday word list at all, and each failed attempt costs a full exhaustive
-  // search — so exhaust the seeds of a pattern that works before paying for one
-  // that does not.
-  for (const pattern of patterns) {
-    for (let seed = 1; seed <= seeds; seed++) {
-      const grid = fillGrid(words, pattern, avoidWords, seed * 7919 + 13);
-      if (!grid) break; // this pattern cannot be filled from this pool at all
+/**
+ * How good a candidate grid is as a puzzle, not merely as a fill.
+ *
+ * The solver takes the first thing that fits, and "fits" says nothing about
+ * whether the result is fun. Left alone it produced DUD / IRE / BRA / YEW / DIE
+ * — every word legitimate, the grid as a whole dour and lifeless. Higher is
+ * better; only relative order matters.
+ */
+export function scoreGrid(words) {
+  let score = 0;
+  for (const word of words) {
+    // Longer entries carry more of the puzzle: a grid of eight 3-letter words
+    // is a vocabulary check, not a solve.
+    score += word.length >= 5 ? 6 : word.length === 4 ? 3 : 0;
+    // Vowel-poor stubs (TSK, BRR) and repeated letters read as filler.
+    const vowels = (word.match(/[AEIOU]/g) ?? []).length;
+    if (vowels === 0) score -= 4;
+    if (new Set(word).size < word.length) score -= 1;
+  }
+  // Variety of initial letters — ten words starting with four letters feels
+  // like the constructor ran out of room, because they did.
+  score += new Set(words.map((w) => w[0])).size;
+  return score;
+}
+
+/** Stable per-date seed, so a given day is reproducible but days differ. */
+function seedFor(puzzleDate) {
+  return parseInt(sha(`nutshell|seed|${puzzleDate ?? ""}`).slice(0, 8), 16) % 100_000;
+}
+
+/** Rough ceiling on how good a pattern's grids can be, for search ordering. */
+function patternPotential(pattern) {
+  const { across, down } = slotsOf(pattern.gridPattern);
+  return scoreGrid([...across, ...down].map((s) => "X".repeat(s.length)));
+}
+
+/**
+ * Best fresh grid, not merely the first.
+ *
+ * Two things make this a search rather than a call. A fill is deterministic
+ * given its seed, so variety has to come from trying seeds; and the patterns
+ * differ enormously in both quality and cost. The corner layouts fill in ~20ms
+ * but are eight three-letter words — a vocabulary check, not a solve. The
+ * staircases score three times higher and take ~5s. One denser layout scores
+ * higher still and took nearly four minutes, which is not a tool call.
+ *
+ * So: richest patterns first, spend up to `budgetMs` collecting unused
+ * candidates, return the best scoring one. The cheap corner patterns are
+ * guaranteed to be reachable within any budget, so there is always an answer.
+ */
+function proposeGrid(
+  words,
+  patterns,
+  {
+    avoidWords = new Set(),
+    usedFingerprints = new Set(),
+    seeds = 200,
+    sample = 8,
+    budgetMs = 25_000,
+    stepsPerFill = 150_000,
+    puzzleDate,
+  } = {}
+) {
+  const base = seedFor(puzzleDate);
+  const deadline = Date.now() + budgetMs;
+  const candidates = [];
+
+  const ordered = [...patterns].sort((a, b) => patternPotential(b) - patternPotential(a));
+
+  for (const pattern of ordered) {
+    if (Date.now() >= deadline && candidates.length) break;
+    for (let i = 1; i <= seeds && candidates.length < sample; i++) {
+      if (Date.now() >= deadline && candidates.length) break;
+      // Cap each individual fill too. The deadline alone is not enough: one
+      // call on a dense pattern ran for nearly four minutes, and a budget that
+      // is only checked between calls cannot interrupt it.
+      const grid = fillGrid(words, pattern, avoidWords, (base + i) * 7919 + 13, stepsPerFill);
+      if (!grid) break; // unfillable from this pool within the step ceiling
       const payload = { across: grid.across, down: grid.down };
-      if (usedFingerprints.has(fingerprintPuzzle("nutshell", payload))) continue;
-      return grid;
+      const fingerprint = fingerprintPuzzle("nutshell", payload);
+      if (usedFingerprints.has(fingerprint)) continue;
+      if (candidates.some((c) => c.fingerprint === fingerprint)) continue;
+      candidates.push({ grid, fingerprint });
     }
   }
-  return null;
+
+  if (candidates.length === 0) return null;
+  candidates.sort(
+    (a, b) =>
+      scoreGrid([...b.grid.across, ...b.grid.down].map((s) => s.answer)) -
+      scoreGrid([...a.grid.across, ...a.grid.down].map((s) => s.answer))
+  );
+  return candidates[0].grid;
 }
 
 // --- ledger -----------------------------------------------------------------
@@ -446,29 +546,65 @@ async function callTool(name, args = {}) {
   }
 
   if (name === "daily_grid") {
-    const words = loadWordList();
-    const patterns = loadPatterns();
     const res = await api(`/api/admin/daily/history?gameId=nutshell`);
     const usedFingerprints = new Set((res.digests ?? []).map((d) => d.fingerprint));
     const avoidWords = new Set((args.avoidWords ?? []).map((w) => String(w).toUpperCase()));
 
-    const grid = proposeGrid(words, patterns, { avoidWords, usedFingerprints });
-    if (!grid) {
-      return err(
-        "Could not build a grid that has not been used before. Drop some avoidWords, or the curated word list needs more entries — see packages/games/src/daily/nutshell/wordlist.ts."
+    const slot = (s) => ({ number: s.number, row: s.row, col: s.col, length: s.length, answer: s.answer });
+    const respond = (grid, source) =>
+      ok({
+        puzzleDate: args.puzzleDate,
+        patternId: grid.patternId,
+        gridPattern: grid.gridPattern,
+        across: grid.across.map(slot),
+        down: grid.down.map(slot),
+        candidates: [...grid.across, ...grid.down].map((s) => ({
+          word: s.answer,
+          clue: "<write an original clue>",
+        })),
+        source,
+        note:
+          "Write an original clue for each of the ten words, then call daily_submit with " +
+          "payload.candidates. The server re-verifies the interlock and will reject anything " +
+          "that does not agree.",
+      });
+
+    // The bank is ordered best-first and every entry is already known distinct,
+    // so serving is a scan rather than a search.
+    const bank = loadGridBank();
+    if (bank) {
+      const fresh = bank.filter(
+        (g) =>
+          !usedFingerprints.has(g.fingerprint) &&
+          ![...g.across, ...g.down].some((s) => avoidWords.has(s.answer))
       );
+      if (fresh.length) {
+        // Deterministic per date, so a re-run for the same day is stable, while
+        // different days draw different grids from the top of the bank.
+        const pick = fresh[seedFor(args.puzzleDate) % Math.min(fresh.length, 8)] ?? fresh[0];
+        return respond(pick, `bank (${fresh.length} unused of ${bank.length})`);
+      }
     }
 
-    const slot = (s) => ({ number: s.number, row: s.row, col: s.col, length: s.length, answer: s.answer });
-    return ok({
+    // Fallback only: restrict to the cheap corner layouts. The richer patterns
+    // are worth minutes offline and are exactly why the bank exists, but a tool
+    // call cannot spend them.
+    const cheap = loadPatterns().filter((p) => p.id.startsWith("corners"));
+    const grid = proposeGrid(loadWordList(), cheap.length ? cheap : loadPatterns(), {
+      avoidWords,
+      usedFingerprints,
       puzzleDate: args.puzzleDate,
-      patternId: grid.patternId,
-      gridPattern: grid.gridPattern,
-      across: grid.across.map(slot),
-      down: grid.down.map(slot),
-      candidates: [...grid.across, ...grid.down].map((s) => ({ word: s.answer, clue: "<write an original clue>" })),
-      note: "Write an original clue for each of the ten words, then call daily_submit with payload.candidates. The server re-verifies the interlock and will reject anything that does not agree.",
+      budgetMs: 8_000,
+      stepsPerFill: 60_000,
     });
+    if (!grid) {
+      return err(
+        "Could not find a grid that has not been used before. Rebuild the bank with " +
+          "`node scripts/build-nutshell-grids.mjs`, or add words to " +
+          "packages/games/src/daily/nutshell/wordlist.ts."
+      );
+    }
+    return respond(grid, bank ? "live search (bank exhausted)" : "live search (no bank built)");
   }
 
   if (name === "daily_check" || name === "daily_submit") {

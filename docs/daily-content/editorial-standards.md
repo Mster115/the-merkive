@@ -90,6 +90,26 @@ covered in each game's document.
 - Don't reproduce another outlet's distinctive question phrasing even when the
   underlying fact is public.
 
+## 4a. Cultural currency
+
+A daily puzzle should feel like it belongs to the week it runs in. The routine
+opens each run by searching for what is actually happening — releases, results,
+awards, sport, science — and works some of it in: a few Nexus cells, Nutshell
+clues (the words are fixed, so the clues carry it), a loosely themed Relay bank.
+
+Two limits keep that from becoming a liability:
+
+- **It must still be true later.** Puzzles are replayed from the archive for
+  months. "The current champion" is wrong by then; "the 2026 champion" is
+  permanent. Never "this week", "recently", or "currently".
+- **Nothing younger than 72 hours.** Corrections and retractions cluster in the
+  first days. A puzzle that ships a story that later collapsed is worse than one
+  that ignored it.
+
+Topical does not mean American, and it does not mean celebrity gossip. A
+question that lands in Manila as well as Chicago is worth more than one that
+does not.
+
 ## 5. Difficulty and feel
 
 - **Nexus**: aim for a median solver getting 5–7 of 9. Include at least two
@@ -115,18 +135,22 @@ covered in each game's document.
 
 ## 7. Variety and repeats
 
-The platform does **not** deduplicate content across dates — nothing stops the
-same answer appearing two days running. Enforce it editorially:
+**The platform now refuses an exact repeat**: `submitPack` fingerprints every
+pack's assembled answer key and rejects a match with `409 duplicate_puzzle`, so
+the same puzzle can never ship twice whatever submits it. That is a floor, not
+a variety policy — it says nothing about the same answer turning up two days
+running. The rest is editorial:
 
-- No answer repeats within 30 days, per game.
+- No answer repeats within 30 days, per game. `daily_history` will tell you
+  which of your candidates are already spent.
 - Nexus: no category label repeats within 14 days; no more than one cell per
   grid from any one domain pairing.
 - Nutshell: no more than 3 words shared with the previous 7 days' grids.
 - Relay: `startWord`/`endWord` pairs never repeat; vary the chain length.
 - Rotate subject domains across a week so no single topic dominates.
 
-Keeping a rolling log of what shipped is the routine's own job — the API offers
-no "what did I publish" query beyond the draft list.
+`daily_history` answers "have I used this?" without handing back unplayed
+answer keys, so the routine does not need to keep its own log.
 
 ## 8. Language
 

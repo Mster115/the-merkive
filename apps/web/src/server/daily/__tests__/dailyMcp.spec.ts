@@ -36,9 +36,10 @@ function stubApi(routes: Record<string, unknown>) {
 describe("daily MCP grid construction", () => {
   it("fills a real interlock from the shipped word list", () => {
     const words = loadWordList();
-    const patterns = loadPatterns();
+    const patterns = (loadPatterns() as { id: string }[]).filter((p) => p.id.startsWith("corners"));
     expect(words.length).toBeGreaterThan(1000);
     expect(patterns[0]!.id).toBe("corners_3x3");
+    expect(loadPatterns()[0]!.id).toBe("corners_3x3");
 
     const grid = fillGrid(words, patterns[0]!, new Set(), 4242);
     expect(grid).not.toBeNull();
@@ -65,11 +66,13 @@ describe("daily MCP grid construction", () => {
     // search seeds — and if the list ever shrinks below a usable supply, this
     // is what catches it.
     const words = loadWordList();
-    const patterns = loadPatterns();
+    const patterns = (loadPatterns() as { id: string }[]).filter((p) => p.id.startsWith("corners"));
     const used = new Set<string>();
 
+    // Small budget: the real tool serves from the committed bank, and the
+    // expensive search is an offline build step, not something a suite pays for.
     for (let i = 0; i < 3; i++) {
-      const grid = proposeGrid(words, patterns, { usedFingerprints: used });
+      const grid = proposeGrid(words, patterns, { usedFingerprints: used, budgetMs: 1_500, sample: 2 });
       expect(grid, `ran out of fresh grids after ${i}`).not.toBeNull();
       used.add(mcpFingerprint("nutshell", { across: grid!.across, down: grid!.down }));
     }
@@ -78,12 +81,16 @@ describe("daily MCP grid construction", () => {
 
   it("honours avoided words", () => {
     const words = loadWordList();
-    const patterns = loadPatterns();
-    const first = proposeGrid(words, patterns, {});
+    const patterns = (loadPatterns() as { id: string }[]).filter((p) => p.id.startsWith("corners"));
+    const first = proposeGrid(words, patterns, { budgetMs: 1_500, sample: 2 });
     expect(first).not.toBeNull();
     const bannedWord = first!.across[2]!.answer as string;
 
-    const second = proposeGrid(words, patterns, { avoidWords: new Set([bannedWord]) });
+    const second = proposeGrid(words, patterns, {
+      avoidWords: new Set([bannedWord]),
+      budgetMs: 1_500,
+      sample: 2,
+    });
     expect(second).not.toBeNull();
     const words2 = [...second!.across, ...second!.down].map((s: { answer: string }) => s.answer);
     expect(words2).not.toContain(bannedWord);
