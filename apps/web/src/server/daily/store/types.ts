@@ -5,6 +5,10 @@ import type { StreakRow } from "../streaks";
 export interface DailyStore {
   readonly kind: "memory" | "supabase";
   upsertDevice(id: string, timezone: string): Promise<void>;
+  getDevice(id: string): Promise<DailyDeviceRow | null>;
+  /** Sets the device's recovery code. Codes are unique across devices. */
+  setRecoveryCode(deviceId: string, code: string): Promise<void>;
+  findDeviceByRecoveryCode(code: string): Promise<DailyDeviceRow | null>;
   getPuzzle(gameId: string, puzzleDate: string): Promise<DailyPuzzleRow | null>;
   listArchivePuzzles(gameId: string, beforeDate: string, limit: number): Promise<DailyPuzzleRow[]>;
   getAttempt(deviceId: string, puzzleId: string): Promise<DailyAttemptRow | null>;

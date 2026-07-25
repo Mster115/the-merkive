@@ -26,6 +26,39 @@ export class SupabaseDailyStore implements DailyStore {
     if (error) throw new Error(`[SupabaseDailyStore] upsertDevice failed: ${error.message}`);
   }
 
+  async getDevice(id: string): Promise<DailyDeviceRow | null> {
+    const { data, error } = await this.client
+      .from("daily_devices")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error) throw new Error(`[SupabaseDailyStore] getDevice failed: ${error.message}`);
+    return data as DailyDeviceRow | null;
+  }
+
+  async setRecoveryCode(deviceId: string, code: string): Promise<void> {
+    const { error } = await this.client
+      .from("daily_devices")
+      .update({ recovery_code: code })
+      .eq("id", deviceId);
+
+    if (error) throw new Error(`[SupabaseDailyStore] setRecoveryCode failed: ${error.message}`);
+  }
+
+  async findDeviceByRecoveryCode(code: string): Promise<DailyDeviceRow | null> {
+    const { data, error } = await this.client
+      .from("daily_devices")
+      .select("*")
+      .eq("recovery_code", code)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`[SupabaseDailyStore] findDeviceByRecoveryCode failed: ${error.message}`);
+    }
+    return data as DailyDeviceRow | null;
+  }
+
   async getPuzzle(gameId: string, puzzleDate: string): Promise<DailyPuzzleRow | null> {
     const { data, error } = await this.client
       .from("daily_puzzles")

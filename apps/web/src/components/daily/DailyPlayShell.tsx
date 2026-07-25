@@ -10,6 +10,7 @@ import { Ticker } from "@/components/Ticker";
 import { ShareCard } from "./ShareCard";
 import { HistoryView } from "./HistoryView";
 import { ArchiveList } from "./ArchiveList";
+import { RecoveryPanel } from "./RecoveryPanel";
 import { useDailyTickerItems } from "./useDailyTicker";
 
 export interface DailyPlayShellProps {
@@ -187,6 +188,9 @@ export function DailyPlayShell({ gameId, explicitDate }: DailyPlayShellProps) {
 
           <HistoryView gameId={gameId} refreshKey={`${attemptOver}:${status}`} />
           <ArchiveList gameId={gameId} />
+          {/* Reload so the streak panel, archive and ticker all re-read the
+              history that now belongs to the adopted device. */}
+          <RecoveryPanel onRestored={() => router.refresh()} />
         </div>
       )}
       {/* Scoped to this game, and re-keyed on completion so a solve updates the
