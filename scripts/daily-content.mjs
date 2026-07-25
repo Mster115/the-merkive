@@ -37,6 +37,7 @@
  */
 
 import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import process from "node:process";
 
 import { requireSecret, resolveSecret, SETUP_HINT, KEYCHAIN_SERVICE } from "./secret.mjs";
@@ -459,21 +460,46 @@ async function cmdSubmit(args) {
  */
 async function cmdSecret() {
   const fromEnv = Boolean(process.env.DAILY_PIPELINE_SECRET);
-  const found = Boolean(resolveSecret());
+  const secret = resolveSecret();
 
   console.log(`keychain service: ${KEYCHAIN_SERVICE}`);
-  console.log(`resolved:         ${found ? "yes" : "NO"}${fromEnv ? " (from DAILY_PIPELINE_SECRET in the environment)" : found ? " (from the Keychain)" : ""}`);
+  console.log(
+    `resolved:         ${secret ? "yes" : "NO"}` +
+      (fromEnv ? " (from DAILY_PIPELINE_SECRET in the environment)" : secret ? " (from the Keychain)" : "")
+  );
 
-  if (!found) {
+  if (!secret) {
     console.log(`\n${SETUP_HINT}`);
     process.exit(1);
+  }
+
+  // Length and a hash prefix, never the value. Enough to tell "I stored the
+  // wrong thing" from "the deployment disagrees" without printing a credential
+  // into a terminal, a screenshot, or a scrollback buffer.
+  console.log(`length:           ${secret.length}`);
+  console.log(`fingerprint:      ${createHash("sha256").update(secret).digest("hex").slice(0, 12)}`);
+  if (secret.length < 16) {
+    console.log(
+      `\n⚠ That is short for a generated secret. If you meant to store a longer one,\n` +
+        `  re-run the setup command below — note the -U, without which the Keychain\n` +
+        `  refuses to overwrite and quietly keeps the old value.\n\n${SETUP_HINT}`
+    );
   }
 
   const res = await fetch(`${BASE_URL}/api/admin/daily/queue-status`, {
     headers: { Authorization: `Bearer ${requireSecret()}` },
   });
   console.log(`${BASE_URL} says: ${res.status}${res.ok ? " — the secret works" : " — the secret is not accepted"}`);
-  if (!res.ok) process.exit(1);
+  if (!res.ok) {
+    console.log(
+      `\nThe stored value is not what the deployment expects. Compare fingerprints:\n` +
+        `  npx vercel env pull /tmp/e --environment=production --yes && \\\n` +
+        `    grep ^DAILY_PIPELINE_SECRET= /tmp/e | cut -d= -f2- | tr -d '"' | tr -d '\\n' | shasum -a 256 | cut -c1-12; rm -f /tmp/e\n` +
+        `That prints a hash, not the secret. If it differs from the fingerprint above,\n` +
+        `re-store the right value with -U as shown by \`pnpm daily secret\` when unset.`
+    );
+    process.exit(1);
+  }
 }
 
 async function cmdReview(args) {

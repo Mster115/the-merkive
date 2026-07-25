@@ -27,12 +27,18 @@ export const KEYCHAIN_SERVICE = "merkive-daily-pipeline";
 /** Cached per process so a long-lived MCP server prompts the Keychain once. */
 let cached;
 
+/**
+ * `-U` is not optional. Without it, `add-generic-password` refuses when an entry
+ * already exists and leaves the old value in place — so a correcting re-run
+ * appears to fail for a reason that reads like a duplicate warning, and the
+ * wrong secret silently survives. With `-U` the command is idempotent.
+ */
 export const SETUP_HINT =
-  `Store it once in the macOS Keychain — the command prompts for the value, so it\n` +
-  `never lands in your shell history:\n\n` +
-  `  security add-generic-password -a "$USER" -s ${KEYCHAIN_SERVICE} -w\n\n` +
-  `Then paste the secret at the prompt. Nothing else needs to change; the MCP\n` +
-  `server and the CLI both read it from there.`;
+  `Store it in the macOS Keychain. The command prompts for the value, so it never\n` +
+  `lands in your shell history, and -U overwrites any entry already there:\n\n` +
+  `  security add-generic-password -U -a "$USER" -s ${KEYCHAIN_SERVICE} -w\n\n` +
+  `Paste the secret at the prompt (it is not echoed). Then check it with:\n\n` +
+  `  pnpm daily secret`;
 
 /**
  * @param {{ env?: Record<string, string | undefined>,
