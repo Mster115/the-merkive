@@ -6,12 +6,10 @@ import { getDailyGame } from "@merky/games/daily";
 import { Button, Card } from "@merky/ui";
 import { useT } from "@/i18n";
 import { ensureDailyDevice } from "@/client/dailyDevice";
-import { Ticker } from "@/components/Ticker";
 import { ShareCard } from "./ShareCard";
 import { HistoryView } from "./HistoryView";
 import { ArchiveList } from "./ArchiveList";
 import { RecoveryPanel } from "./RecoveryPanel";
-import { useDailyTickerItems } from "./useDailyTicker";
 
 export interface DailyPlayShellProps {
   gameId: string;
@@ -31,7 +29,6 @@ export function DailyPlayShell({ gameId, explicitDate }: DailyPlayShellProps) {
   const [phase, setPhase] = React.useState<string>("");
   const [attemptOver, setAttemptOver] = React.useState(false);
   const [status, setStatus] = React.useState<string>("in_progress");
-  const tickerItems = useDailyTickerItems(gameId, `${attemptOver}:${status}`);
   const [shareText, setShareText] = React.useState<string | null>(null);
   const [now, setNow] = React.useState(() => Date.now());
 
@@ -137,8 +134,13 @@ export function DailyPlayShell({ gameId, explicitDate }: DailyPlayShellProps) {
 
   const PlayComponent = game.ui.Play;
 
+  // No Ticker on this screen: the marquee is a lobby affordance that gives
+  // context before you commit to a puzzle. Mid-game it competes with the board
+  // and, being `fixed`, covers the bottom row of Nutshell's keyboard on short
+  // viewports. Multiplayer already draws this line — StageApp renders the
+  // Ticker in StageLobby only, never in the in-game Stage branch.
   return (
-    <main className="mx-auto max-w-2xl min-h-dvh flex flex-col gap-6 p-4 sm:p-6 pb-24">
+    <main className="mx-auto max-w-2xl min-h-dvh flex flex-col gap-6 p-4 sm:p-6 pb-10">
       <header className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black uppercase text-[var(--mb-text)] [font-family:var(--mb-font-display)]">
@@ -193,9 +195,6 @@ export function DailyPlayShell({ gameId, explicitDate }: DailyPlayShellProps) {
           <RecoveryPanel onRestored={() => router.refresh()} />
         </div>
       )}
-      {/* Scoped to this game, and re-keyed on completion so a solve updates the
-          strip in the same beat as the streak panel. */}
-      <Ticker className="fixed bottom-0 inset-x-0 z-40" items={tickerItems} />
     </main>
   );
 }

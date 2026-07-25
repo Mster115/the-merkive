@@ -4,6 +4,42 @@ import { Button, Card, Panel, Pill, ConfettiBurst } from "@merky/ui";
 import type { DailyPlayProps } from "../types";
 import type { RelayPublicState } from "./types";
 
+/**
+ * Renders a word with its first and last letters called out — the two letters
+ * that decide what can link to it.
+ *
+ * The emphasis has to be relative to whatever the chip sits on. Colouring the
+ * first letter `--mb-accent` is invisible on the start chip (bg is
+ * `--mb-accent`) and the last letter `--mb-gold` is invisible on the end chip
+ * (bg `--mb-gold`) — playtesters saw "IRCUS" and "NEBUL". So a tinted chip
+ * keeps its own `on-*` foreground and marks the letters with an underline
+ * instead, which cannot collide with any background.
+ */
+function LinkedWord({ word, tinted }: { word: string; tinted: boolean }) {
+  const first = word.charAt(0);
+  const middle = word.slice(1, -1);
+  const last = word.length > 1 ? word.slice(-1) : "";
+
+  if (tinted) {
+    const mark = "underline decoration-2 underline-offset-2";
+    return (
+      <>
+        <span className={mark}>{first}</span>
+        <span>{middle}</span>
+        {last && <span className={mark}>{last}</span>}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <span className="text-[var(--mb-accent)] font-black">{first}</span>
+      <span>{middle}</span>
+      {last && <span className="text-[var(--mb-gold)] font-black">{last}</span>}
+    </>
+  );
+}
+
 export function Play({
   publicState,
   phase,
@@ -117,9 +153,7 @@ export function Play({
           {chain.map((w, idx) => {
             const isStart = idx === 0;
             const isEnd = w === endWord;
-            const firstChar = w.charAt(0);
-            const midChars = w.slice(1, -1);
-            const lastChar = w.slice(-1);
+            const tinted = isStart || isEnd;
 
             return (
               <React.Fragment key={`${w}-${idx}`}>
@@ -133,9 +167,7 @@ export function Play({
                       : "bg-[var(--mb-surface-2)] text-[var(--mb-text)]"
                   }`}
                 >
-                  <span className="text-[var(--mb-accent)] font-black">{firstChar}</span>
-                  <span>{midChars}</span>
-                  <span className="text-[var(--mb-gold)] font-black">{lastChar}</span>
+                  <LinkedWord word={w} tinted={tinted} />
                 </div>
               </React.Fragment>
             );
@@ -180,8 +212,10 @@ export function Play({
                     : "bg-[var(--mb-surface)] opacity-70 hover:opacity-100 shadow-[2px_2px_0_0_#000]"
                 }`}
               >
-                <span className="text-[var(--mb-accent)]">{w.charAt(0)}</span>
-                <span>{w.slice(1)}</span>
+                {/* Bank tiles sit on --mb-surface, so the colour emphasis is
+                    safe here; only the tinted chain chips need the underline
+                    treatment. */}
+                <LinkedWord word={w} tinted={false} />
               </button>
             );
           })}
