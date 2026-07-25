@@ -37,6 +37,7 @@
  */
 
 import { readFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import process from "node:process";
 
@@ -49,13 +50,20 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 // --- date helpers -----------------------------------------------------------
 
 /**
- * Server-side "today". `getQueueStatus` compares against
- * `new Date().toISOString().slice(0, 10)`, so the queue arithmetic has to use
- * the same UTC date — a local date would drift by one for most of the day and
+ * The pipeline's "today" — the current puzzle date, i.e. the calendar date in
+ * America/New_York. The daily games flip once, globally, at midnight US
+ * Eastern, and the server's `getQueueStatus` runs on the same basis
+ * (`currentPuzzleDate` in apps/web/src/server/daily/timezone.ts). The two must
+ * agree: a different basis here would drift by one for part of every day and
  * silently shift every target.
  */
-export function todayUtc(now = new Date()) {
-  return now.toISOString().slice(0, 10);
+export function currentPuzzleDate(now = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
 }
 
 export function addDays(date, n) {
@@ -75,32 +83,32 @@ export function addDays(date, n) {
  * which would leave a hole. Floored at tomorrow, because today's puzzle is
  * live and must never be rewritten.
  */
-export function firstFreeDate(queuedFutureDays, today = todayUtc()) {
+export function firstFreeDate(queuedFutureDays, today = currentPuzzleDate()) {
   const derived = addDays(today, Math.max(queuedFutureDays, 0));
   const tomorrow = addDays(today, 1);
   return derived > tomorrow ? derived : tomorrow;
 }
 
 /**
- * Whether the queue is deep enough to survive timezone rollover.
+ * Whether the queue is deep enough to survive the daily flip.
  *
- * A device's "today" is `localDateFor(device.timezone)`, not server UTC — so a
- * player in UTC+14 asks for tomorrow's puzzle up to 14 hours before UTC agrees
- * it is tomorrow. With only today queued (queuedFutureDays === 1), those
- * players get `no_puzzle_today` for most of their evening; at 0, everyone does.
- * One spare day is the floor, not a nicety.
+ * The games flip globally at midnight US Eastern. With only today queued
+ * (queuedFutureDays === 1), every player worldwide hits `no_puzzle_today` at
+ * the same instant the clock strikes twelve in New York; at 0, they already
+ * have. One spare day is the floor, not a nicety — it is what makes a single
+ * missed routine run a non-event.
  */
 export function queueRisk(queuedFutureDays) {
   if (queuedFutureDays <= 0) {
     return "EMPTY — no puzzle is queued for today; every device 404s";
   }
   if (queuedFutureDays === 1) {
-    return "only today is queued — devices east of UTC roll over first and will see no puzzle";
+    return "only today is queued — at midnight US Eastern every player sees no puzzle";
   }
   return null;
 }
 
-export function planDates(queuedFutureDays, lookahead, today = todayUtc(), maxPerRun = 3) {
+export function planDates(queuedFutureDays, lookahead, today = currentPuzzleDate(), maxPerRun = 3) {
   const dates = [];
   let cursor = firstFreeDate(queuedFutureDays, today);
   while (queuedFutureDays + dates.length < lookahead && dates.length < maxPerRun) {
@@ -108,6 +116,62 @@ export function planDates(queuedFutureDays, lookahead, today = todayUtc(), maxPe
     cursor = addDays(cursor, 1);
   }
   return dates;
+}
+
+/**
+ * Slot-length histograms for every Nutshell layout, read from the game's own
+ * `PATTERN_LIBRARY`.
+ *
+ * Derived rather than restated: a hardcoded copy of one layout's distribution
+ * is exactly what made preflight reject the corner grids `daily_grid` serves.
+ * Returns [] if the file cannot be read, which downgrades the check to "skip"
+ * rather than blocking a submission the server would accept.
+ */
+function patternLengthHistograms() {
+  let src;
+  try {
+    src = readFileSync(
+      new URL("../packages/games/src/daily/nutshell/patterns.ts", import.meta.url),
+      "utf8"
+    );
+  } catch {
+    return [];
+  }
+
+  const layouts = [];
+  const re = /id:\s*"([a-z0-9_]+)",\s*gridPattern:\s*\[([^\]]+)\]/g;
+  let m;
+  while ((m = re.exec(src))) {
+    const rows = [...m[2].matchAll(/"([.#]{5})"/g)].map((r) => r[1]);
+    if (rows.length !== 5) continue;
+
+    const need = {};
+    const count = (len) => {
+      if (len >= 3) need[len] = (need[len] ?? 0) + 1;
+    };
+    for (let r = 0; r < 5; r++) {
+      let run = 0;
+      for (let c = 0; c <= 5; c++) {
+        if (c < 5 && rows[r][c] !== "#") run++;
+        else {
+          count(run);
+          run = 0;
+        }
+      }
+    }
+    for (let c = 0; c < 5; c++) {
+      let run = 0;
+      for (let r = 0; r <= 5; r++) {
+        if (r < 5 && rows[r][c] !== "#") run++;
+        else {
+          count(run);
+          run = 0;
+        }
+      }
+    }
+    layouts.push({ id: m[1], need });
+  }
+  return layouts;
 }
 
 // --- api --------------------------------------------------------------------
@@ -228,13 +292,24 @@ export function preflight(pack) {
         if (!String(c?.clue ?? "").trim()) problems.push(`candidate ${word} has an empty clue`);
         hist[word.length] = (hist[word.length] ?? 0) + 1;
       }
-      // Staircase layouts need 2x3, 4x4, 4x5. Fewer than that of any length
-      // means no layout can be filled, whatever else the pool contains.
-      const need = { 3: 2, 4: 4, 5: 4 };
-      for (const [len, count] of Object.entries(need)) {
-        if ((hist[len] ?? 0) < count) {
-          problems.push(`only ${hist[len] ?? 0} ${len}-letter words; a staircase grid needs ${count}`);
-        }
+      // The pool must be able to fill *some* layout — not one particular one.
+      // This used to demand the staircase distribution (2x3, 4x4, 4x5) and
+      // rejected every corner-layout pool, which is the shape `daily_grid`
+      // returns most often and the first shape the solver tries. Requirements
+      // are derived from the pattern library so the check cannot drift from
+      // the layouts that actually exist.
+      const layouts = patternLengthHistograms();
+      const fits = layouts.filter(({ need }) =>
+        Object.entries(need).every(([len, count]) => (hist[len] ?? 0) >= count)
+      );
+      if (layouts.length && fits.length === 0) {
+        const have = [3, 4, 5].map((n) => `${hist[n] ?? 0}x${n}`).join(", ");
+        const options = layouts
+          .map(({ id, need }) => `${id} (${Object.entries(need).map(([l, c]) => `${c}x${l}`).join(", ")})`)
+          .join("; ");
+        problems.push(
+          `pool has ${have}, which fills no layout. One of these distributions is needed: ${options}`
+        );
       }
       if (candidates.length < 10) problems.push("a grid needs 10 distinct words");
     }
@@ -312,9 +387,9 @@ function dfsChain(start, end, bank, used = new Set(), steps = { n: 0 }) {
 async function cmdStatus() {
   const status = await api("/api/admin/daily/queue-status");
   const drafts = await api("/api/admin/daily/review");
-  const today = todayUtc();
+  const today = currentPuzzleDate();
 
-  console.log(`today (UTC): ${today}   base: ${BASE_URL}\n`);
+  console.log(`today (US Eastern): ${today}   base: ${BASE_URL}\n`);
   for (const [game, s] of Object.entries(status)) {
     const pending = drafts.filter((d) => d.game_id === game).length;
     console.log(
@@ -336,7 +411,7 @@ async function cmdStatus() {
 async function cmdPlan(args) {
   const lookahead = Number(flagValue(args, "--lookahead") ?? 0);
   const status = await api("/api/admin/daily/queue-status");
-  const today = todayUtc();
+  const today = currentPuzzleDate();
 
   for (const [game, s] of Object.entries(status)) {
     const target = lookahead || s.lookaheadDays;
@@ -382,7 +457,7 @@ async function cmdSubmit(args) {
 
   const status = await api("/api/admin/daily/queue-status");
   const drafts = await api("/api/admin/daily/review");
-  const today = todayUtc();
+  const today = currentPuzzleDate();
   const draftDates = new Set(drafts.map((d) => `${d.game_id}:${d.puzzle_date}`));
 
   const planned = [];
@@ -422,7 +497,7 @@ async function cmdSubmit(args) {
     planned.push({ file, pack, blockers, warnings, willQueue });
   }
 
-  console.log(`today (UTC): ${today}   base: ${BASE_URL}\n`);
+  console.log(`today (US Eastern): ${today}   base: ${BASE_URL}\n`);
   for (const p of planned) {
     console.log(`${p.file} — ${p.pack.gameId} ${p.pack.puzzleDate} → ${p.willQueue ? "QUEUED (live)" : "draft"}`);
     for (const w of p.warnings) console.log(`  note:  ${w}`);

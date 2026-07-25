@@ -51,10 +51,14 @@ Carry that into all three games:
   few months, and at least one from the last few weeks. The rest can be durable
   general knowledge; a grid of nothing but current events is exhausting and ages
   badly.
-- NUTSHELL — the words come from a fixed list, so relevance lives entirely in
-  the CLUES. Clue a word through something current where it fits naturally
-  ("Streaming hit about ___" beats "A large body of water"). Never force it: a
-  strained topical clue is worse than a clean plain one.
+- NUTSHELL — the everyday fill comes from a fixed list, but the grid itself
+  can carry the week: derive SEED candidates from your research — 3-5 letter
+  names, titles and terms a broad audience would recognise — and pass them to
+  `daily_grid`. Some days a loose general THEME (kitchen, ocean, autumn) is
+  nicer than news; some days plain wordplay is best. Vary across the week.
+  Clue-level relevance still applies everywhere ("Streaming hit about ___"
+  beats "A large body of water"). Never force any of it: a strained topical
+  answer or clue is worse than a clean plain one.
 - RELAY — theme the word bank loosely around something in the air this week
   (a sporting event, a season, a release) when the letters allow it.
 
@@ -108,14 +112,36 @@ one that does not.
 
    NUTSHELL — a 5x5 mini crossword.
      Call `daily_grid`. It returns ten interlocking words that have never been
-     used. Do NOT attempt to construct a grid yourself. Write one original clue
-     per word: never lifted from a published crossword, ~60 characters, part of
-     speech matching the answer, never containing the answer word, and signal
-     abbreviations ("Doctor, briefly"). If a grid's words are dull, call
-     `daily_grid` again with `avoidWords` to reroll.
-     The clues are where this puzzle earns its place in a given week — see the
-     topicality rules above. A few clued through current culture, the rest
-     clean definitions and wordplay.
+     used. Do NOT attempt to construct a grid yourself. Pick one mode per day,
+     varied across the week:
+
+     - SEEDED, when your research surfaced something that fits: pass
+       `seedWords` — 3-6 verified candidates, best first, each 3-5 letters
+       A-Z. Prefer vowel-rich candidates and always give alternatives; letter
+       shape decides what fits, not fame. Every candidate must clear the same
+       bar as a Nexus answer BEFORE you pass it: confirmed (spelling included)
+       against a Tier-1 page you actually retrieved, older than 72 hours,
+       still true later, public figures in public roles only. Check
+       `daily_history` with the candidates first. The response reports what
+       was placed (`seedUsed`) and why the rest were not (`seedsRejected`) —
+       a rejection is the solver protecting the grid, not a problem to fix.
+     - THEMED: pass `themeWords` — 10-20 everyday 3-5 letter words around one
+       loose theme. The grid carries what it can (`themeWordsPlaced`); echo
+       the theme in those words' clues and let the rest be plain.
+     - PLAIN: neither. Clean definitions and wordplay carry the day.
+
+     Write one original clue per word: never lifted from a published
+     crossword, ~60 characters, part of speech matching the answer, never
+     containing the answer word, and signal abbreviations ("Doctor, briefly").
+     Clue a placed seed through the thing that made it current, never through
+     anyone's private life. If a grid's words are dull, call `daily_grid`
+     again with `avoidWords` to reroll.
+
+     FactCheck for Nutshell: if the grid contains a seed word, or any clue
+     asserts a real-world fact (a title, a date, a person, an event), submit
+     with factCheck.status "needs_review" and a sourceRef for each verifying
+     page. Only an all-everyday grid clued purely by definition and wordplay
+     may carry "passed".
 
 3. `daily_check` every pack. Fix what it blocks; read what it warns. Re-check.
 
@@ -159,8 +185,9 @@ LANGUAGE. English. Question and clue text ships exactly as written.
 
 End every run with a short report: what `daily_plan` showed, what you submitted
 and where it landed, per-cell fact-check verdicts and sources for any Nexus
-pack, which current-culture threads you drew on, and anything you dropped and
-why. Be plain about shortfalls — "nexus
+pack, the Nutshell mode you chose (the seed placed with its source, the theme,
+or plain), which current-culture threads you drew on, and anything you dropped
+and why. Be plain about shortfalls — "nexus
 skipped: could not independently verify two of nine cells" is a good outcome,
 not something to hide.
 
@@ -183,10 +210,13 @@ not depend on a working directory.
 
 ## Timing
 
-**Daily, 06:00 UTC.** Devices in UTC+14 roll to a new local date at 10:00 UTC
-the day before, so content must land before then or the earliest players see
-nothing; 06:00 leaves four hours of margin. Drafts are then waiting when you
-review. Each run fills up to 3 days per game, so one missed run is recoverable.
+**Daily, 06:00 UTC** (2:00 AM Eastern in summer, 1:00 AM in winter). The games
+flip once, globally, at **midnight US Eastern** — that is the only deadline
+that matters. Running shortly after the flip means `daily_plan` sees the new
+day, the queue is topped up almost a full day before it is needed, and drafts
+are waiting at breakfast Eastern time with the whole day left to review them
+before the next flip. Each run fills up to 3 days per game, so one missed run
+is recoverable.
 
 ## What the routine no longer has to be told
 

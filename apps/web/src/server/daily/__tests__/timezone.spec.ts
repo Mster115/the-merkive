@@ -1,7 +1,32 @@
 import { describe, it, expect } from "vitest";
-import { localDateFor, msUntilLocalRollover } from "../timezone";
+import {
+  localDateFor,
+  msUntilLocalRollover,
+  resolveTimezone,
+  currentPuzzleDate,
+  DAILY_TIMEZONE,
+} from "../timezone";
 
 const HOUR = 3_600_000;
+
+describe("the global Eastern reset", () => {
+  it("resolves every request to the daily timezone, whatever the device reports", () => {
+    // The x-mb-tz header used to choose the puzzle day; now the flip is one
+    // global moment. If this ever regresses, players in different zones drift
+    // onto different puzzles again.
+    for (const claimed of ["Asia/Tokyo", "Pacific/Kiritimati", "UTC", "Not/AZone", null]) {
+      const headers: Record<string, string> = claimed === null ? {} : { "x-mb-tz": claimed };
+      expect(resolveTimezone(new Request("https://x.test", { headers }))).toBe(DAILY_TIMEZONE);
+    }
+    expect(DAILY_TIMEZONE).toBe("America/New_York");
+  });
+
+  it("advances the puzzle date exactly at midnight Eastern", () => {
+    // 04:00 UTC is the flip during EDT.
+    expect(currentPuzzleDate(Date.parse("2026-07-26T03:59:59Z"))).toBe("2026-07-25");
+    expect(currentPuzzleDate(Date.parse("2026-07-26T04:00:01Z"))).toBe("2026-07-26");
+  });
+});
 
 describe("msUntilLocalRollover", () => {
   it("counts down to the next local midnight, not UTC midnight", () => {

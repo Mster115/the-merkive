@@ -59,7 +59,9 @@ Query: `gameId` (optional; omit for all games).
 ```
 
 - `queuedFutureDays` — count of rows with `status = "queued"` and
-  `puzzle_date >= today` (server UTC date).
+  `puzzle_date >= today`, where today is the current **puzzle date** — the
+  calendar date in America/New_York. The daily games flip once, globally, at
+  midnight US Eastern, and every date in this API lives on that calendar.
 - `lookaheadDays` — from `DAILY_QUEUE_LOOKAHEAD_DAYS`, default `3`.
 - `isSufficient: false` is a **queue-health flag, not an error**. It means "fewer
   days queued than the lookahead target", which is exactly the signal the
@@ -78,12 +80,12 @@ it.
 the old contiguous-queue derivation as a fallback for deployments that predate
 the date arrays, and remain pinned by tests. New callers should not use them.
 
-**The queue must never be one day deep.** A device's "today" is
-`localDateFor(device.timezone)`, not server UTC — so a player in UTC+14 asks for
-tomorrow's puzzle up to 14 hours before UTC agrees it is tomorrow. At
-`queuedFutureDays === 1` those players get `no_puzzle_today` through their whole
-evening; at `0`, everyone does. Two days is the floor, which is why the default
-lookahead is 3. `pnpm daily status` flags both cases.
+**The queue must never be one day deep.** The flip is one global moment —
+midnight US Eastern — so at `queuedFutureDays === 1` every player worldwide
+hits `no_puzzle_today` simultaneously when New York's clock strikes twelve; at
+`0`, they already have. Two days is the floor — it is what makes one missed
+routine run a non-event — which is why the default lookahead is 3. `pnpm daily
+status` flags both cases.
 
 ## `GET /api/admin/daily/prompt`
 

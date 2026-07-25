@@ -71,14 +71,22 @@ the single worst failure mode available here: it converts a queue-health
 warning into a live wrong answer, and the `draft` state exists precisely so
 that trade never has to be made.
 
-### Why word games are exempt
+### Why word games are exempt — and where the exemption ends
 
-Nutshell and Relay assert nothing about the world. Their correctness is
+Nutshell and Relay assert nothing about the world *when their content is
+everyday vocabulary clued by definition and wordplay*. That correctness is
 structural and machine-verified: `solveGrid` proves every Nutshell answer comes
 from the supplied pool and that crossing letters agree; `findValidChain` proves
 a Relay chain exists. `validatePack` rejects them outright otherwise. Their
 `sourceRefs` may be empty. Their editorial risk is *clue quality*, not truth —
 covered in each game's document.
+
+The exemption ends the moment a pack asserts a fact. A Nutshell **seed word**
+(a topical proper-noun answer built into the grid) claims that the thing
+exists and is spelled that way; a clue that names a title, a date, a person or
+an event claims the same. Each such item re-enters this rubric: verified
+against a retrieved Tier-1 page (spelling included), cited in `sourceRefs`,
+and the pack ships as `"needs_review"` rather than `"passed"`.
 
 ## 4. Originality and copyright
 
@@ -94,8 +102,8 @@ covered in each game's document.
 
 A daily puzzle should feel like it belongs to the week it runs in. The routine
 opens each run by searching for what is actually happening — releases, results,
-awards, sport, science — and works some of it in: a few Nexus cells, Nutshell
-clues (the words are fixed, so the clues carry it), a loosely themed Relay bank.
+awards, sport, science — and works some of it in: a few Nexus cells, a Nutshell
+seed answer or loose theme (plus topical clues), a loosely themed Relay bank.
 
 Two limits keep that from becoming a liability:
 

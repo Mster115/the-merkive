@@ -63,6 +63,44 @@ against the older, denser layouts). The practical route is now
 it has never been used, and hands you ten words to clue. Constructing by hand is
 still supported and still verified, but it is no longer the only option.
 
+## Seeds and themes — putting the week in the answers
+
+The fill vocabulary is deliberately evergreen, so `daily_grid` accepts two
+optional inputs that let a grid belong to its week without giving up verified
+construction:
+
+- **`seedWords`** — ranked candidates for **one** required topical answer (a
+  name, a title, a term: MOANA, TESLA, OASIS), each 3–5 letters A–Z. The tool
+  builds the grid around the first candidate the everyday fill can surround and
+  reports the rest in `seedsRejected`, with reasons. Letter shape decides more
+  than fame — vowel-rich candidates place in milliseconds, consonant clumps and
+  rare letters may never place — so always pass alternatives. Measured on the
+  shipped word list: anchoring a slot prunes the search enough that seeded
+  staircase grids (score ~40) land in 1–10 s inside a tool call, with the
+  corner layouts as a guaranteed floor. Two seeds in one 5×5 is effectively
+  out of reach (measured: every tested pair fails — on the corner layouts the
+  only two 5-slots cross each other), which is why the contract is one seed
+  per grid.
+- **`themeWords`** — 10–20 everyday words around one loose theme. Themes are
+  delivered by anchoring, not hoping: a sampled fill almost never contains a
+  given theme vocabulary by chance, so one theme word is guaranteed a slot
+  whenever any of them can hold one, the ranking rewards whatever else the
+  fill picks up, and `themeWordsPlaced` reports what landed.
+
+Fairness falls out of the design: with a single seed, every crossing of the
+proper noun is an everyday word, so each of its letters is checkable from a
+crossing — the standard that keeps a name fair in a mini. The committed bank
+cannot serve seeded grids (it was built before the week happened), so seeded
+days always use the live search; themed days prefer a bank grid that already
+carries the theme, then fall back to anchoring live.
+
+**A seeded grid re-enters fact-checking.** A proper-noun answer asserts a
+real-world fact — that the thing exists and is spelled that way — so a seeded
+pack must carry a `sourceRef` for the page that verified the seed and ship as
+`factCheck.status: "needs_review"`. The word-game exemption in the
+[editorial standards](editorial-standards.md) applies only to all-everyday
+grids whose clues assert nothing.
+
 **If you are constructing by hand: construct the grid, then submit its words.** You choose the layout, work out ten words whose crossing
 letters agree, and submit those ten with their clues. The solver's job is to
 *verify* your construction and turn it into a payload — not to discover a grid
@@ -202,16 +240,22 @@ spares' clues are discarded. Write all of them properly anyway.
   answer's part of speech and number.
 - ~60 characters max — the clue list has to fit a phone.
 - No obscure proper nouns, no niche trivia: a mini is solved from language
-  knowledge, not lookups.
+  knowledge, not lookups. (A seed answer is the deliberate exception: it may
+  be a proper noun precisely because it is a household name of the moment,
+  its clue carries the context, and its crossings are all everyday words.)
 - Never put the answer word inside its own clue.
 - Signal abbreviations (`"Doctor, briefly"`).
 
 ## Verification
 
 The solver is the verification: it proves every answer came from your pool and
-that all crossings agree, and `validatePack` rejects anything else. No citations
-are needed and `sourceRefs` may be empty, so a Nutshell pack can carry
-`factCheck: { "status": "passed" }` and queue directly.
+that all crossings agree, and `validatePack` rejects anything else. For an
+all-everyday grid clued by definition and wordplay, no citations are needed,
+`sourceRefs` may be empty, and the pack can carry
+`factCheck: { "status": "passed" }` and queue directly. A pack whose grid
+contains a seed word, or whose clues assert real-world facts, instead ships as
+`"needs_review"` with a `sourceRef` per fact — see
+[Seeds and themes](#seeds-and-themes--putting-the-week-in-the-answers).
 
 If you get `"Failed to assemble valid crossword grid from candidate pool"`, in
 order of likelihood: your interlock has a mismatched crossing letter; a

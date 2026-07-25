@@ -10,20 +10,21 @@ import {
 import type { DailyAttemptRow, DailyPuzzleRow } from "@merky/db";
 import { ServiceError } from "../errors";
 import { getDailyStore } from "./store";
-import { localDateFor, msUntilLocalRollover } from "./timezone";
+import { localDateFor, msUntilLocalRollover, currentPuzzleDate } from "./timezone";
 import { computeStreaks } from "./streaks";
 import { checkRepeat, digestPuzzle, type PuzzleDigest } from "./fingerprint";
 
 /**
  * The timezone a device's "today" should be computed in.
  *
- * `x-mb-tz` reports wherever the device is right now, so travelling rewrites
- * the local date mid-day. Moving west can push it *backwards*, re-serving a
- * puzzle the device already played and letting the same day be scored twice.
- *
- * The stored zone therefore wins unless the incoming one does not rewind the
- * local date: travelling forward is adopted immediately, travelling back waits
- * until the new zone catches up. Devices with no row yet take the header.
+ * With the global Eastern reset, `requestTimezone` is always `DAILY_TIMEZONE`
+ * and this function is the migration valve for devices whose stored zone
+ * predates it: the stored zone wins unless the incoming one does not rewind
+ * the device's local date. A device stored east of Eastern therefore keeps its
+ * old (later) date until Eastern catches up — never re-serving a day it
+ * already played — and converges permanently the first time it checks in
+ * while the dates agree. Devices stored west of Eastern adopt it immediately.
+ * New devices take the fixed zone from the start.
  */
 export async function effectiveTimezone(
   deviceId: string,
@@ -447,11 +448,13 @@ export async function getQueueStatus(gameId?: string): Promise<Record<string, Qu
   const store = getDailyStore();
   const lookaheadDays = parseInt(process.env.DAILY_QUEUE_LOOKAHEAD_DAYS ?? "3", 10);
   const gamesToQuery = gameId ? [gameId] : dailyGameList.map((g) => g.meta.id);
-  const today = new Date().toISOString().slice(0, 10);
+  // Queue arithmetic runs on the product's day — the Eastern reset date — so
+  // "future" here flips at the same instant the players' puzzles do.
+  const today = currentPuzzleDate();
 
   const results: Record<string, QueueStatusEntry> = {};
   for (const id of gamesToQuery) {
-    const status = await store.getQueueStatus(id);
+    const status = await store.getQueueStatus(id, today);
     const rows = await store.listPuzzles(id, 400);
     const future = rows.filter((r) => r.puzzle_date >= today);
     const queuedDates = future.filter((r) => r.status === "queued").map((r) => r.puzzle_date).sort();
@@ -494,7 +497,7 @@ export async function getHistoryDigest(gameId: string, limit = 400): Promise<{
   if (!game) {
     throw new ServiceError("game_unknown", `Unknown daily game: ${gameId}`, 404);
   }
-  const today = new Date().toISOString().slice(0, 10);
+  const today = currentPuzzleDate();
   const rows = await getDailyStore().listPuzzles(gameId, limit);
   return { gameId, digests: rows.map((r) => digestPuzzle(r, today)) };
 }

@@ -11,7 +11,8 @@
  *   - `daily_plan` returns the dates that are actually open, from the server,
  *     rather than a count the caller has to do arithmetic on;
  *   - `daily_grid` hands back a verified Nutshell interlock, so the routine
- *     writes clues instead of attempting crossword construction;
+ *     writes clues instead of attempting crossword construction — and can
+ *     build the grid around a research-derived seed answer or a loose theme;
  *   - `daily_check` runs the same preflight the CLI does, before anything is
  *     sent;
  *   - `daily_submit` refuses past dates, occupied dates and repeat puzzles.
@@ -41,7 +42,7 @@ import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import process from "node:process";
 
-import { preflight, todayUtc, queueRisk } from "../daily-content.mjs";
+import { preflight, currentPuzzleDate, queueRisk } from "../daily-content.mjs";
 import { requireSecret } from "../secret.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -129,8 +130,17 @@ function slotsOf(gridPattern) {
   return { across, down };
 }
 
-/** Ordered, forward-checked fill — the same shape of search the game uses. */
-function fillGrid(words, pattern, avoid = new Set(), seed = 1, maxSteps = 400_000) {
+/**
+ * Ordered, forward-checked fill — the same shape of search the game uses.
+ *
+ * `required` (Map of slot index → word) pins specific slots before the search
+ * starts, which is how a seeded grid is built: the marquee entry is fixed, the
+ * everyday fill bends around it. Required slots are searched first so the
+ * constraint propagates immediately — the same order a human constructor works
+ * in. A required word bypasses both the pool and `avoid`; the caller vouches
+ * for it.
+ */
+function fillGrid(words, pattern, avoid = new Set(), seed = 1, maxSteps = 400_000, required = new Map()) {
   const { across, down } = slotsOf(pattern.gridPattern);
   const slots = [...across, ...down];
   const cells = slots.map((s) =>
@@ -155,6 +165,12 @@ function fillGrid(words, pattern, avoid = new Set(), seed = 1, maxSteps = 400_00
   const order = [];
   const placed = new Set();
   const remaining = new Set(slots.map((_, i) => i));
+  for (const i of required.keys()) {
+    if (!remaining.has(i)) continue;
+    order.push(i);
+    for (const x of cells[i]) placed.add(`${x.r},${x.c}`);
+    remaining.delete(i);
+  }
   while (remaining.size) {
     let best = -1;
     let bestOverlap = -1;
@@ -174,14 +190,21 @@ function fillGrid(words, pattern, avoid = new Set(), seed = 1, maxSteps = 400_00
   const assigned = new Array(slots.length).fill(null);
   let steps = 0;
 
-  const optionsFor = (i) =>
-    pool.filter((w) => {
-      if (w.length !== slots[i].length || used.has(w) || avoid.has(w)) return false;
-      return cells[i].every((x, k) => {
-        const letter = grid[x.r][x.c];
-        return !letter || letter === "#" || letter === w[k];
-      });
+  const fits = (w, i) =>
+    cells[i].every((x, k) => {
+      const letter = grid[x.r][x.c];
+      return !letter || letter === "#" || letter === w[k];
     });
+
+  const optionsFor = (i) => {
+    const pinned = required.get(i);
+    if (pinned !== undefined) {
+      return pinned.length === slots[i].length && !used.has(pinned) && fits(pinned, i) ? [pinned] : [];
+    }
+    return pool.filter(
+      (w) => w.length === slots[i].length && !used.has(w) && !avoid.has(w) && fits(w, i)
+    );
+  };
 
   const backtrack = (depth) => {
     if (depth === slots.length) return true;
@@ -250,6 +273,26 @@ export function scoreGrid(words) {
   return score;
 }
 
+/**
+ * Ranking with an optional theme: a placed theme word outweighs a slightly
+ * prettier fill (8 > the 6 a five-letter entry earns), because the theme is
+ * the thing the day was built around. With no theme this is scoreGrid.
+ */
+function rankGrid(words, themeSet) {
+  let bonus = 0;
+  if (themeSet && themeSet.size) {
+    for (const w of words) if (themeSet.has(w)) bonus += 8;
+  }
+  return scoreGrid(words) + bonus;
+}
+
+/** Uppercase and keep only words the solver could ever accept. */
+function sanitizeWords(list) {
+  return [...new Set((list ?? []).map((w) => String(w).trim().toUpperCase()))].filter((w) =>
+    /^[A-Z]{3,5}$/.test(w)
+  );
+}
+
 /** Stable per-date seed, so a given day is reproducible but days differ. */
 function seedFor(puzzleDate) {
   return parseInt(sha(`nutshell|seed|${puzzleDate ?? ""}`).slice(0, 8), 16) % 100_000;
@@ -281,6 +324,7 @@ function proposeGrid(
   {
     avoidWords = new Set(),
     usedFingerprints = new Set(),
+    themeSet = new Set(),
     seeds = 200,
     sample = 8,
     budgetMs = 25_000,
@@ -314,10 +358,195 @@ function proposeGrid(
   if (candidates.length === 0) return null;
   candidates.sort(
     (a, b) =>
-      scoreGrid([...b.grid.across, ...b.grid.down].map((s) => s.answer)) -
-      scoreGrid([...a.grid.across, ...a.grid.down].map((s) => s.answer))
+      rankGrid([...b.grid.across, ...b.grid.down].map((s) => s.answer), themeSet) -
+      rankGrid([...a.grid.across, ...a.grid.down].map((s) => s.answer), themeSet)
   );
   return candidates[0].grid;
+}
+
+/**
+ * A grid built around a required "seed" answer — the marquee entry a routine
+ * derives from the week's events. Candidates are ranked: the first one the
+ * everyday fill can actually surround wins, and the rest of that day's list is
+ * not tried. Letter shape decides more than fame here (measured: MOANA places
+ * in ~25ms, MARIO never does within a tool budget), which is why the contract
+ * is a ranked list rather than a single word, and why every rejection is
+ * reported back with a reason instead of silently vanishing.
+ *
+ * Pattern order is corners first, staircases second, and both are tried: the
+ * corner layouts cost tens of milliseconds and guarantee a floor, then the
+ * rest of the seed's time slice goes on the staircases, which score twice as
+ * high and land in ~1–10s when seeded (anchoring a slot prunes the search, so
+ * a live call can afford what an unseeded search could not). The best-ranked
+ * success wins. Ordering it the other way round starves the floor: a seed the
+ * staircases cannot take burns its whole slice and is rejected even though a
+ * corner grid existed. The dense blocked layouts stay offline in the bank
+ * builder.
+ */
+function proposeSeededGrid(
+  words,
+  patterns,
+  seedWords,
+  {
+    avoidWords = new Set(),
+    usedFingerprints = new Set(),
+    themeSet = new Set(),
+    budgetMs = 25_000,
+    perSeedMs = 9_000,
+    stepsPerFill = 150_000,
+    rngTries = 3,
+    puzzleDate,
+  } = {}
+) {
+  const byId = new Map(patterns.map((p) => [p.id, p]));
+  const ordered = ["corners_3x3", "corners_3x3_mirror", "staircase_tl_br", "staircase_tr_bl"]
+    .map((id) => byId.get(id))
+    .filter(Boolean);
+  if (ordered.length === 0) ordered.push(...patterns);
+
+  const base = seedFor(puzzleDate);
+  const deadline = Date.now() + budgetMs;
+  const rejected = [];
+  let attempt = 0;
+
+  for (const raw of seedWords) {
+    const seedWord = String(raw).trim().toUpperCase();
+    if (!/^[A-Z]{3,5}$/.test(seedWord)) {
+      rejected.push({ word: seedWord || String(raw), reason: "not 3-5 letters A-Z" });
+      continue;
+    }
+    if (Date.now() >= deadline) {
+      rejected.push({ word: seedWord, reason: "budget exhausted before this candidate was tried" });
+      continue;
+    }
+
+    const sliceDeadline = Math.min(Date.now() + perSeedMs, deadline);
+    let best = null;
+    let hadSlot = false;
+
+    for (const pattern of ordered) {
+      if (Date.now() >= sliceDeadline) break;
+      const { across, down } = slotsOf(pattern.gridPattern);
+      const slots = [...across, ...down];
+      for (let i = 0; i < slots.length; i++) {
+        if (slots[i].length !== seedWord.length) continue;
+        hadSlot = true;
+        for (let t = 0; t < rngTries; t++) {
+          if (Date.now() >= sliceDeadline) break;
+          attempt++;
+          const grid = fillGrid(
+            words,
+            pattern,
+            avoidWords,
+            (base + attempt) * 7919 + 13,
+            stepsPerFill,
+            new Map([[i, seedWord]])
+          );
+          if (!grid) continue;
+          const fingerprint = fingerprintPuzzle("nutshell", { across: grid.across, down: grid.down });
+          if (usedFingerprints.has(fingerprint)) continue;
+          const rank = rankGrid([...grid.across, ...grid.down].map((s) => s.answer), themeSet);
+          if (!best || rank > best.rank) {
+            best = { grid, rank, slot: { ...slots[i], dir: slots[i].dir } };
+          }
+          break; // one fresh fill per slot is enough; other slots may rank higher
+        }
+      }
+    }
+
+    if (best) {
+      return {
+        grid: best.grid,
+        seedUsed: {
+          word: seedWord,
+          dir: best.slot.dir,
+          row: best.slot.row,
+          col: best.slot.col,
+          length: best.slot.length,
+        },
+        seedsRejected: rejected,
+      };
+    }
+    rejected.push({
+      word: seedWord,
+      reason: hadSlot
+        ? "no fresh everyday fill surrounds it within budget — its letters are the problem, not its fame"
+        : "no layout has a slot of that length",
+    });
+  }
+
+  return { grid: null, seedUsed: null, seedsRejected: rejected };
+}
+
+/**
+ * A grid that actually carries a theme, not one that might.
+ *
+ * Ranking alone cannot deliver a theme: sampled fills almost never contain a
+ * given ten-word vocabulary by chance (measured: eight samples, zero theme
+ * words placed). So themes reuse the required-placement mechanism — each theme
+ * word is tried as an anchor, guaranteeing one placement, and the ranking then
+ * rewards whatever other theme words the fill picked up opportunistically from
+ * the pool. Unlike seeds, theme words are equals: every anchor is tried and
+ * the best-ranked result wins, rather than the first.
+ */
+function proposeThemedGrid(
+  words,
+  patterns,
+  themeSet,
+  {
+    avoidWords = new Set(),
+    usedFingerprints = new Set(),
+    budgetMs = 10_000,
+    stepsPerFill = 60_000,
+    rngTries = 2,
+    maxAnchors = 8,
+    puzzleDate,
+  } = {}
+) {
+  const byId = new Map(patterns.map((p) => [p.id, p]));
+  const ordered = ["corners_3x3", "corners_3x3_mirror", "staircase_tl_br", "staircase_tr_bl"]
+    .map((id) => byId.get(id))
+    .filter(Boolean);
+  if (ordered.length === 0) ordered.push(...patterns);
+
+  const base = seedFor(puzzleDate);
+  const deadline = Date.now() + budgetMs;
+  let attempt = 0;
+  let best = null;
+
+  for (const anchor of [...themeSet].slice(0, maxAnchors)) {
+    if (Date.now() >= deadline) break;
+    for (const pattern of ordered) {
+      if (Date.now() >= deadline) break;
+      const { across, down } = slotsOf(pattern.gridPattern);
+      const slots = [...across, ...down];
+      let anchored = false;
+      for (let i = 0; i < slots.length && !anchored; i++) {
+        if (slots[i].length !== anchor.length) continue;
+        for (let t = 0; t < rngTries; t++) {
+          if (Date.now() >= deadline) break;
+          attempt++;
+          const grid = fillGrid(
+            words,
+            pattern,
+            avoidWords,
+            (base + attempt) * 6151 + 29,
+            stepsPerFill,
+            new Map([[i, anchor]])
+          );
+          if (!grid) continue;
+          const fingerprint = fingerprintPuzzle("nutshell", { across: grid.across, down: grid.down });
+          if (usedFingerprints.has(fingerprint)) continue;
+          const rank = rankGrid([...grid.across, ...grid.down].map((s) => s.answer), themeSet);
+          if (!best || rank > best.rank) best = { grid, rank };
+          anchored = true; // one home per (anchor, pattern) bounds the cost
+          break;
+        }
+      }
+    }
+  }
+
+  return best?.grid ?? null;
 }
 
 // --- ledger -----------------------------------------------------------------
@@ -453,7 +682,7 @@ const TOOLS = [
   {
     name: "daily_grid",
     description:
-      "A verified Nutshell interlock, filled from the repo's curated everyday word list and guaranteed not to repeat a past grid. You supply clues for the ten words it returns — you do not have to construct a crossword. Call `daily_submit` with those words and clues.",
+      "A verified Nutshell interlock, filled from the repo's curated everyday word list and guaranteed not to repeat a past grid. You supply clues for the ten words it returns — you do not have to construct a crossword. Optionally pass seedWords (ranked topical answer candidates from your research — the grid is built around the first that fits, everything else stays everyday fill) and/or themeWords (a loose theme vocabulary the fill prefers opportunistically). Call `daily_submit` with those words and clues.",
     inputSchema: {
       type: "object",
       properties: {
@@ -462,6 +691,18 @@ const TOOLS = [
           type: "array",
           items: { type: "string" },
           description: "Extra words to keep out of the fill (e.g. this week's other grids).",
+        },
+        seedWords: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "Ranked candidates (best first, give 3-6) for ONE required topical answer, each 3-5 letters A-Z, each verified against a retrieved source before you pass it. The grid is built around the first that fits; the response reports seedUsed and seedsRejected. Letter shape decides what fits — vowel-rich candidates place far more often — so always give alternatives.",
+        },
+        themeWords: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "Optional loose-theme vocabulary: 10-20 everyday 3-5 letter words around one theme. Grids containing more of them are preferred and themeWordsPlaced reports what landed. Nothing is guaranteed — theme what lands, drop what doesn't.",
         },
       },
       required: ["puzzleDate"],
@@ -508,7 +749,7 @@ async function callTool(name, args = {}) {
     const status = await api(
       `/api/admin/daily/queue-status${args.gameId ? `?gameId=${encodeURIComponent(args.gameId)}` : ""}`
     );
-    const today = todayUtc();
+    const today = currentPuzzleDate();
     const games = {};
     for (const [game, s] of Object.entries(status)) {
       games[game] = {
@@ -549,50 +790,117 @@ async function callTool(name, args = {}) {
     const res = await api(`/api/admin/daily/history?gameId=nutshell`);
     const usedFingerprints = new Set((res.digests ?? []).map((d) => d.fingerprint));
     const avoidWords = new Set((args.avoidWords ?? []).map((w) => String(w).toUpperCase()));
+    const themeList = sanitizeWords(args.themeWords);
+    const themeSet = new Set(themeList);
+    const seedList = Array.isArray(args.seedWords) ? args.seedWords : [];
+    // Theme words join the everyday pool so the fill can actually use them;
+    // seeds never do — a seed enters a grid only as the required entry.
+    const pool = themeList.length ? [...new Set([...loadWordList(), ...themeList])] : loadWordList();
 
     const slot = (s) => ({ number: s.number, row: s.row, col: s.col, length: s.length, answer: s.answer });
-    const respond = (grid, source) =>
-      ok({
+    const respond = (grid, source, extras = {}) => {
+      const answers = [...grid.across, ...grid.down].map((s) => s.answer);
+      return ok({
         puzzleDate: args.puzzleDate,
         patternId: grid.patternId,
         gridPattern: grid.gridPattern,
         across: grid.across.map(slot),
         down: grid.down.map(slot),
-        candidates: [...grid.across, ...grid.down].map((s) => ({
-          word: s.answer,
-          clue: "<write an original clue>",
-        })),
+        candidates: answers.map((word) => ({ word, clue: "<write an original clue>" })),
+        seedUsed: extras.seedUsed ?? null,
+        seedsRejected: extras.seedsRejected ?? [],
+        themeWordsPlaced: themeSet.size ? answers.filter((w) => themeSet.has(w)) : [],
         source,
-        note:
-          "Write an original clue for each of the ten words, then call daily_submit with " +
-          "payload.candidates. The server re-verifies the interlock and will reject anything " +
-          "that does not agree.",
+        note: extras.seedUsed
+          ? "Write an original clue for each of the ten words; clue the seed word through what made " +
+            "it current, never through anyone's private life. A seeded grid asserts a real-world " +
+            "fact, so include a sourceRef for the page that verified the seed and submit with " +
+            "factCheck.status 'needs_review'. The server re-verifies the interlock on submit."
+          : "Write an original clue for each of the ten words, then call daily_submit with " +
+            "payload.candidates. The server re-verifies the interlock and will reject anything " +
+            "that does not agree.",
       });
+    };
+
+    // Seeds first: a topical marquee answer can only come from a live seeded
+    // search — the bank was filled from the everyday list before this week
+    // happened. If every candidate fails, fall through and say why.
+    let seedsRejected = [];
+    if (seedList.length) {
+      const seeded = proposeSeededGrid(pool, loadPatterns(), seedList, {
+        avoidWords,
+        usedFingerprints,
+        themeSet,
+        puzzleDate: args.puzzleDate,
+      });
+      if (seeded.grid) {
+        return respond(seeded.grid, "seeded live search", seeded);
+      }
+      seedsRejected = seeded.seedsRejected;
+    }
 
     // The bank is ordered best-first and every entry is already known distinct,
     // so serving is a scan rather than a search.
     const bank = loadGridBank();
-    if (bank) {
-      const fresh = bank.filter(
-        (g) =>
-          !usedFingerprints.has(g.fingerprint) &&
-          ![...g.across, ...g.down].some((s) => avoidWords.has(s.answer))
-      );
+    const fresh = bank
+      ? bank.filter(
+          (g) =>
+            !usedFingerprints.has(g.fingerprint) &&
+            ![...g.across, ...g.down].some((s) => avoidWords.has(s.answer))
+        )
+      : [];
+
+    // A theme has to be delivered, not hoped for. First choice: a bank grid
+    // that already carries it (two placed words — one stray match is not a
+    // theme). Otherwise anchor theme words live; a result that carries the
+    // theme beats the bank, and one that merely brushes it (a single word)
+    // only wins when there is no bank grid to prefer.
+    if (themeSet.size) {
       if (fresh.length) {
-        // Deterministic per date, so a re-run for the same day is stable, while
-        // different days draw different grids from the top of the bank.
-        const pick = fresh[seedFor(args.puzzleDate) % Math.min(fresh.length, 8)] ?? fresh[0];
-        return respond(pick, `bank (${fresh.length} unused of ${bank.length})`);
+        const themed = fresh
+          .map((g) => {
+            const answers = [...g.across, ...g.down].map((s) => s.answer);
+            return {
+              g,
+              count: answers.filter((w) => themeSet.has(w)).length,
+              rank: rankGrid(answers, themeSet),
+            };
+          })
+          .sort((a, b) => b.rank - a.rank)[0];
+        if (themed && themed.count >= 2) {
+          return respond(themed.g, `bank, theme-matched (${themed.count} theme words)`, { seedsRejected });
+        }
       }
+      const themedGrid = proposeThemedGrid(pool, loadPatterns(), themeSet, {
+        avoidWords,
+        usedFingerprints,
+        puzzleDate: args.puzzleDate,
+      });
+      if (themedGrid) {
+        const placed = [...themedGrid.across, ...themedGrid.down].filter((s) =>
+          themeSet.has(s.answer)
+        ).length;
+        if (placed >= 2 || !fresh.length) {
+          return respond(themedGrid, `themed live search (${placed} theme words)`, { seedsRejected });
+        }
+      }
+    }
+
+    if (fresh.length) {
+      // Deterministic per date, so a re-run for the same day is stable, while
+      // different days draw different grids from the top of the bank.
+      const pick = fresh[seedFor(args.puzzleDate) % Math.min(fresh.length, 8)] ?? fresh[0];
+      return respond(pick, `bank (${fresh.length} unused of ${bank.length})`, { seedsRejected });
     }
 
     // Fallback only: restrict to the cheap corner layouts. The richer patterns
     // are worth minutes offline and are exactly why the bank exists, but a tool
     // call cannot spend them.
     const cheap = loadPatterns().filter((p) => p.id.startsWith("corners"));
-    const grid = proposeGrid(loadWordList(), cheap.length ? cheap : loadPatterns(), {
+    const grid = proposeGrid(pool, cheap.length ? cheap : loadPatterns(), {
       avoidWords,
       usedFingerprints,
+      themeSet,
       puzzleDate: args.puzzleDate,
       budgetMs: 8_000,
       stepsPerFill: 60_000,
@@ -604,7 +912,9 @@ async function callTool(name, args = {}) {
           "packages/games/src/daily/nutshell/wordlist.ts."
       );
     }
-    return respond(grid, bank ? "live search (bank exhausted)" : "live search (no bank built)");
+    return respond(grid, bank ? "live search (bank exhausted)" : "live search (no bank built)", {
+      seedsRejected,
+    });
   }
 
   if (name === "daily_check" || name === "daily_submit") {
@@ -616,7 +926,7 @@ async function callTool(name, args = {}) {
       factCheck: args.factCheck,
     };
     const { problems, warnings } = preflight(pack);
-    const today = todayUtc();
+    const today = currentPuzzleDate();
 
     const blockers = [...problems];
     if (!/^\d{4}-\d{2}-\d{2}$/.test(pack.puzzleDate ?? "")) {
@@ -755,4 +1065,4 @@ function serve() {
 
 if (import.meta.url === `file://${process.argv[1]}`) serve();
 
-export { fillGrid, proposeGrid, loadWordList, loadPatterns, fingerprintPuzzle, puzzleItems, handle, TOOLS };
+export { fillGrid, proposeGrid, proposeSeededGrid, proposeThemedGrid, loadWordList, loadPatterns, fingerprintPuzzle, puzzleItems, handle, TOOLS };

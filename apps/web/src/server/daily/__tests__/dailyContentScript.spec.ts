@@ -5,7 +5,7 @@ import {
   planDates,
   preflight,
   queueRisk,
-  todayUtc,
+  currentPuzzleDate,
 } from "../../../../../../scripts/daily-content.mjs";
 
 /**
@@ -17,10 +17,17 @@ import {
 describe("daily-content queue arithmetic", () => {
   const today = "2026-07-25";
 
-  it("uses the same UTC date the server compares against", () => {
-    expect(todayUtc(new Date("2026-07-25T23:30:00Z"))).toBe("2026-07-25");
-    // Local time would already read the 26th in Sydney here; the server would not.
-    expect(todayUtc(new Date("2026-07-25T13:59:00Z"))).toBe("2026-07-25");
+  it("uses the Eastern reset date the server compares against", () => {
+    expect(currentPuzzleDate(new Date("2026-07-25T23:30:00Z"))).toBe("2026-07-25");
+    // 02:00 UTC is already the 26th in UTC — but still the evening of the 25th
+    // in New York, and the games flip at midnight Eastern, not midnight UTC.
+    expect(currentPuzzleDate(new Date("2026-07-26T02:00:00Z"))).toBe("2026-07-25");
+    // And the moment New York's clock passes midnight, the date advances
+    // (04:00 UTC during EDT).
+    expect(currentPuzzleDate(new Date("2026-07-26T04:00:01Z"))).toBe("2026-07-26");
+    // DST: in January the flip is at 05:00 UTC.
+    expect(currentPuzzleDate(new Date("2026-01-10T04:59:00Z"))).toBe("2026-01-09");
+    expect(currentPuzzleDate(new Date("2026-01-10T05:00:01Z"))).toBe("2026-01-10");
   });
 
   it("never targets today, however empty the queue is", () => {
@@ -41,17 +48,48 @@ describe("daily-content queue arithmetic", () => {
     expect(planDates(0, 30, today)).toHaveLength(3); // maxPerRun
   });
 
-  it("treats a one-day queue as at risk, because devices roll over before UTC", () => {
-    // A device's today is localDateFor(device.timezone). UTC+14 asks for
-    // tomorrow's puzzle 14 hours before the server's UTC date agrees.
+  it("treats a one-day queue as at risk — the global flip empties it at midnight Eastern", () => {
     expect(queueRisk(0)).toMatch(/EMPTY/);
-    expect(queueRisk(1)).toMatch(/east of UTC/);
+    expect(queueRisk(1)).toMatch(/midnight US Eastern/);
     expect(queueRisk(2)).toBeNull();
   });
 
   it("does arithmetic across a month boundary", () => {
     expect(addDays("2026-07-31", 1)).toBe("2026-08-01");
     expect(firstFreeDate(2, "2026-12-31")).toBe("2027-01-02");
+  });
+});
+
+describe("daily-content preflight — Nutshell layouts", () => {
+  const pool = (words: string[]) => ({
+    gameId: "nutshell",
+    puzzleDate: "2099-01-01",
+    payload: { candidates: words.map((word) => ({ word, clue: `clue for ${word}` })) },
+    sourceRefs: [],
+  });
+
+  it("accepts a corner-layout pool (eight 3s and two 5s)", () => {
+    // This is the shape `daily_grid` returns most often and the first shape
+    // the solver tries. Preflight used to demand the staircase distribution
+    // and rejected every one of them — the pipeline blocking its own grids.
+    const { problems } = preflight(
+      pool(["AMP", "DOE", "COO", "END", "ADS", "MOP", "ION", "NOD", "SPAIN", "PEACE"])
+    );
+    expect(problems).toEqual([]);
+  });
+
+  it("still accepts a staircase pool (two 3s, four 4s, four 5s)", () => {
+    const { problems } = preflight(
+      pool(["ARC", "SHY", "ROLE", "CREW", "MASS", "INCH", "MINOR", "ANGLE", "SCREW", "ANGRY"])
+    );
+    expect(problems).toEqual([]);
+  });
+
+  it("rejects a pool that fills no layout at all", () => {
+    const { problems } = preflight(
+      pool(["CAT", "DOG", "BAT", "RAT", "HAT", "MAT", "PAT", "SAT", "VAT", "OAT"])
+    );
+    expect(problems.join(" ")).toMatch(/fills no layout/);
   });
 });
 

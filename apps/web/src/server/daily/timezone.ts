@@ -1,9 +1,24 @@
 /**
- * Local-midnight rollover mechanism: puzzle selection and the streak same-day
- * check both key off `localDateFor(device.timezone)`, NOT server UTC time.
- * Accepted edge case: a device that changes timezone mid-day can see an odd jump
- * — not solved here.
+ * Daily rollover mechanism.
+ *
+ * The daily games flip once, globally, at midnight US Eastern
+ * (`DAILY_TIMEZONE`): puzzle selection, the archive cutoff, `on_time`, and the
+ * streak same-day check all key off the Eastern calendar date, and the
+ * countdown runs to the next Eastern midnight. Every player worldwide sees the
+ * same puzzle at the same moment, and content deadlines are one wall-clock
+ * time instead of a 26-hour smear of device-local midnights.
+ *
+ * History: rollover used to be per-device local midnight, keyed off the
+ * `x-mb-tz` header. The generic helpers below still take a timezone argument
+ * (and are tested against several) so the reset zone stays a one-line
+ * decision; `resolveTimezone` is where the fixed zone is imposed.
  */
+
+/**
+ * The one timezone the daily games reset in. Midnight here is the flip for
+ * everyone. DST is intentional: the flip tracks US Eastern wall clocks.
+ */
+export const DAILY_TIMEZONE = "America/New_York";
 
 /**
  * Offset in ms that `timezone` is ahead of UTC at a given instant. Derived by
@@ -58,15 +73,21 @@ export function msUntilLocalRollover(timezone: string, nowMs: number = Date.now(
   return Math.max(0, rollover - nowMs);
 }
 
-export function resolveTimezone(req: Request): string {
-  const tz = req.headers.get("x-mb-tz");
-  if (!tz) return "UTC";
-  try {
-    new Intl.DateTimeFormat(undefined, { timeZone: tz });
-    return tz;
-  } catch {
-    return "UTC";
-  }
+/**
+ * The timezone daily requests operate in — always `DAILY_TIMEZONE`.
+ *
+ * The request is still accepted so call sites keep one shape, and the client
+ * still sends `x-mb-tz`, but the header no longer chooses the puzzle day: the
+ * flip is global. (Stored per-device zones from the local-midnight era are
+ * converged by `effectiveTimezone`, which never lets a device's date rewind.)
+ */
+export function resolveTimezone(_req: Request): string {
+  return DAILY_TIMEZONE;
+}
+
+/** Today's puzzle date — the current calendar date in `DAILY_TIMEZONE`. */
+export function currentPuzzleDate(nowMs: number = Date.now()): string {
+  return localDateFor(DAILY_TIMEZONE, nowMs);
 }
 
 export function localDateFor(timezone: string, nowMs: number = Date.now()): string {

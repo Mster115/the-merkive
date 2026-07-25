@@ -2,6 +2,8 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   fillGrid,
   proposeGrid,
+  proposeSeededGrid,
+  proposeThemedGrid,
   loadWordList,
   loadPatterns,
   fingerprintPuzzle as mcpFingerprint,
@@ -95,6 +97,55 @@ describe("daily MCP grid construction", () => {
     const words2 = [...second!.across, ...second!.down].map((s: { answer: string }) => s.answer);
     expect(words2).not.toContain(bannedWord);
   }, 60_000);
+});
+
+describe("seeded and themed grid proposal", () => {
+  // The cultural payload of a Nutshell grid is a required "seed" answer the
+  // routine derives from research. The contract is a ranked list because
+  // letter shape decides what fits: the first candidate the everyday fill can
+  // surround wins, and everything unplaceable is reported with a reason.
+  it("builds the grid around the first viable seed and reports the rest", () => {
+    const words = loadWordList();
+    const r = proposeSeededGrid(words, loadPatterns(), ["QQQQQ", "TESLA"], {
+      budgetMs: 10_000,
+      perSeedMs: 4_000,
+    });
+    expect(r.grid).not.toBeNull();
+    expect(r.seedUsed?.word).toBe("TESLA");
+    const answers = [...r.grid!.across, ...r.grid!.down].map((s: { answer: string }) => s.answer);
+    expect(answers).toContain("TESLA");
+    expect(new Set(answers).size).toBe(10);
+    // Everything except the seed stays everyday fill — the seed's crossings
+    // are all checkable, which is what keeps a proper noun fair in a mini.
+    for (const w of answers) if (w !== "TESLA") expect(words).toContain(w);
+    expect(r.seedsRejected.map((x: { word: string }) => x.word)).toEqual(["QQQQQ"]);
+  }, 60_000);
+
+  it("returns null with a reason per candidate when no seed can be placed", () => {
+    const r = proposeSeededGrid(loadWordList(), loadPatterns(), ["XQ", "ZZZZZ"], {
+      budgetMs: 5_000,
+      perSeedMs: 2_000,
+    });
+    expect(r.grid).toBeNull();
+    expect(r.seedUsed).toBeNull();
+    expect(r.seedsRejected).toHaveLength(2);
+    for (const rej of r.seedsRejected as { reason: string }[]) {
+      expect(rej.reason.length).toBeGreaterThan(5);
+    }
+  }, 30_000);
+
+  it("anchors a theme word rather than hoping one gets sampled", () => {
+    // Ranking alone cannot deliver a theme — sampled fills almost never
+    // contain a given ten-word vocabulary by chance. Anchoring guarantees a
+    // placement whenever any theme word can hold a slot.
+    const theme = new Set(["BREAD", "FLOUR", "EGG", "JAM", "PIE"]);
+    const grid = proposeThemedGrid(loadWordList(), loadPatterns(), theme, {
+      budgetMs: 6_000,
+    });
+    expect(grid).not.toBeNull();
+    const answers = [...grid!.across, ...grid!.down].map((s: { answer: string }) => s.answer);
+    expect(answers.some((w: string) => theme.has(w))).toBe(true);
+  }, 30_000);
 });
 
 describe("fingerprint parity between server and MCP", () => {

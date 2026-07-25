@@ -34,7 +34,8 @@ quotes cannot drift from the solver's. Both are covered by tests.
 routine (daily, via the merkive-daily MCP tools)
   → daily_plan     which dates are actually open, per game
   → daily_brief    the game's own authoring brief
-  → daily_grid     a verified, never-used Nutshell interlock
+  → daily_grid     a verified, never-used Nutshell interlock, optionally
+                   built around a topical seed answer or a loose theme
   → daily_history  which candidate answers are already spent
   → daily_check    dry run against every rule
   → daily_submit   refuses past dates, taken dates, repeat puzzles
@@ -90,9 +91,12 @@ sourced well enough to go live unreviewed. Three positions, cheapest first:
 3. **Auto-queue everything.** Not recommended; a wrong answer key is worse
    than an empty queue, because the game asserts it confidently to the player.
 
-Until you pick, the routine runs mode 1. Nutshell and Relay do not carry this
-risk (their content is closed-vocabulary word puzzles verified by a solver, not
-claims about the world), so they can auto-queue regardless — see each game doc.
+Until you pick, the routine runs mode 1. Relay does not carry this risk (its
+content is closed-vocabulary word puzzles verified by a solver, not claims
+about the world), so it can auto-queue regardless. Nutshell is the same *only*
+for all-everyday grids clued by definition and wordplay — a grid built around a
+topical seed word, or clued through real events, asserts facts and always lands
+as a draft — see each game doc.
 
 ## When you change a game
 

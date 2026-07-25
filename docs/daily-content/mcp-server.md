@@ -1,7 +1,7 @@
 # The daily-content MCP server
 
 [`scripts/mcp/daily-mcp.mjs`](../../scripts/mcp/daily-mcp.mjs) — zero
-dependencies, stdio JSON-RPC, ~600 lines.
+dependencies, stdio JSON-RPC, ~1,100 lines.
 
 A routine driven by prose has to be told the schemas, the date arithmetic, the
 overwrite rules, the no-repeat windows and the secret, and every one of those is
@@ -79,7 +79,7 @@ an error that quotes a secret has leaked it into every log that catches it.
 | `daily_plan` | Per game: queued dates, draft dates, open dates, next targets, an urgency flag | Replaces deriving dates from a count. No puzzle content. |
 | `daily_brief` | The game's own authoring brief for a date | Generated from the game's code, so the schema is never stale |
 | `daily_history` | Fingerprints, which of your candidate items are already spent, and answers from dates already played | Lets a generator prove its puzzle is new without seeing what it must differ from |
-| `daily_grid` | A verified Nutshell interlock, ten words, guaranteed unused | Crossword construction is the hardest task in the pipeline; this removes it |
+| `daily_grid` | A verified Nutshell interlock, ten words, guaranteed unused — optionally built around a topical `seedWords` answer or a loose `themeWords` vocabulary | Crossword construction is the hardest task in the pipeline; this removes it, and lets the week's culture into the answers without giving up verified construction |
 | `daily_check` | `wouldSubmit`, blockers, warnings, and where the pack would land | Dry run against every rule before anything is sent |
 | `daily_submit` | Submission result plus item overlaps | Refuses past dates, occupied dates and repeat puzzles |
 
@@ -128,6 +128,28 @@ it was the single hardest thing in this pipeline.
 
 `daily_grid` returns ten interlocking words that have never been used. The
 routine writes ten clues. That is the whole job.
+
+### Seeds and themes
+
+Two optional inputs put the week's culture into the answers themselves rather
+than only the clues (full contract and the editorial bar in
+[nutshell.md](nutshell.md)):
+
+- `seedWords` — ranked candidates for one required topical answer. The grid is
+  built around the first the everyday fill can surround (`seedUsed`); the rest
+  come back in `seedsRejected` with reasons, because letter shape decides what
+  fits, not fame. Seeded days always use the live search — a bank built last
+  month cannot contain this week — and anchoring the slot prunes the search
+  enough that the richer staircase layouts become affordable inside a tool
+  call.
+- `themeWords` — a loose everyday vocabulary the grid should carry. Delivered
+  by anchoring one theme word and rewarding fills that pick up more
+  (`themeWordsPlaced`); a bank grid already carrying two or more theme words
+  is preferred when one exists.
+
+A seeded grid asserts a real-world fact, so it ships as a draft with a
+`sourceRef` for the seed — the word-game fact-check exemption covers only
+all-everyday grids.
 
 ### Searching is offline; serving is instant
 
