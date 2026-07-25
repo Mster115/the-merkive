@@ -36,20 +36,44 @@ const budgetMs = (minutesArg === -1 ? 20 : Number(args[minutesArg + 1] ?? 20)) *
 const words = loadWordList();
 const patterns = loadPatterns();
 
-/** Richest layouts first — a grid of eight 3-letter words is the last resort. */
-function potential(pattern) {
-  const g = fillGrid(words, pattern, new Set(), 1);
-  return g ? scoreGrid([...g.across, ...g.down].map((s) => s.answer)) : -1;
+/**
+ * Rank patterns by the quality of one sample fill, and record what it cost.
+ *
+ * A step ceiling on every fill is what makes this terminate: without one, a
+ * single call on the densest layout ran for nearly four minutes, and a wall
+ * clock checked only between calls cannot interrupt that. Patterns too
+ * expensive to fill inside the ceiling simply rank as unusable — the bank is
+ * better off with more grids from a slightly cheaper layout than one grid from
+ * the richest.
+ */
+const STEPS_PER_FILL = 400_000;
+
+function probe(pattern) {
+  const t0 = Date.now();
+  const g = fillGrid(words, pattern, new Set(), 1, STEPS_PER_FILL);
+  return {
+    pattern,
+    ms: Date.now() - t0,
+    potential: g ? scoreGrid([...g.across, ...g.down].map((s) => s.answer)) : -1,
+  };
 }
 
-const ranked = patterns
-  .map((p) => ({ pattern: p, potential: potential(p) }))
-  .filter((p) => p.potential > 0)
+console.log(`word list: ${words.length}`);
+console.log(`probing patterns (step ceiling ${STEPS_PER_FILL.toLocaleString()})…`);
+
+const probed = patterns.map(probe);
+for (const r of probed) {
+  console.log(
+    `  ${r.pattern.id.padEnd(22)} ${r.potential > 0 ? `score ${String(r.potential).padStart(3)}` : "unfillable"}  ${r.ms}ms`
+  );
+}
+
+const ranked = probed
+  .filter((p) => p.potential > 0 && p.ms < 20_000)
   .sort((a, b) => b.potential - a.potential);
 
-console.log(`word list: ${words.length}`);
-console.log(`fillable patterns, richest first:`);
-for (const r of ranked) console.log(`  ${r.pattern.id.padEnd(20)} sample score ${r.potential}`);
+console.log(`\nusing ${ranked.length} pattern(s), richest first:`);
+for (const r of ranked) console.log(`  ${r.pattern.id} (score ${r.potential}, ${r.ms}ms/fill)`);
 
 const deadline = Date.now() + budgetMs;
 const seen = new Set();
@@ -62,7 +86,7 @@ for (const { pattern } of ranked) {
   for (let seed = 1; seed <= 5000; seed++) {
     if (bank.length >= target || Date.now() > deadline) break;
 
-    const grid = fillGrid(words, pattern, new Set(), seed * 7919 + 13);
+    const grid = fillGrid(words, pattern, new Set(), seed * 7919 + 13, STEPS_PER_FILL);
     if (!grid) break; // pattern is unfillable from this pool
 
     const payload = { across: grid.across, down: grid.down };
@@ -87,7 +111,8 @@ for (const { pattern } of ranked) {
     });
 
     if (bank.length % 5 === 0) {
-      console.log(`  ${bank.length}/${target} — ${Math.round((Date.now() - (deadline - budgetMs)) / 1000)}s elapsed`);
+      const elapsed = Math.round((Date.now() - (deadline - budgetMs)) / 1000);
+      console.log(`  ${bank.length}/${target} (${pattern.id}) — ${elapsed}s elapsed`);
     }
   }
 }
