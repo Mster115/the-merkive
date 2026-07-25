@@ -139,7 +139,7 @@ export function DailyPlayShell({ gameId, explicitDate }: DailyPlayShellProps) {
 
   return (
     <main className="mx-auto max-w-2xl min-h-dvh flex flex-col gap-6 p-4 sm:p-6 pb-24">
-      <header className="flex items-center justify-between gap-4 border-b-2 border-black pb-4">
+      <header className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black uppercase text-[var(--mb-text)] [font-family:var(--mb-font-display)]">
             {t(game.meta.nameKey)}
@@ -183,7 +183,7 @@ export function DailyPlayShell({ gameId, explicitDate }: DailyPlayShellProps) {
           />
 
           {(attemptOver || status === "solved" || status === "failed") && shareText && (
-            <ShareCard shareText={shareText} />
+            <ShareCard shareText={shareText} gameId={gameId} />
           )}
 
           <HistoryView gameId={gameId} refreshKey={`${attemptOver}:${status}`} />

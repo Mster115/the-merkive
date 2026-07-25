@@ -313,6 +313,21 @@ export const relay = defineDailyGame({
       shareText += `In progress (${pub?.movesUsed ?? 0} moves)`;
     }
 
+    // Spoiler-free "route" bar, Wordle-style: one square per word actually
+    // left in the final chain (green at-or-under the optimal path length,
+    // gold if longer or the attempt was abandoned), plus a hollow square for
+    // every backtrack — so the shape of the attempt shows without printing a
+    // single word.
+    const finalLinks = Math.max(0, (pub?.chain?.length ?? 1) - 1);
+    const parMoves = sec?.parMoves ?? finalLinks;
+    const backtracks = Math.max(0, (pub?.movesUsed ?? 0) - finalLinks);
+
+    const pathChar = status === "failed" ? "🟨" : finalLinks <= parMoves ? "🟩" : "🟨";
+    let routeBar = pathChar.repeat(finalLinks) + "⬜".repeat(backtracks);
+    if (status === "failed") routeBar += "🟥";
+
+    shareText += `\n\n${routeBar}`;
+
     return {
       status,
       shareText,

@@ -419,6 +419,7 @@ export const nutshell: DailyGameModule = defineDailyGame({
 
   summarize(ctx: DailyContext, state: DailyStateIn): DailySummary {
     const pub = state.publicState as NutshellPublicState;
+    const sec = state.secretState as NutshellSecretState | undefined;
     const phase = state.phase;
 
     let status: "solved" | "failed" | "in_progress" = "in_progress";
@@ -432,17 +433,40 @@ export const nutshell: DailyGameModule = defineDailyGame({
     const durationMs = completedAtMs ? completedAtMs - startedAtMs : ctx.now - startedAtMs;
 
     const formattedTime = `${Math.floor(durationMs / 1000)}s`;
+    const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+    const assists = `${plural(checksUsed, "check")}, ${plural(revealsUsed, "reveal")}`;
 
     let shareLine = "";
     if (status === "solved") {
-      shareLine = `Solved in ${formattedTime} | 🔍 ${checksUsed} | 💡 ${revealsUsed}`;
+      shareLine = `Solved in ${formattedTime} (${assists})`;
     } else if (status === "failed") {
-      shareLine = `Failed | 🔍 ${checksUsed} | 💡 ${revealsUsed}`;
+      shareLine = `Failed (${assists})`;
     } else {
-      shareLine = `In progress | 🔍 ${checksUsed} | 💡 ${revealsUsed}`;
+      shareLine = `In progress (${assists})`;
     }
 
-    const shareText = `Nutshell — ${ctx.puzzleDate}\n${shareLine}`;
+    // Spoiler-free "route" grid, Wordle-style: blocked squares stay blocked,
+    // filled squares reflect final correctness against the answer key, and a
+    // reveal is called out on its own — never the letters themselves.
+    const gridLines: string[] = [];
+    for (let r = 0; r < 5; r++) {
+      let line = "";
+      for (let c = 0; c < 5; c++) {
+        const cell = pub?.grid?.[r]?.[c];
+        if (!cell || cell.blocked) {
+          line += "⬛";
+        } else if (cell.revealed) {
+          line += "🟨";
+        } else {
+          const solution = sec ? getSolutionLetter(sec, r, c) : null;
+          const isCorrect = Boolean(cell.letter) && cell.letter === solution;
+          line += isCorrect ? "🟩" : "🟥";
+        }
+      }
+      gridLines.push(line);
+    }
+
+    const shareText = `Nutshell — ${ctx.puzzleDate}\n${shareLine}\n\n${gridLines.join("\n")}`;
 
     return {
       status,
