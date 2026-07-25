@@ -190,6 +190,38 @@ describe("nutshell DailyGameModule", () => {
     expect(state.checksUsed).toBe(2);
   });
 
+  it("refuses to overwrite a revealed cell", () => {
+    const run = createDailyTestRun(nutshell, {
+      puzzleDate: "2026-07-24",
+      pack: samplePack,
+    });
+
+    act(run, "reveal_cell", { row: 0, col: 1 });
+    const revealed = (run.state.publicState as NutshellPublicState).grid[0]![1]!;
+    expect(revealed.letter).toBe("T");
+
+    // A revealed cell has been paid for and holds the correct letter. Letting
+    // a keystroke through would leave `revealed: true` on a wrong letter.
+    const err = actErr(run, "set_cell", { row: 0, col: 1, letter: "Z" });
+    expect(err.code).toBe("cell_revealed");
+
+    const after = (run.state.publicState as NutshellPublicState).grid[0]![1]!;
+    expect(after.letter).toBe("T");
+    expect(after.revealed).toBe(true);
+  });
+
+  it("clearing a revealed cell is refused too, not just overwriting it", () => {
+    const run = createDailyTestRun(nutshell, {
+      puzzleDate: "2026-07-24",
+      pack: samplePack,
+    });
+
+    act(run, "reveal_cell", { row: 0, col: 1 });
+    const err = actErr(run, "set_cell", { row: 0, col: 1, letter: null });
+    expect(err.code).toBe("cell_revealed");
+    expect((run.state.publicState as NutshellPublicState).grid[0]![1]!.letter).toBe("T");
+  });
+
   it("rejects mutating actions once the attempt is over, but submit/give_up stay idempotent no-ops", () => {
     const run = createDailyTestRun(nutshell, {
       puzzleDate: "2026-07-24",

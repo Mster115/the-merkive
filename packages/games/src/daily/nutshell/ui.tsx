@@ -2,6 +2,17 @@ import * as React from "react";
 import type { DailyPlayProps } from "../types";
 import type { NutshellPublicState, NutshellCell } from "./types";
 import {
+  cellsOf,
+  entryPoint,
+  indexInSlot,
+  isSlotComplete,
+  nextOpenIndex,
+  orderedSlots,
+  stepSlot,
+  type Coord,
+  type Direction,
+} from "./cursor";
+import {
   Button,
   Card,
   ConfettiBurst,
@@ -22,8 +33,25 @@ export const Play: React.FC<DailyPlayProps> = ({
 
   const [selectedRow, setSelectedRow] = React.useState<number>(0);
   const [selectedCol, setSelectedCol] = React.useState<number>(0);
-  const [direction, setDirection] = React.useState<"across" | "down">("across");
+  const [direction, setDirection] = React.useState<Direction>("across");
   const [statusMessage, setStatusMessage] = React.useState<string>("");
+
+  /**
+   * Letters typed but not yet acknowledged by the server.
+   *
+   * Every keystroke is a POST, and the cursor used to wait for it before
+   * moving — which is why typing felt laggy on anything but a fast
+   * connection. The letter now lands locally and the request goes out
+   * unawaited; the entry clears when the server's grid catches up.
+   *
+   * `seq` is what makes fast typing safe. Responses can arrive out of order,
+   * so an entry is only retired by the response it belongs to: an older
+   * response finding a newer `seq` leaves the newer letter alone.
+   */
+  const [pending, setPending] = React.useState<Map<string, { letter: string | null; seq: number }>>(
+    () => new Map()
+  );
+  const seqRef = React.useRef(0);
 
   // Announce phase changes
   React.useEffect(() => {
@@ -42,7 +70,30 @@ export const Play: React.FC<DailyPlayProps> = ({
     );
   }
 
-  const { grid, across, down, checksUsed, revealsUsed } = state;
+  const { grid: serverGrid, across, down, checksUsed, revealsUsed } = state;
+
+  // The board the player sees: the server's grid with un-acknowledged
+  // keystrokes painted on top.
+  const grid: NutshellCell[][] = React.useMemo(() => {
+    if (pending.size === 0) return serverGrid;
+    return serverGrid.map((row, r) =>
+      row.map((cell, c) => {
+        const p = pending.get(`${r}-${c}`);
+        return p ? { ...cell, letter: p.letter, checked: false, correct: undefined } : cell;
+      })
+    );
+  }, [serverGrid, pending]);
+
+  /** A cell still wants a letter. Revealed cells are never "open" — they are
+   *  correct by construction and the server refuses to overwrite them. */
+  const isOpen = React.useCallback(
+    (c: Coord): boolean => {
+      const cell = grid[c.row]?.[c.col];
+      if (!cell || cell.blocked || cell.revealed) return false;
+      return !cell.letter;
+    },
+    [grid]
+  );
 
   // Find clue numbers for cells
   const getCellNumber = (r: number, c: number): number | null => {
@@ -125,68 +176,126 @@ export const Play: React.FC<DailyPlayProps> = ({
     }
   };
 
-  const advanceCursor = () => {
-    if (direction === "across") {
-      if (
-        activeSlot &&
-        selectedCol + 1 < activeSlot.col + activeSlot.length
-      ) {
-        setSelectedCol(selectedCol + 1);
-      }
-    } else {
-      if (
-        activeSlot &&
-        selectedRow + 1 < activeSlot.row + activeSlot.length
-      ) {
-        setSelectedRow(selectedRow + 1);
-      }
-    }
-  };
+  const ordered = React.useMemo(() => orderedSlots(across, down), [across, down]);
 
-  const retreatCursor = () => {
-    if (direction === "across") {
-      if (activeSlot && selectedCol - 1 >= activeSlot.col) {
-        setSelectedCol(selectedCol - 1);
-      }
-    } else {
-      if (activeSlot && selectedRow - 1 >= activeSlot.row) {
-        setSelectedRow(selectedRow - 1);
-      }
-    }
-  };
+  /** Move to the clue `step` places along, landing on its first open cell. */
+  const goToSlot = React.useCallback(
+    (step: number) => {
+      const target = stepSlot(
+        ordered,
+        activeSlot ? { direction, number: activeSlot.number } : null,
+        step
+      );
+      if (!target) return;
+      const at = entryPoint(target.slot, target.direction, isOpen);
+      setDirection(target.direction);
+      setSelectedRow(at.row);
+      setSelectedCol(at.col);
+    },
+    [ordered, activeSlot, direction, isOpen]
+  );
 
-  const handleInputLetter = async (letter: string) => {
+  /**
+   * Where the cursor goes after a letter is typed.
+   *
+   * `writtenAt` is passed in rather than read from state because this runs in
+   * the same tick as the write — `grid` has already been updated through the
+   * pending overlay, but the cell just typed into is no longer "open", so it
+   * would otherwise be skipped as if a crossing had filled it.
+   */
+  const advanceAfterInput = React.useCallback(
+    (writtenAt: Coord) => {
+      if (!activeSlot) return;
+      const from = indexInSlot(activeSlot, direction, writtenAt);
+      if (from === -1) return;
+
+      // `grid` is this render's grid, which does not yet include the letter we
+      // just wrote — setPending has not re-rendered. Treat the square being
+      // typed into as filled, or the word never looks finished and the
+      // auto-advance below never fires.
+      const isOpenAfterWrite = (c: Coord) =>
+        c.row === writtenAt.row && c.col === writtenAt.col ? false : isOpen(c);
+
+      const next = nextOpenIndex(activeSlot, direction, from, isOpenAfterWrite);
+      if (next !== null) {
+        const cell = cellsOf(activeSlot, direction)[next]!;
+        setSelectedRow(cell.row);
+        setSelectedCol(cell.col);
+        return;
+      }
+
+      // Nothing left open in this word. If the word is now complete, move on
+      // to the next clue the way a solver expects; otherwise sit on the last
+      // cell rather than jumping somewhere surprising.
+      if (isSlotComplete(activeSlot, direction, isOpenAfterWrite)) {
+        goToSlot(1);
+      } else {
+        const cells = cellsOf(activeSlot, direction);
+        const last = cells[cells.length - 1]!;
+        setSelectedRow(last.row);
+        setSelectedCol(last.col);
+      }
+    },
+    [activeSlot, direction, isOpen, goToSlot]
+  );
+
+  /**
+   * Writes a letter locally, moves the cursor, and syncs in the background.
+   * Nothing here awaits the network — that wait was the typing lag.
+   */
+  const writeCell = React.useCallback(
+    (at: Coord, letter: string | null) => {
+      const key = `${at.row}-${at.col}`;
+      const seq = ++seqRef.current;
+
+      setPending((prev) => new Map(prev).set(key, { letter, seq }));
+
+      void act("set_cell", { row: at.row, col: at.col, letter }).then((res) => {
+        setPending((prev) => {
+          const current = prev.get(key);
+          // A newer keystroke for this cell has already superseded us; leave it.
+          if (!current || current.seq !== seq) return prev;
+          const next = new Map(prev);
+          next.delete(key);
+          return next;
+        });
+        if (!res.ok) setStatusMessage(res.error);
+      });
+    },
+    [act]
+  );
+
+  const handleInputLetter = (letter: string) => {
     if (phase !== "in_progress") return;
-    const upper = letter.toUpperCase();
-    const res = await act("set_cell", {
-      row: selectedRow,
-      col: selectedCol,
-      letter: upper,
-    });
-    if (res.ok) {
-      advanceCursor();
-    } else {
-      setStatusMessage(res.error);
-    }
+    const at = { row: selectedRow, col: selectedCol };
+    if (grid[at.row]?.[at.col]?.revealed) return;
+    writeCell(at, letter.toUpperCase());
+    advanceAfterInput(at);
   };
 
-  const handleBackspace = async () => {
+  const handleBackspace = () => {
     if (phase !== "in_progress") return;
     const currentCell = grid[selectedRow]?.[selectedCol];
+    if (currentCell?.revealed) return;
+
     if (currentCell?.letter) {
-      await act("set_cell", {
-        row: selectedRow,
-        col: selectedCol,
-        letter: null,
-      });
-    } else {
-      retreatCursor();
-      await act("set_cell", {
-        row: selectedRow,
-        col: selectedCol,
-        letter: null,
-      });
+      writeCell({ row: selectedRow, col: selectedCol }, null);
+      return;
     }
+
+    // Empty square: step back and clear whatever is behind us. The previous
+    // cell is computed here rather than read from state after retreatCursor,
+    // since that setState has not landed yet.
+    if (!activeSlot) return;
+    const at = { row: selectedRow, col: selectedCol };
+    const i = indexInSlot(activeSlot, direction, at);
+    if (i <= 0) return;
+    const prev = cellsOf(activeSlot, direction)[i - 1]!;
+    if (grid[prev.row]?.[prev.col]?.revealed) return;
+
+    setSelectedRow(prev.row);
+    setSelectedCol(prev.col);
+    writeCell(prev, null);
   };
 
   // Native keyboard events
@@ -198,13 +307,18 @@ export const Play: React.FC<DailyPlayProps> = ({
       }
       if (/^[a-zA-Z]$/.test(e.key)) {
         e.preventDefault();
-        void handleInputLetter(e.key);
+        handleInputLetter(e.key);
       } else if (e.key === "Backspace") {
         e.preventDefault();
-        void handleBackspace();
+        handleBackspace();
       } else if (e.key === " ") {
         e.preventDefault();
         setDirection((d) => (d === "across" ? "down" : "across"));
+      } else if (e.key === "Enter" || e.key === "Tab") {
+        // The NYT convention, and the one a playtester expected: Enter moves
+        // to the next clue rather than flipping direction. Shift walks back.
+        e.preventDefault();
+        goToSlot(e.shiftKey ? -1 : 1);
       } else if (e.key === "ArrowRight") {
         e.preventDefault();
         if (selectedCol < 4 && !grid[selectedRow]?.[selectedCol + 1]?.blocked) {
@@ -230,7 +344,7 @@ export const Play: React.FC<DailyPlayProps> = ({
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [phase, selectedRow, selectedCol, direction, grid]);
+  }, [phase, selectedRow, selectedCol, direction, grid, activeSlot, goToSlot, writeCell]);
 
   const handleCheckCell = async () => {
     const res = await act("check_cell", {

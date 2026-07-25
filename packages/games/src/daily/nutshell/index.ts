@@ -71,13 +71,14 @@ export const nutshell: DailyGameModule = defineDailyGame({
       "daily.nutshell.howto.step1":
         "Tap a square to select its word. Tap the same square again to switch between the across word and the down word it belongs to.",
       "daily.nutshell.howto.step2":
-        "Type letters with your keyboard, or use the on-screen one. Every square is shared by two words, so filling one clue gives you letters in the other.",
+        "Type letters with your keyboard, or use the on-screen one. Squares a crossing word already filled in are skipped, so you never have to type the same letter twice.",
       "daily.nutshell.howto.step3":
         "Check Cell and Check All mark what you have so far. Reveal Cell fills a square for you. Both are counted in your result.",
       "daily.nutshell.howto.note":
         "Hit Submit when the grid is full — the puzzle only ends when you say so.",
       "daily.nutshell.howto.keysTitle": "Keyboard",
       "daily.nutshell.howto.keySpace": "switch between across and down",
+      "daily.nutshell.howto.keyEnter": "jump to the next clue (Shift for the previous one)",
       "daily.nutshell.howto.keyArrows": "move around the grid",
       "daily.nutshell.howto.keyBackspace": "clear the current square",
       "daily.nutshell.howto.legendAcross": "Across word",
@@ -238,6 +239,15 @@ export const nutshell: DailyGameModule = defineDailyGame({
       const cell = pub.grid[payload.row]?.[payload.col];
       if (!cell || cell.blocked) {
         return { error: "Cannot write to blocked cell", code: "invalid_cell" };
+      }
+
+      // A revealed cell already holds the correct letter and is counted as a
+      // reveal in the result. Letting a stray keystroke overwrite it would
+      // leave `revealed: true` sitting on a wrong letter — the flag would stop
+      // meaning what it says, and the player would have paid for a hint they
+      // no longer have.
+      if (cell.revealed) {
+        return { error: "Cannot overwrite a revealed cell", code: "cell_revealed" };
       }
 
       let letter: string | null = null;

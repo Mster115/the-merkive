@@ -108,6 +108,9 @@ export function HowToPlay({ t }: { t: Translate }) {
             <Key>Space</Key> — {t("daily.nutshell.howto.keySpace")}
           </li>
           <li>
+            <Key>Enter</Key> <Key>Tab</Key> — {t("daily.nutshell.howto.keyEnter")}
+          </li>
+          <li>
             <Key>←</Key> <Key>↑</Key> <Key>↓</Key> <Key>→</Key> —{" "}
             {t("daily.nutshell.howto.keyArrows")}
           </li>
