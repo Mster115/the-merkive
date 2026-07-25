@@ -50,6 +50,7 @@ deliberately not an MCP tool — deciding what goes live is not the routine's jo
 For hands-on work there is the CLI:
 
 ```bash
+node scripts/daily-content.mjs secret                  # is the secret configured?
 node scripts/daily-content.mjs status                  # queue, drafts, next free date
 node scripts/daily-content.mjs verify pack.json        # offline preflight
 node scripts/daily-content.mjs submit pack.json --yes  # guarded submit

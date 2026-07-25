@@ -19,6 +19,7 @@
  * requires --force.
  *
  * Usage:
+ *   node scripts/daily-content.mjs secret                       # is it configured?
  *   node scripts/daily-content.mjs status
  *   node scripts/daily-content.mjs plan [--lookahead 5]
  *   node scripts/daily-content.mjs prompt <gameId> <YYYY-MM-DD>
@@ -27,16 +28,20 @@
  *   node scripts/daily-content.mjs review [--full]
  *   node scripts/daily-content.mjs decide <id> --approve|--reject
  *
+ * The pipeline secret is resolved by scripts/secret.mjs — macOS Keychain by
+ * default, so it lives in exactly one place and never in a config file, a shell
+ * history line, or this repo. See `resolveSecret` for the full order.
+ *
  * Env:
- *   DAILY_PIPELINE_SECRET  required for anything touching the API
  *   MERKY_BASE_URL         default https://the-merkive.vercel.app
  */
 
 import { readFile } from "node:fs/promises";
 import process from "node:process";
 
+import { requireSecret, resolveSecret, SETUP_HINT, KEYCHAIN_SERVICE } from "./secret.mjs";
+
 const BASE_URL = (process.env.MERKY_BASE_URL ?? "https://the-merkive.vercel.app").replace(/\/$/, "");
-const SECRET = process.env.DAILY_PIPELINE_SECRET;
 const GAMES = ["nexus", "nutshell", "relay"];
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -106,22 +111,18 @@ export function planDates(queuedFutureDays, lookahead, today = todayUtc(), maxPe
 
 // --- api --------------------------------------------------------------------
 
-function requireSecret() {
-  if (!SECRET) {
-    fail(
-      "DAILY_PIPELINE_SECRET is not set.\n" +
-        "Export it before running: export DAILY_PIPELINE_SECRET=…\n" +
-        "(It is never printed or written to disk by this script.)"
-    );
-  }
-  return SECRET;
-}
-
 async function api(path, init = {}) {
+  let secret;
+  try {
+    secret = requireSecret();
+  } catch (e) {
+    fail(String(e.message));
+  }
+
   const res = await fetch(`${BASE_URL}${path}`, {
     ...init,
     headers: {
-      Authorization: `Bearer ${requireSecret()}`,
+      Authorization: `Bearer ${secret}`,
       ...(init.body ? { "Content-Type": "application/json" } : {}),
       ...init.headers,
     },
@@ -138,7 +139,7 @@ async function api(path, init = {}) {
   if (!res.ok) {
     const detail = typeof body === "object" && body ? JSON.stringify(body) : String(body);
     if (res.status === 401) {
-      fail(`Unauthorized (401) from ${path}. DAILY_PIPELINE_SECRET is missing or wrong.`);
+      fail(`Unauthorized (401) from ${path}. The pipeline secret is wrong.\n\n${SETUP_HINT}`);
     }
     throw new Error(`${res.status} ${path}: ${detail}`);
   }
@@ -451,6 +452,30 @@ async function cmdSubmit(args) {
   }
 }
 
+/**
+ * Where the secret is coming from, and whether it works — without ever showing
+ * it. "Is it configured?" is the question people actually have, and answering
+ * it by printing the value is how secrets end up in screenshots.
+ */
+async function cmdSecret() {
+  const fromEnv = Boolean(process.env.DAILY_PIPELINE_SECRET);
+  const found = Boolean(resolveSecret());
+
+  console.log(`keychain service: ${KEYCHAIN_SERVICE}`);
+  console.log(`resolved:         ${found ? "yes" : "NO"}${fromEnv ? " (from DAILY_PIPELINE_SECRET in the environment)" : found ? " (from the Keychain)" : ""}`);
+
+  if (!found) {
+    console.log(`\n${SETUP_HINT}`);
+    process.exit(1);
+  }
+
+  const res = await fetch(`${BASE_URL}/api/admin/daily/queue-status`, {
+    headers: { Authorization: `Bearer ${requireSecret()}` },
+  });
+  console.log(`${BASE_URL} says: ${res.status}${res.ok ? " — the secret works" : " — the secret is not accepted"}`);
+  if (!res.ok) process.exit(1);
+}
+
 async function cmdReview(args) {
   const full = args.includes("--full");
   const drafts = await api("/api/admin/daily/review");
@@ -495,6 +520,7 @@ function fail(message) {
 
 const [command, ...args] = process.argv.slice(2);
 const commands = {
+  secret: cmdSecret,
   status: cmdStatus,
   plan: cmdPlan,
   prompt: cmdPrompt,

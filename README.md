@@ -105,7 +105,7 @@ cp .env.example .env
 | `CRON_SECRET` | — | Vercel-reserved env var name. When set (along with the `crons` entry in `vercel.json`), Vercel automatically sends `Authorization: Bearer $CRON_SECRET` on its cron-invoked `GET /api/sweep` request, authenticating it |
 | `SUPABASE_URL` | — | Daily-games persistence (puzzles, attempts, devices). Unset falls back to the in-memory store |
 | `SUPABASE_SERVICE_ROLE_KEY` | — | Service-role key for the same. Server-only — never expose to the client |
-| `DAILY_PIPELINE_SECRET` | — | Bearer secret for the `/api/admin/daily/*` content-pipeline routes. Unset means "open" in development and **fails closed** in production |
+| `DAILY_PIPELINE_SECRET` | — | Bearer secret for the `/api/admin/daily/*` content-pipeline routes. Unset means "open" in development and **fails closed** in production. Local tooling reads it from the macOS Keychain instead — see [docs/daily-content/mcp-server.md](docs/daily-content/mcp-server.md#where-the-secret-lives) |
 | `DAILY_QUEUE_LOOKAHEAD_DAYS` | `3` | How many days of queued puzzles the pipeline aims to keep ahead |
 
 ---
@@ -247,6 +247,7 @@ npx vercel --prod
 | `pnpm build` | Production build |
 | `pnpm --filter @merky/games test` | Run game plugin tests only |
 | `pnpm --filter @merky/web test` | Run platform tests only |
+| `pnpm daily secret` | Check the pipeline secret resolves and is accepted — never prints it |
 | `pnpm daily status` | Daily content queue: what's filled, what's next, what's awaiting review |
 | `node scripts/mcp/daily-mcp.mjs` | The `merkive-daily` MCP server (see [docs](docs/daily-content/mcp-server.md)) |
 | `pnpm daily verify <pack.json>` | Offline preflight of a content pack (no network, no secret) |

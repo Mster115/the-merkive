@@ -28,10 +28,18 @@ Note the fail-closed rule: if the env var is unset and `NODE_ENV=production`,
 the routes reject everything. Unset in development means "no auth required", so
 local calls need no header.
 
-> The secret is a bearer credential for writing puzzle content. Do not paste it
-> into a routine's prompt text — put it in the routine's secret/credential
-> store, or keep the routine at "produce JSON, human submits". See
-> [routine-system-prompt.md](routine-system-prompt.md#submission).
+> The secret is a bearer credential for writing puzzle content. It belongs in
+> exactly one place — on a Mac, the login Keychain:
+>
+> ```bash
+> security add-generic-password -a "$USER" -s merkive-daily-pipeline -w
+> ```
+>
+> Both the CLI and the MCP server read it from there via
+> [`scripts/secret.mjs`](../../scripts/secret.mjs), so it never needs to appear
+> in a config file, a `.env`, a prompt, or a shell history line. `pnpm daily
+> secret` reports whether it resolves and whether the deployment accepts it,
+> without printing it.
 
 ## `GET /api/admin/daily/queue-status`
 
@@ -190,7 +198,7 @@ Response: `{ "ok": true, "id": "<id>", "approved": true|false }`.
 Prefer the CLI, which applies every guard above:
 
 ```bash
-export DAILY_PIPELINE_SECRET=…
+node scripts/daily-content.mjs secret        # is it configured, and does it work?
 node scripts/daily-content.mjs status
 node scripts/daily-content.mjs submit pack.json --yes
 ```
@@ -199,12 +207,12 @@ The raw equivalents, if you need them:
 
 ```bash
 curl -s "https://the-merkive.vercel.app/api/admin/daily/queue-status" \
-  -H "Authorization: Bearer $DAILY_PIPELINE_SECRET"
+  -H "Authorization: Bearer $(security find-generic-password -s merkive-daily-pipeline -w)"
 ```
 
 ```bash
 curl -s -X POST "https://the-merkive.vercel.app/api/admin/daily/submit-pack" \
-  -H "Authorization: Bearer $DAILY_PIPELINE_SECRET" \
+  -H "Authorization: Bearer $(security find-generic-password -s merkive-daily-pipeline -w)" \
   -H "Content-Type: application/json" \
   --data @pack.json
 ```

@@ -13,24 +13,43 @@ rules stop depending on the model remembering them.
 
 Add to your Claude Desktop MCP config:
 
+**1. Store the secret once, in the macOS Keychain.** The command prompts for
+the value, so it never enters your shell history:
+
+```bash
+security add-generic-password -a "$USER" -s merkive-daily-pipeline -w
+```
+
+**2. Point Claude Desktop at the server.** Note there is no secret here:
+
 ```json
 {
   "mcpServers": {
     "merkive-daily": {
       "command": "node",
       "args": ["/Users/marksternefeld/merky-box/scripts/mcp/daily-mcp.mjs"],
-      "env": {
-        "DAILY_PIPELINE_SECRET": "…",
-        "MERKY_BASE_URL": "https://the-merkive.vercel.app"
-      }
+      "env": { "MERKY_BASE_URL": "https://the-merkive.vercel.app" }
     }
   }
 }
 ```
 
-The secret lives here and nowhere else. It is never placed in a prompt, never
-returned by a tool, and never included in an error message — a test asserts the
-last one.
+**3. Confirm it resolves**, without printing it:
+
+```bash
+pnpm daily secret
+```
+
+### Where the secret lives
+
+One place: the Keychain. [`scripts/secret.mjs`](../../scripts/secret.mjs) reads
+it at the moment of use, so no copy sits in the MCP config, in a `.env`, in a
+shell history line, in this repo, or in any transcript. Resolution order is
+`DAILY_PIPELINE_SECRET` (for CI and containers) → Keychain → `MERKY_SECRET_FILE`
+(for Linux hosts with no Keychain).
+
+Tests assert that the value never appears in an error message or a setup hint —
+an error that quotes a secret has leaked it into every log that catches it.
 
 ## The tools
 
