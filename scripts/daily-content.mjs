@@ -61,7 +61,10 @@ export function addDays(date, n) {
 /**
  * The first date safe to write, given how many future days are already queued.
  *
- * `queuedFutureDays` counts dates >= today, so a contiguous queue occupies
+ * Fallback only. The API now reports `openDates` directly, which is exact and
+ * accounts for gaps and pending drafts; this derivation assumes the queue is
+ * contiguous from today and is kept for older deployments that do not send
+ * them. `queuedFutureDays` counts dates >= today, so a contiguous queue occupies
  * today .. today+(n-1) and the first free date is today+n — NOT today+n+1,
  * which would leave a hole. Floored at tomorrow, because today's puzzle is
  * live and must never be rewritten.
@@ -314,9 +317,11 @@ async function cmdStatus() {
     const pending = drafts.filter((d) => d.game_id === game).length;
     console.log(
       `${game.padEnd(9)} queued ahead: ${String(s.queuedFutureDays).padStart(2)}  ` +
-        `target: ${s.lookaheadDays}  next free: ${firstFreeDate(s.queuedFutureDays, today)}` +
+        `target: ${s.lookaheadDays}  next free: ${s.openDates?.[0] ?? firstFreeDate(s.queuedFutureDays, today)}` +
         (pending ? `  (${pending} draft${pending > 1 ? "s" : ""} awaiting review)` : "")
     );
+    if (s.queuedDates?.length) console.log(`${" ".repeat(10)}queued: ${s.queuedDates.join(", ")}`);
+    if (s.draftDates?.length) console.log(`${" ".repeat(10)}drafts: ${s.draftDates.join(", ")}`);
     const risk = queueRisk(s.queuedFutureDays);
     if (risk) console.log(`${" ".repeat(10)}⚠ ${risk}`);
   }
@@ -333,7 +338,12 @@ async function cmdPlan(args) {
 
   for (const [game, s] of Object.entries(status)) {
     const target = lookahead || s.lookaheadDays;
-    const dates = planDates(s.queuedFutureDays, target, today);
+    const shortBy = Math.max(0, target - s.queuedFutureDays);
+    // Prefer the server's own list of free dates: it knows about gaps and about
+    // drafts, neither of which the count can express.
+    const dates = s.openDates
+      ? s.openDates.slice(0, Math.min(shortBy, 3))
+      : planDates(s.queuedFutureDays, target, today);
     console.log(`${game.padEnd(9)} ${dates.length ? dates.join(", ") : "queue is full — nothing to do"}`);
   }
 }
@@ -386,12 +396,15 @@ async function cmdSubmit(args) {
       );
     }
 
-    // Hazard 2: the contiguous-queue window, derived from the count.
+    // Hazard 2: the date is already taken. The API reports exactly which dates
+    // hold a puzzle, so this is a lookup rather than an inference; the
+    // contiguous-window derivation is the fallback for older deployments.
     const gameStatus = status[pack.gameId];
-    if (gameStatus && pack.puzzleDate < firstFreeDate(gameStatus.queuedFutureDays, today)) {
-      const msg =
-        `${pack.puzzleDate} falls inside the ${gameStatus.queuedFutureDays}-day queued window ` +
-        `for ${pack.gameId} — this would replace an existing puzzle`;
+    const occupied = gameStatus?.queuedDates
+      ? gameStatus.queuedDates.includes(pack.puzzleDate)
+      : Boolean(gameStatus) && pack.puzzleDate < firstFreeDate(gameStatus.queuedFutureDays, today);
+    if (occupied) {
+      const msg = `${pack.puzzleDate} already holds a queued puzzle for ${pack.gameId} — this would replace it`;
       if (force) warnings.push(`OVERWRITING: ${msg}`);
       else blockers.push(`${msg} (pass --force to replace it deliberately)`);
     }

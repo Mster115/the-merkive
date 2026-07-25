@@ -107,6 +107,15 @@ export class MemoryDailyStore implements DailyStore {
     return { queuedFutureDays: count };
   }
 
+  async listPuzzles(gameId: string, limit: number): Promise<DailyPuzzleRow[]> {
+    const rows: DailyPuzzleRow[] = [];
+    for (const p of this.puzzles.values()) {
+      if (p.game_id === gameId) rows.push(p);
+    }
+    rows.sort((a, b) => b.puzzle_date.localeCompare(a.puzzle_date));
+    return rows.slice(0, limit);
+  }
+
   async insertPack(
     pack: DailyContentPack,
     status: "draft" | "queued",

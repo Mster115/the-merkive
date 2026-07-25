@@ -15,6 +15,14 @@ export interface DailyStore {
   upsertAttempt(row: DailyAttemptRow): Promise<void>;
   listAttemptsForStreak(deviceId: string, gameId: string, limit: number): Promise<StreakRow[]>;
   getQueueStatus(gameId: string, fromDate?: string): Promise<{ queuedFutureDays: number }>;
+  /**
+   * Every puzzle for a game, newest first, regardless of status.
+   *
+   * Backs both "which dates are already taken" and the content digest used to
+   * guarantee a puzzle is never shipped twice. Callers must not hand these rows
+   * to a content generator — they carry answer keys.
+   */
+  listPuzzles(gameId: string, limit: number): Promise<DailyPuzzleRow[]>;
   insertPack(pack: DailyContentPack, status: "draft" | "queued", factCheck: unknown): Promise<void>;
   listDraftPacks(gameId?: string): Promise<DailyPuzzleRow[]>;
   decideDraftPack(id: string, approve: boolean): Promise<void>;

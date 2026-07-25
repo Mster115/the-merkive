@@ -31,7 +31,7 @@ export const en: Record<string, string> = {
   "home.games.how_to_play": "How to play",
   "home.games.view_rules_for": "View full rules for {name}",
 
-  "pack.merkining.name": "The Merk-ining",
+  "pack.merkining.name": "The Merk-gining",
   "pack.merkining.tagline": "The Original Party Starter Pack",
   "pack.merkining.desc": "Six flavors of party chaos: lightning-fast quips, tile brawls, card storms, mind-reading dials, shadowy council intrigue, and a whirlwind arcade of bluffs, doodles, and votes.",
   "pack.merkining.badge": "LAUNCH PACK",

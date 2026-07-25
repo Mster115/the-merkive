@@ -144,6 +144,18 @@ export class SupabaseDailyStore implements DailyStore {
     return { queuedFutureDays: count ?? 0 };
   }
 
+  async listPuzzles(gameId: string, limit: number): Promise<DailyPuzzleRow[]> {
+    const { data, error } = await this.client
+      .from("daily_puzzles")
+      .select("*")
+      .eq("game_id", gameId)
+      .order("puzzle_date", { ascending: false })
+      .limit(limit);
+
+    if (error) throw new Error(`[SupabaseDailyStore] listPuzzles failed: ${error.message}`);
+    return (data as DailyPuzzleRow[]) ?? [];
+  }
+
   async insertPack(
     pack: DailyContentPack,
     status: "draft" | "queued",

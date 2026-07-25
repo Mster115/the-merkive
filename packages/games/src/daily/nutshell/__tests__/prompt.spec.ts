@@ -3,6 +3,7 @@ import { generatePrompt, lengthHistogram, pickRecommendedPattern } from "../prom
 import { PATTERN_LIBRARY } from "../patterns";
 import { solveGrid } from "../grid-solver";
 import { nutshell } from "../index";
+import { NUTSHELL_WORDS } from "../wordlist";
 
 describe("nutshell content brief", () => {
   it("recommends a pattern with the fewest five-letter slots", () => {
@@ -68,5 +69,50 @@ describe("nutshell content brief", () => {
 
   it("is wired into the game module", () => {
     expect(nutshell.generatePrompt("2026-07-27")).toBe(generatePrompt("2026-07-27"));
+  });
+});
+
+describe("pattern library fillability", () => {
+  it("leads with a pattern everyday vocabulary can actually fill", () => {
+    // The whole reason the corner patterns exist. If a future edit reorders the
+    // library so a staircase comes first, a pool submission stops working and
+    // nothing else would catch it.
+    const t0 = Date.now();
+    const res = solveGrid(NUTSHELL_WORDS.map((word) => ({ word, clue: `Clue for ${word}` })));
+    const elapsed = Date.now() - t0;
+
+    expect(res).not.toBeNull();
+    expect(elapsed).toBeLessThan(5_000);
+
+    const used = [...res!.across, ...res!.down].map((s) => s.answer);
+    expect(new Set(used).size).toBe(10);
+    for (const word of used) expect(NUTSHELL_WORDS).toContain(word);
+  });
+
+  it("has no open cell that belongs to no slot", () => {
+    // computeSlotsFromPattern skips runs shorter than 2, so a badly drawn
+    // pattern can leave a cell that no clue ever covers — unfillable and
+    // invisible until a player stares at a blank square.
+    for (const pattern of PATTERN_LIBRARY) {
+      const covered = new Set<string>();
+      for (const slot of [...pattern.across, ...pattern.down]) {
+        for (let k = 0; k < slot.length; k++) {
+          covered.add(
+            pattern.across.includes(slot)
+              ? `${slot.row},${slot.col + k}`
+              : `${slot.row + k},${slot.col}`
+          );
+        }
+      }
+      pattern.gridPattern.forEach((row, r) =>
+        row.split("").forEach((ch, c) => {
+          if (ch !== "#") expect(covered.has(`${r},${c}`), `${pattern.id} (${r},${c})`).toBe(true);
+        })
+      );
+      for (const slot of [...pattern.across, ...pattern.down]) {
+        expect(slot.length, `${pattern.id} slot too short for any candidate`).toBeGreaterThanOrEqual(3);
+        expect(slot.length).toBeLessThanOrEqual(5);
+      }
+    }
   });
 });

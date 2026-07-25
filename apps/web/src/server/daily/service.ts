@@ -12,6 +12,7 @@ import { ServiceError } from "../errors";
 import { getDailyStore } from "./store";
 import { localDateFor, msUntilLocalRollover } from "./timezone";
 import { computeStreaks } from "./streaks";
+import { checkRepeat, digestPuzzle, type PuzzleDigest } from "./fingerprint";
 
 /**
  * The timezone a device's "today" should be computed in.
@@ -422,21 +423,80 @@ export async function redeemRecoveryCode(code: string) {
 
 // --- Admin Services ---
 
-export async function getQueueStatus(gameId?: string) {
+export interface QueueStatusEntry {
+  queuedFutureDays: number;
+  lookaheadDays: number;
+  isSufficient: boolean;
+  /** Dates from today onward that already hold a queued puzzle. */
+  queuedDates: string[];
+  /** Dates from today onward holding a draft — invisible to the count above. */
+  draftDates: string[];
+  /** The next dates with nothing on them at all, soonest first. */
+  openDates: string[];
+}
+
+/**
+ * Queue health per game.
+ *
+ * `queuedDates` / `draftDates` / `openDates` exist because the count alone
+ * forced every caller to assume the queue was contiguous from today and derive
+ * the next free date arithmetically — an assumption that silently overwrites a
+ * puzzle the moment it stops holding. The dates are cheap and remove the guess.
+ */
+export async function getQueueStatus(gameId?: string): Promise<Record<string, QueueStatusEntry>> {
   const store = getDailyStore();
   const lookaheadDays = parseInt(process.env.DAILY_QUEUE_LOOKAHEAD_DAYS ?? "3", 10);
   const gamesToQuery = gameId ? [gameId] : dailyGameList.map((g) => g.meta.id);
+  const today = new Date().toISOString().slice(0, 10);
 
-  const results: Record<string, { queuedFutureDays: number; lookaheadDays: number; isSufficient: boolean }> = {};
+  const results: Record<string, QueueStatusEntry> = {};
   for (const id of gamesToQuery) {
     const status = await store.getQueueStatus(id);
+    const rows = await store.listPuzzles(id, 400);
+    const future = rows.filter((r) => r.puzzle_date >= today);
+    const queuedDates = future.filter((r) => r.status === "queued").map((r) => r.puzzle_date).sort();
+    const draftDates = future.filter((r) => r.status === "draft").map((r) => r.puzzle_date).sort();
+
+    const taken = new Set([...queuedDates, ...draftDates]);
+    const openDates: string[] = [];
+    for (let offset = 1; openDates.length < lookaheadDays + 2 && offset <= 60; offset++) {
+      const d = new Date(`${today}T00:00:00Z`);
+      d.setUTCDate(d.getUTCDate() + offset);
+      const iso = d.toISOString().slice(0, 10);
+      if (!taken.has(iso)) openDates.push(iso);
+    }
+
     results[id] = {
       queuedFutureDays: status.queuedFutureDays,
       lookaheadDays,
       isSufficient: status.queuedFutureDays >= lookaheadDays,
+      queuedDates,
+      draftDates,
+      openDates,
     };
   }
   return results;
+}
+
+/**
+ * One-way content digest of a game's history.
+ *
+ * Deliberately not the puzzles themselves: fingerprints and hashed item tokens
+ * let a caller prove "this is new" without ever seeing an unplayed answer key.
+ * Items from dates already played are returned in the clear, since every player
+ * that day saw them anyway and a generator needs them to vary its content.
+ */
+export async function getHistoryDigest(gameId: string, limit = 400): Promise<{
+  gameId: string;
+  digests: PuzzleDigest[];
+}> {
+  const game = getDailyGame(gameId);
+  if (!game) {
+    throw new ServiceError("game_unknown", `Unknown daily game: ${gameId}`, 404);
+  }
+  const today = new Date().toISOString().slice(0, 10);
+  const rows = await getDailyStore().listPuzzles(gameId, limit);
+  return { gameId, digests: rows.map((r) => digestPuzzle(r, today)) };
 }
 
 export async function getPrompt(gameId: string, puzzleDate: string) {
@@ -470,6 +530,21 @@ export async function submitPack(
     throw new ServiceError("invalid_pack", valid.error, 400);
   }
 
+  // Never ship the same puzzle twice. Checked against the assembled payload
+  // rather than the submission, so a reshuffled word bank or reordered cells
+  // still resolves to the same fingerprint.
+  const history = (await store.listPuzzles(gameId, 800))
+    .filter((r) => r.puzzle_date !== puzzleDate)
+    .map((r) => digestPuzzle(r, "9999-12-31"));
+  const repeat = checkRepeat(gameId, valid.pack.payload, history);
+  if (!repeat.ok) {
+    throw new ServiceError(
+      "duplicate_puzzle",
+      `This puzzle was already used on ${repeat.duplicateOf}. Daily puzzles are never repeated.`,
+      409
+    );
+  }
+
   const isFactChecked =
     typeof factCheck === "object" &&
     factCheck !== null &&
@@ -478,7 +553,14 @@ export async function submitPack(
   const status = isFactChecked ? "queued" : "draft";
   await store.insertPack(valid.pack, status, factCheck);
 
-  return { ok: true, status, gameId, puzzleDate };
+  return {
+    ok: true,
+    status,
+    gameId,
+    puzzleDate,
+    /** Items this puzzle shares with earlier ones — not fatal, but worth seeing. */
+    overlaps: repeat.overlaps,
+  };
 }
 
 export async function listDrafts(gameId?: string) {
