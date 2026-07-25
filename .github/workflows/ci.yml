@@ -1,0 +1,45 @@
+name: CI
+
+# The daily-games merge shipped two failures that no single branch could see:
+# tests pinned to an empty registry, and a registry entry silently dropped by a
+# conflict resolution. Both only appear once branches are combined, which is
+# exactly what a PR build checks.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A new push to the same PR makes the previous run irrelevant.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: test + typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # --frozen-lockfile fails the build if pnpm-lock.yaml is out of sync with
+      # the manifests, rather than silently resolving something else than local.
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # Unit/integration suites only. `test` is `vitest run` per package; the
+      # Playwright suite is a separate `test:e2e` script and needs browsers, so
+      # it is deliberately not part of this job.
+      - name: Test
+        run: pnpm test
+
+      - name: Typecheck
+        run: pnpm typecheck

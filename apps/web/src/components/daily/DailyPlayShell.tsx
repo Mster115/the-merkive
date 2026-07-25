@@ -6,9 +6,11 @@ import { getDailyGame } from "@merky/games/daily";
 import { Button, Card } from "@merky/ui";
 import { useT } from "@/i18n";
 import { ensureDailyDevice } from "@/client/dailyDevice";
+import { Ticker } from "@/components/Ticker";
 import { ShareCard } from "./ShareCard";
 import { HistoryView } from "./HistoryView";
 import { ArchiveList } from "./ArchiveList";
+import { useDailyTickerItems } from "./useDailyTicker";
 
 export interface DailyPlayShellProps {
   gameId: string;
@@ -28,6 +30,7 @@ export function DailyPlayShell({ gameId, explicitDate }: DailyPlayShellProps) {
   const [phase, setPhase] = React.useState<string>("");
   const [attemptOver, setAttemptOver] = React.useState(false);
   const [status, setStatus] = React.useState<string>("in_progress");
+  const tickerItems = useDailyTickerItems(gameId, `${attemptOver}:${status}`);
   const [shareText, setShareText] = React.useState<string | null>(null);
   const [now, setNow] = React.useState(() => Date.now());
 
@@ -186,6 +189,9 @@ export function DailyPlayShell({ gameId, explicitDate }: DailyPlayShellProps) {
           <ArchiveList gameId={gameId} />
         </div>
       )}
+      {/* Scoped to this game, and re-keyed on completion so a solve updates the
+          strip in the same beat as the streak panel. */}
+      <Ticker className="fixed bottom-0 inset-x-0 z-40" items={tickerItems} />
     </main>
   );
 }

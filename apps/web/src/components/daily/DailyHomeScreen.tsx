@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button, Card, GameIcon } from "@merky/ui";
 import { useT } from "@/i18n";
+import { Ticker } from "@/components/Ticker";
+import { useDailyTickerItems } from "./useDailyTicker";
 import type { DailyGameMeta } from "@merky/games/daily/types";
 
 export function DailyHomeScreen() {
@@ -11,6 +13,7 @@ export function DailyHomeScreen() {
   const router = useRouter();
   const [games, setGames] = React.useState<DailyGameMeta[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const tickerItems = useDailyTickerItems();
 
   React.useEffect(() => {
     let ignore = false;
@@ -63,7 +66,9 @@ export function DailyHomeScreen() {
           </p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        // md, not sm: at 640px two columns leave ~330px per card, which is too
+        // narrow for a long name to sit beside its icon.
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {games.map((g, i) => (
             <Card
               key={g.id}
@@ -75,8 +80,13 @@ export function DailyHomeScreen() {
             >
               <div>
                 <div className="flex items-center gap-3 mb-2">
-                  <GameIcon gameId={g.id} className="w-8 h-8 text-[var(--mb-violet)]" />
-                  <h2 className="text-2xl font-black uppercase text-[var(--mb-text)] [font-family:var(--mb-font-display)]">
+                  {/* shrink-0: without it the flex row steals width from the
+                      icon to fit a long title — "NUTSHELL" collapsed it to
+                      under 2px on narrow viewports. */}
+                  <GameIcon gameId={g.id} className="w-8 h-8 shrink-0 text-[var(--mb-violet)]" />
+                  {/* min-w-0 lets the title shrink rather than overflow the
+                      card; no break-words, which split "NUTSHELL" mid-word. */}
+                  <h2 className="min-w-0 text-2xl font-black uppercase text-[var(--mb-text)] [font-family:var(--mb-font-display)]">
                     {t(g.nameKey)}
                   </h2>
                 </div>
@@ -85,15 +95,16 @@ export function DailyHomeScreen() {
                 </p>
               </div>
 
-              <Link href={`/daily/${g.id}`}>
+              <Link href={`/daily/${g.id}`} aria-label={t("daily.hub.play.aria", { game: t(g.nameKey) })}>
                 <Button size="lg" block variant="primary">
-                  {t("home.daily.cta")}
+                  {t("daily.hub.play")}
                 </Button>
               </Link>
             </Card>
           ))}
         </div>
       )}
+      <Ticker className="fixed bottom-0 inset-x-0 z-40" items={tickerItems} />
     </main>
   );
 }

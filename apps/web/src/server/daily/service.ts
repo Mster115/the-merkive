@@ -10,7 +10,7 @@ import {
 import type { DailyAttemptRow, DailyPuzzleRow } from "@merky/db";
 import { ServiceError } from "../errors";
 import { getDailyStore } from "./store";
-import { localDateFor } from "./timezone";
+import { localDateFor, msUntilLocalRollover } from "./timezone";
 import { computeStreaks } from "./streaks";
 
 export function listGames() {
@@ -260,6 +260,61 @@ export async function getHistory(gameId: string, deviceId: string, timezone: str
       totalSolved: streaks.totalSolved,
       winRate: Math.round(winRate),
     },
+  };
+}
+
+export interface DailyGameSummary {
+  id: string;
+  nameKey: string;
+  /** Whether a puzzle is actually queued for this game today. */
+  hasPuzzle: boolean;
+  /** This device's state for today: never started, or the attempt's status. */
+  status: "unplayed" | "in_progress" | "solved" | "failed";
+  currentStreak: number;
+}
+
+/**
+ * Per-device, read-only snapshot of today across every daily game, plus how
+ * long until the next rollover. Powers the status ticker.
+ *
+ * Deliberately does NOT create attempts: merely opening the hub must not mark
+ * a game as played, which is what getTodayOrCreateAttempt would do.
+ */
+export async function getSummary(deviceId: string, timezone: string) {
+  const store = getDailyStore();
+  const today = localDateFor(timezone);
+
+  const games: DailyGameSummary[] = await Promise.all(
+    dailyGameList.map(async (game) => {
+      const id = game.meta.id;
+      const puzzle = await store.getPuzzle(id, today);
+
+      let status: DailyGameSummary["status"] = "unplayed";
+      if (puzzle) {
+        const attempt = await store.getAttempt(deviceId, puzzle.id);
+        if (attempt) {
+          status =
+            attempt.status === "solved" || attempt.status === "failed"
+              ? attempt.status
+              : "in_progress";
+        }
+      }
+
+      const rows = await store.listAttemptsForStreak(deviceId, id, 365);
+      return {
+        id,
+        nameKey: game.meta.nameKey,
+        hasPuzzle: Boolean(puzzle),
+        status,
+        currentStreak: computeStreaks(rows, today).current,
+      };
+    })
+  );
+
+  return {
+    today,
+    msUntilRollover: msUntilLocalRollover(timezone),
+    games,
   };
 }
 
