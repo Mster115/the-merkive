@@ -9,6 +9,10 @@ import { PATTERN_LIBRARY, type PatternTemplate, type DerivedSlot } from "./patte
  * brief.
  */
 const EXAMPLE_FILLS: Record<string, { across: string[]; down: string[] }> = {
+  corners_3x3: {
+    across: ["LAP", "OIL", "GRASS", "TIE", "ERA"],
+    down: ["LOG", "AIR", "PLATE", "SIR", "SEA"],
+  },
   staircase_tl_br: {
     across: ["ARC", "MINOR", "ANGLE", "SCREW", "SHY"],
     down: ["ANGRY", "ROLE", "CREW", "MASS", "INCH"],

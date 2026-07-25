@@ -71,13 +71,44 @@ export function computeSlotsFromPattern(gridPattern: string[]): {
   return { across, down };
 }
 
-// Ordered easiest-to-fill first. A fully open 5x5 needs ten distinct five-letter
-// words whose rows and columns all agree — a double word square, which in
-// English essentially forces archaic or proper-noun fill (a 799-word common
-// vocabulary yields none). The staircase patterns below leave only a few
-// five-letter slots and the rest at three or four, which is both what real
-// mini crosswords look like and what everyday words can actually fill.
+// Ordered easiest-to-fill first, and that order is load-bearing: `solveGrid`
+// takes the first pattern it can fill.
+//
+// The two corner patterns lead because they are the only shapes an everyday
+// vocabulary can actually fill. Measured on a curated 1,183-word common list
+// (see wordlist.ts): the corner patterns solve in well under 100ms with
+// all-common fill, while every staircase and the open grid find nothing at all
+// — the search exhausts, and neither a 20M step budget nor shuffled restarts
+// changes it. Fills for the denser shapes only appear once the word list runs
+// to several thousand entries, and at that depth they are archaic (URARE,
+// NEUME, IWIS), which is not shippable content.
+//
+// The denser shapes are kept after them, because a hand-constructed grid on a
+// staircase is still valid and still solves instantly when its ten words are
+// submitted. A fully open 5x5 needs a double word square and stays last.
 const RAW_PATTERNS: { id: string; gridPattern: string[] }[] = [
+  {
+    // Two 3x3 blocks joined through the middle row and column: eight 3-letter
+    // slots and two 5-letter ones.
+    id: "corners_3x3",
+    gridPattern: [
+      "...##",
+      "...##",
+      ".....",
+      "##...",
+      "##...",
+    ],
+  },
+  {
+    id: "corners_3x3_mirror",
+    gridPattern: [
+      "##...",
+      "##...",
+      ".....",
+      "...##",
+      "...##",
+    ],
+  },
   {
     id: "staircase_tr_bl",
     gridPattern: [

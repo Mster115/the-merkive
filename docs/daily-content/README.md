@@ -15,8 +15,11 @@ the code wins and this document is a bug.
 | [nexus.md](nexus.md) | Nexus payload schema + trivia-specific rules (the game with real fact-check exposure) |
 | [nutshell.md](nutshell.md) | Nutshell candidate-pool schema + what the grid solver can actually fill |
 | [relay.md](relay.md) | Relay word-chain schema + solver constraints |
-| [routine-system-prompt.md](routine-system-prompt.md) | **Paste-ready system prompt** for the Claude Desktop routine (self-contained) |
+| [mcp-server.md](mcp-server.md) | **The `merkive-daily` MCP server** — tools, selective disclosure, never-repeat enforcement, setup |
+| [routine-system-prompt.md](routine-system-prompt.md) | **Paste-ready system prompt** for the Claude Desktop routine, plus timing |
 
+The pipeline is driven through the [MCP server](mcp-server.md): the routine
+calls tools that enforce the rules, rather than reciting rules it might forget.
 Rules that can be executed are executed, not documented:
 [`scripts/daily-content.mjs`](../../scripts/daily-content.mjs) enforces the
 API's sharp edges (date arithmetic, overwrite protection, draft collisions) so
@@ -28,36 +31,46 @@ quotes cannot drift from the solver's. Both are covered by tests.
 ## The operating model
 
 ```
-routine (daily)
-  → GET  /api/admin/daily/queue-status      how many future days are filled?
-  → pick the first unfilled date per game
-  → research + fact-check (Nexus) / generate (Nutshell, Relay)
-  → POST /api/admin/daily/submit-pack       lands as `draft` or `queued`
+routine (daily, via the merkive-daily MCP tools)
+  → daily_plan     which dates are actually open, per game
+  → daily_brief    the game's own authoring brief
+  → daily_grid     a verified, never-used Nutshell interlock
+  → daily_history  which candidate answers are already spent
+  → daily_check    dry run against every rule
+  → daily_submit   refuses past dates, taken dates, repeat puzzles
 human (you)
-  → GET  /api/admin/daily/review            list drafts
-  → POST /api/admin/daily/review/{id}/decide  approve → queued, reject → deleted
+  → pnpm daily review          drafts awaiting a decision
+  → pnpm daily decide <id> --approve
 ```
 
-Driven through the CLI, that is:
+The `draft` / `queued` split is the safety valve: a pack only goes live
+unreviewed when it carries `factCheck.status === "passed"`. Approval is
+deliberately not an MCP tool — deciding what goes live is not the routine's job.
+
+For hands-on work there is the CLI:
 
 ```bash
-node scripts/daily-content.mjs status                  # queue + drafts + next free date
-node scripts/daily-content.mjs plan --lookahead 5      # which dates to fill
+node scripts/daily-content.mjs status                  # queue, drafts, next free date
 node scripts/daily-content.mjs verify pack.json        # offline preflight
 node scripts/daily-content.mjs submit pack.json --yes  # guarded submit
-node scripts/daily-content.mjs review                  # drafts (payloads opt-in)
+node scripts/daily-content.mjs review
 node scripts/daily-content.mjs decide <id> --approve
 ```
 
-`submit` refuses, rather than warns, on the three ways to destroy content: a
-`puzzleDate` that is not in the future, a date inside the already-queued
-window, and a date that already has a draft awaiting review. `--force`
-overrides deliberately; without `--yes` it is a dry run.
+`submit` refuses, rather than warns, on the ways to destroy content: a
+`puzzleDate` that is not in the future, a date that already holds a queued
+puzzle or a pending draft, and a puzzle whose content has been used before.
+`--force` overrides the date checks deliberately; the repeat check is enforced
+server-side and cannot be overridden.
 
-The `draft` / `queued` split is the safety valve. `submitPack` only queues
-directly when the submission carries `factCheck.status === "passed"`; anything
-else waits for your approval. **The routine ships with auto-queue off** — see
-"Open decision" below.
+## Never repeating a puzzle
+
+`submitPack` fingerprints every pack's assembled answer key and rejects a
+repeat with `409 duplicate_puzzle`, whatever submits it. Fingerprints are
+canonical — sorted, trimmed, lower-cased — so a reshuffled bank or reordered
+cells is still the same puzzle, and Relay keys on the start/end pair because
+different decoys around one chain play identically. Details in
+[mcp-server.md](mcp-server.md#never-repeating-a-puzzle).
 
 ## Open decision (yours, not the routine's)
 

@@ -17,3 +17,6 @@ blob-report/
 market-research/
 .vercel
 supabase/.temp/
+
+# Local ledger written by the daily-content MCP server
+scripts/mcp/.daily-ledger.json

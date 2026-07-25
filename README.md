@@ -125,7 +125,8 @@ merky-box/
 ├── docs/
 │   └── daily-content/        # Daily-puzzle content contract, editorial standards, routine prompt
 ├── scripts/
-│   └── daily-content.mjs     # Guarded CLI for the daily content pipeline
+│   ├── daily-content.mjs     # Guarded CLI for the daily content pipeline
+│   └── mcp/daily-mcp.mjs     # MCP server the content routine drives
 ├── market-research/          # Competitive analysis & game design research
 ├── CONTRACTS.md              # Platform engineering contracts & state semantics
 ├── DESIGN.md                 # Visual design specification (colors, typography, motion)
@@ -247,6 +248,7 @@ npx vercel --prod
 | `pnpm --filter @merky/games test` | Run game plugin tests only |
 | `pnpm --filter @merky/web test` | Run platform tests only |
 | `pnpm daily status` | Daily content queue: what's filled, what's next, what's awaiting review |
+| `node scripts/mcp/daily-mcp.mjs` | The `merkive-daily` MCP server (see [docs](docs/daily-content/mcp-server.md)) |
 | `pnpm daily verify <pack.json>` | Offline preflight of a content pack (no network, no secret) |
 
 ---

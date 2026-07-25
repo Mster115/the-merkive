@@ -39,9 +39,14 @@ Query: `gameId` (optional; omit for all games).
 
 ```json
 {
-  "nexus":    { "queuedFutureDays": 2, "lookaheadDays": 3, "isSufficient": false },
-  "nutshell": { "queuedFutureDays": 2, "lookaheadDays": 3, "isSufficient": false },
-  "relay":    { "queuedFutureDays": 2, "lookaheadDays": 3, "isSufficient": false }
+  "relay": {
+    "queuedFutureDays": 2,
+    "lookaheadDays": 3,
+    "isSufficient": false,
+    "queuedDates": ["2026-07-25", "2026-07-27"],
+    "draftDates": ["2026-07-26"],
+    "openDates": ["2026-07-28", "2026-07-29", "2026-07-30"]
+  }
 }
 ```
 
@@ -52,23 +57,18 @@ Query: `gameId` (optional; omit for all games).
   days queued than the lookahead target", which is exactly the signal the
   recurring routine exists to clear.
 
-**It returns a count, not a list of dates.** There is no endpoint that says
-"which dates are filled". The queue is therefore assumed contiguous from today,
-which makes the first free date `today + queuedFutureDays` — the count includes
-today, so `+ queuedFutureDays + 1` would skip a day and leave a hole. That
-assumption holds as long as only the pipeline writes content and always fills
-forward.
+**Use `openDates`; do not derive dates from the count.** The three date arrays
+are the answer to "where does the next puzzle go": `queuedDates` and
+`draftDates` are what is taken from today onward, and `openDates` is what is
+free, soonest first. Drafts appear in their own array precisely because
+`queuedFutureDays` does not count them — a pack awaiting review for tomorrow is
+invisible to the count, and submitting that date again would silently replace
+it.
 
-Do not redo this arithmetic by hand: `firstFreeDate` and `planDates` in
-[`scripts/daily-content.mjs`](../../scripts/daily-content.mjs) implement it,
-including the UTC-date match with the server and the floor at tomorrow, and are
-pinned by tests in
-[`apps/web/src/server/daily/__tests__/dailyContentScript.spec.ts`](../../apps/web/src/server/daily/__tests__/dailyContentScript.spec.ts).
-
-**Drafts are invisible here.** `queuedFutureDays` counts only rows with status
-`queued`, so a pack awaiting review for tomorrow does not register — and
-submitting that date again silently replaces it. The CLI cross-checks
-`/review` for exactly this.
+`firstFreeDate` and `planDates` in
+[`scripts/daily-content.mjs`](../../scripts/daily-content.mjs) still implement
+the old contiguous-queue derivation as a fallback for deployments that predate
+the date arrays, and remain pinned by tests. New callers should not use them.
 
 **The queue must never be one day deep.** A device's "today" is
 `localDateFor(device.timezone)`, not server UTC — so a player in UTC+14 asks for
@@ -121,8 +121,21 @@ is specific, so surface it rather than retrying blind.
 Success:
 
 ```json
-{ "ok": true, "status": "queued" | "draft", "gameId": "nexus", "puzzleDate": "2026-07-27" }
+{ "ok": true, "status": "queued" | "draft", "gameId": "nexus", "puzzleDate": "2026-07-27",
+  "overlaps": [{ "item": "mars", "puzzleDate": "2026-05-02" }] }
 ```
+
+`overlaps` lists items this puzzle shares with earlier ones. Informational — one
+answer recurring after months is fine.
+
+### Repeats are refused
+
+Before storing, the service fingerprints the **assembled** payload and compares
+it with every other puzzle for that game. A match returns
+`409 {"code":"duplicate_puzzle"}` and nothing is written. Fingerprints are
+canonical (sorted, trimmed, lower-cased), so reordering cells or reshuffling a
+word bank does not disguise a repeat, and Relay keys on the start/end pair alone
+because different decoys around the same chain play identically.
 
 ### ⚠️ Submissions overwrite by `(game_id, puzzle_date)`
 
@@ -138,6 +151,26 @@ history. Consequences the routine must respect:
   deliberately replacing it. A retry after a network error is fine (idempotent);
   a re-run that recomputes target dates from a stale `queue-status` is not.
 - Approving a draft is `status → "queued"`; rejecting **deletes the row**.
+
+## `GET /api/admin/daily/history`
+
+Query: `gameId` (required), `limit` (default 400, max 1000).
+
+```json
+{
+  "gameId": "relay",
+  "digests": [
+    { "puzzleDate": "2026-07-20", "status": "queued", "fingerprint": "a1b2…",
+      "itemTokens": ["9f8e…"], "recentItems": ["stone->whale"] }
+  ]
+}
+```
+
+A one-way content digest, not the puzzles. `fingerprint` identifies the whole
+puzzle and `itemTokens` its individual answers, both hashed — so a content
+generator can prove its puzzle is new without being handed an answer key it
+would then have to be trusted not to leak. `recentItems` carries the items in
+the clear **only** for dates already played, where every player saw them anyway.
 
 ## `GET /api/admin/daily/review`
 

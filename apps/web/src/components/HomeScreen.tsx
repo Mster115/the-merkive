@@ -141,8 +141,21 @@ export function HomeScreen() {
           <div className="lg:col-span-5 flex flex-col gap-6">
             <Card
               raised
-              className="flex flex-col gap-4 mb-rise -rotate-[0.6deg]"
+              className="flex flex-col gap-3 mb-rise rotate-[0.4deg]"
               style={{ "--mb-i": 1 } as React.CSSProperties}
+            >
+              <h2 className="self-start -rotate-1 bg-[var(--mb-gold)] text-[var(--mb-on-gold)] border-2 border-black shadow-[2px_2px_0_0_#000] px-3 py-1 text-sm font-black uppercase tracking-wider">
+                {t("home.daily.title")}
+              </h2>
+              <Button size="lg" block onClick={() => router.push("/daily")}>
+                {t("home.daily.cta")}
+              </Button>
+            </Card>
+
+            <Card
+              raised
+              className="flex flex-col gap-4 mb-rise -rotate-[0.6deg]"
+              style={{ "--mb-i": 2 } as React.CSSProperties}
             >
               <label className="flex flex-col gap-1.5" suppressHydrationWarning>
                 <span className="text-xs font-black uppercase tracking-widest text-[var(--mb-violet)] flex justify-between items-center" suppressHydrationWarning>
@@ -177,7 +190,7 @@ export function HomeScreen() {
             <Card
               raised
               className="flex flex-col gap-3 mb-rise rotate-[0.5deg]"
-              style={{ "--mb-i": 2 } as React.CSSProperties}
+              style={{ "--mb-i": 3 } as React.CSSProperties}
             >
               <h2 className="self-start -rotate-1 bg-[var(--mb-pink)] text-[var(--mb-on-pink)] border-2 border-black shadow-[2px_2px_0_0_#000] px-3 py-1 text-sm font-black uppercase tracking-wider">
                 {t("home.create.title")}
@@ -203,7 +216,7 @@ export function HomeScreen() {
             <Card
               raised
               className="flex flex-col gap-3 mb-rise -rotate-[0.4deg]"
-              style={{ "--mb-i": 3 } as React.CSSProperties}
+              style={{ "--mb-i": 4 } as React.CSSProperties}
             >
               <h2 className="self-start rotate-1 bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)] border-2 border-black shadow-[2px_2px_0_0_#000] px-3 py-1 text-sm font-black uppercase tracking-wider">
                 {t("home.join.title")}
@@ -238,19 +251,6 @@ export function HomeScreen() {
               </button>
             </Card>
 
-            <Card
-              raised
-              className="flex flex-col gap-3 mb-rise rotate-[0.4deg]"
-              style={{ "--mb-i": 4 } as React.CSSProperties}
-            >
-              <h2 className="self-start -rotate-1 bg-[var(--mb-gold)] text-[var(--mb-on-gold)] border-2 border-black shadow-[2px_2px_0_0_#000] px-3 py-1 text-sm font-black uppercase tracking-wider">
-                {t("home.daily.title")}
-              </h2>
-              <Button size="lg" block onClick={() => router.push("/daily")}>
-                {t("home.daily.cta")}
-              </Button>
-            </Card>
-
             {error && (
               <p
                 role="alert"
@@ -269,7 +269,7 @@ export function HomeScreen() {
               </h2>
             </div>
 
-            {/* Active Content Pack Showcase ("The Merk-ining") */}
+            {/* Active Content Pack Showcase ("The Merk-gining") */}
             {activePack && (
               <div className={`relative overflow-hidden rounded-xl border-3 border-black bg-gradient-to-br ${activePack.gradientTheme ?? "from-purple-950 to-indigo-900"} p-5 sm:p-6 shadow-[6px_6px_0_0_#000] flex flex-col gap-4 transition-all duration-300 hover:shadow-[8px_8px_0_0_#000]`}>
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -446,7 +446,7 @@ export function HomeScreen() {
         items={[
           t("ticker.status"),
           t("ticker.join"),
-          t("ticker.pack", { pack: "The Merk-ining" }),
+          t("ticker.pack", { pack: "The Merk-gining" }),
           t("ticker.round"),
           t("ticker.stay"),
         ]}

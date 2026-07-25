@@ -56,25 +56,32 @@ others, so a fill is close to a double word square.
 > grid was what the solver kept finding. Remove those ten and the same
 > vocabulary yields nothing.
 
-**The working content model is therefore: construct the grid yourself, then
-submit its words.** You choose the layout, work out ten words whose crossing
+**Since then the library gained the `corners_3x3` patterns, which everyday
+vocabulary *can* fill** (see the table's first row — that measurement was taken
+against the older, denser layouts). The practical route is now
+[`daily_grid`](mcp-server.md): it fills a grid from the curated word list, checks
+it has never been used, and hands you ten words to clue. Constructing by hand is
+still supported and still verified, but it is no longer the only option.
+
+**If you are constructing by hand: construct the grid, then submit its words.** You choose the layout, work out ten words whose crossing
 letters agree, and submit those ten with their clues. The solver's job is to
 *verify* your construction and turn it into a payload — not to discover a grid
 you did not design.
 
-Be honest about the cost: this is real crossword construction, and it is the
-hardest task in the whole content pipeline. Nexus needs research; Relay needs
-half an hour of care; Nutshell needs a constructor. Two things would change
-that, and both are repo-side rather than content-side:
+Both fixes that were proposed here have shipped:
 
-1. **Ship a large curated word list** — several thousand *common* 3–5 letter
-   words with clues. At that depth the solver fills in milliseconds and the fill
-   stays everyday. This is how real minis are made, and it is the fix that makes
-   Nutshell automatable.
-2. **Add sparser patterns** — more blocked squares means shorter, less
-   cross-constrained slots, which loosens the squeeze dramatically. Any new
-   pattern must avoid runs shorter than 3, since the solver only accepts 3–5
-   letter words.
+1. **A curated word list** — [`wordlist.ts`](../../packages/games/src/daily/nutshell/wordlist.ts),
+   2,657 everyday 3–5 letter words. Not used by the game at runtime; it exists
+   so tooling can propose a fill without a constructor.
+2. **Sparser patterns** — `corners_3x3` and its mirror, which leave eight
+   3-letter slots and two 5-letter ones. Any new pattern must avoid runs shorter
+   than 3 (the solver only accepts 3–5 letter words) and must leave no open cell
+   outside a slot; a test enforces both.
+
+Together they make Nutshell the *easiest* game to supply rather than the
+hardest: `daily_grid` returns ten interlocking words and you write ten clues.
+Supply is finite but deep — 40+ consecutive distinct grids without exhausting,
+about a second each. When it runs dry, add words to the list.
 
 Optionally add ~10 spare candidates (verified harmless: a designed 10 plus 12
 spares still solves instantly). Spares give the solver alternates if one of your
