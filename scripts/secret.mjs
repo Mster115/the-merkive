@@ -86,9 +86,11 @@ export function resolveSecret(deps = {}) {
 function defaultKeychainLookup(service) {
   if (process.platform !== "darwin") return null;
   try {
-    // `-w` prints only the password. stderr is swallowed: a miss is exit 44
-    // with "could not be found", which is a normal outcome here, not an error.
-    return execFileSync("security", ["find-generic-password", "-s", service, "-w"], {
+    // Absolute path, not `security`: an MCP server is spawned by the host app
+    // with a minimal environment, and there is no guarantee /usr/bin is on its
+    // PATH. `-w` prints only the password. stderr is swallowed — a miss is exit
+    // 44 with "could not be found", a normal outcome here rather than an error.
+    return execFileSync("/usr/bin/security", ["find-generic-password", "-s", service, "-w"], {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
     }).trim() || null;

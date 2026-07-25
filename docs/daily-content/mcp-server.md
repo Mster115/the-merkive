@@ -22,17 +22,29 @@ security add-generic-password -U -a "$USER" -s merkive-daily-pipeline -w
 
 **2. Point Claude Desktop at the server.** Note there is no secret here:
 
+`~/Library/Application Support/Claude/claude_desktop_config.json`:
+
 ```json
 {
   "mcpServers": {
     "merkive-daily": {
-      "command": "node",
+      "command": "/Users/marksternefeld/.local/bin/node",
       "args": ["/Users/marksternefeld/merky-box/scripts/mcp/daily-mcp.mjs"],
       "env": { "MERKY_BASE_URL": "https://the-merkive.vercel.app" }
     }
   }
 }
 ```
+
+**Use an absolute path to `node`.** Claude Desktop spawns MCP servers with a
+minimal environment, and a version-managed `node` is not on a bare `PATH` — the
+symptom is a server that never connects, with `spawn node ENOENT` in the logs.
+Prefer a stable symlink over an nvm version directory, which changes on upgrade.
+For the same reason the Keychain lookup calls `/usr/bin/security` by absolute
+path.
+
+The server reads the word list and pattern library from the repo at the path in
+`args`, so the checkout has to stay where it is.
 
 **3. Confirm it resolves**, without printing it:
 
