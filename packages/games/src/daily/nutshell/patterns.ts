@@ -71,15 +71,31 @@ export function computeSlotsFromPattern(gridPattern: string[]): {
   return { across, down };
 }
 
+// Ordered easiest-to-fill first. A fully open 5x5 needs ten distinct five-letter
+// words whose rows and columns all agree — a double word square, which in
+// English essentially forces archaic or proper-noun fill (a 799-word common
+// vocabulary yields none). The staircase patterns below leave only a few
+// five-letter slots and the rest at three or four, which is both what real
+// mini crosswords look like and what everyday words can actually fill.
 const RAW_PATTERNS: { id: string; gridPattern: string[] }[] = [
   {
-    id: "all_open",
+    id: "staircase_tr_bl",
     gridPattern: [
+      "...##",
       ".....",
       ".....",
       ".....",
+      "##...",
+    ],
+  },
+  {
+    id: "staircase_tl_br",
+    gridPattern: [
+      "##...",
       ".....",
       ".....",
+      ".....",
+      "...##",
     ],
   },
   {
@@ -120,6 +136,16 @@ const RAW_PATTERNS: { id: string; gridPattern: string[] }[] = [
       ".....",
       ".....",
       "#....",
+    ],
+  },
+  {
+    id: "all_open",
+    gridPattern: [
+      ".....",
+      ".....",
+      ".....",
+      ".....",
+      ".....",
     ],
   },
 ];
