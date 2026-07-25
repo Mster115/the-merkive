@@ -84,6 +84,8 @@ DESIGN.md                 → Visual design specification
 | `packages/ui/` | Maintainers only | Design system components & tokens |
 | `packages/party/` | Maintainers only | Edge runtime engine |
 | `apps/web/` | Maintainers only | Platform shell, API routes, service layer |
+| `scripts/` | Maintainers only | Operational tooling (e.g. the daily content pipeline CLI) |
+| `docs/daily-content/` | Content authors & maintainers | How daily puzzle content is written, validated and queued — keep in step with each game's `validatePack` |
 
 > **Rule of thumb**: If you're building a game, you should only need to touch files inside `packages/games/src/<your_game_id>/`.
 
@@ -159,6 +161,13 @@ Changes to `packages/ui/` affect every game and the platform shell. These requir
 Documentation improvements are always welcome:
 - Fix typos, clarify instructions, add examples
 - No issue required — just open a PR
+
+Two docs are load-bearing rather than descriptive, and go stale silently:
+[docs/daily-content/](docs/daily-content/README.md) states the content schemas a
+game's `validatePack` enforces, and
+[routine-system-prompt.md](docs/daily-content/routine-system-prompt.md) embeds
+them for a generator that has no repo access. Change a daily game's payload
+shape and both must change in the same PR.
 
 ---
 

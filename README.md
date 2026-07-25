@@ -31,6 +31,22 @@ The Merkive is an open-source, browser-based party game platform inspired by Jac
 | **Mr Merkissioner, Sir** | 5–12 | Hidden-role social deduction — pass decrees, sniff out the Merkites, never elect Mr Merkissioner as Commissioner |
 | **Merkade** | 3–12 | A rotating arcade of three party-game modes on one scoreboard — bluff-the-truth trivia, secret-prompt pixel doodles, and majority-vote predictions |
 
+### 🗓️ Daily Games
+
+Solo, one-puzzle-a-day games at `/daily` — no room code, no Stage/Controller
+split. Each puzzle is indexed by date and served from a content queue.
+
+| Game | Time | Description |
+| :--- | :---: | :--- |
+| **Nexus** | ~5 min | A 3×3 trivia grid — every answer must satisfy both its row and its column category. One guess per cell |
+| **Nutshell** | ~2 min | A 5×5 mini crossword assembled server-side from a submitted word pool |
+| **Relay** | ~3 min | Pass the word baton — chain start to end by matching each word's first letter to the last of the one before |
+
+Daily games live in `dailyGameRegistry` (`packages/games/src/daily/index.ts`)
+and are deliberately **never** added to the room-game registry. Content reaches
+them through the admin pipeline documented in
+[docs/daily-content/](docs/daily-content/README.md).
+
 ### 📦 Upcoming Content Packs
 
 | Pack | Status | Theme |
@@ -87,6 +103,10 @@ cp .env.example .env
 | `NEXT_PUBLIC_PARTYKIT_HOST` | — | Client-side PartyKit WebSocket host |
 | `MB_SWEEP_SECRET` | — | Secret for the external sweeper endpoint |
 | `CRON_SECRET` | — | Vercel-reserved env var name. When set (along with the `crons` entry in `vercel.json`), Vercel automatically sends `Authorization: Bearer $CRON_SECRET` on its cron-invoked `GET /api/sweep` request, authenticating it |
+| `SUPABASE_URL` | — | Daily-games persistence (puzzles, attempts, devices). Unset falls back to the in-memory store |
+| `SUPABASE_SERVICE_ROLE_KEY` | — | Service-role key for the same. Server-only — never expose to the client |
+| `DAILY_PIPELINE_SECRET` | — | Bearer secret for the `/api/admin/daily/*` content-pipeline routes. Unset means "open" in development and **fails closed** in production |
+| `DAILY_QUEUE_LOOKAHEAD_DAYS` | `3` | How many days of queued puzzles the pipeline aims to keep ahead |
 
 ---
 
@@ -97,10 +117,15 @@ merky-box/
 ├── apps/
 │   └── web/                  # Next.js 15 App Router (Stage & Controller shell, API routes)
 ├── packages/
+│   ├── db/                   # Shared row types for the Supabase-backed daily store
 │   ├── game-sdk/             # Core plugin contract: GameModule, deterministic RNG, test harness
-│   ├── games/                # Game plugins (Banterbolt, Eightstorm, Tile Tangle, You got it? Good., Mr Merkissioner, Sir, Merkade) + registry
+│   ├── games/                # Room-game plugins + registry, and daily/ for the solo games
 │   ├── party/                # PartyKit Edge Room Engine (Durable Objects & WebSockets)
 │   └── ui/                   # Neo-Brutalist Design System (@merky/ui tokens & components)
+├── docs/
+│   └── daily-content/        # Daily-puzzle content contract, editorial standards, routine prompt
+├── scripts/
+│   └── daily-content.mjs     # Guarded CLI for the daily content pipeline
 ├── market-research/          # Competitive analysis & game design research
 ├── CONTRACTS.md              # Platform engineering contracts & state semantics
 ├── DESIGN.md                 # Visual design specification (colors, typography, motion)
@@ -172,6 +197,8 @@ pnpm test
 | [Game SDK Guide](packages/game-sdk/README.md) | Full plugin contract: state slots, lifecycle, determinism, timers, bots, i18n, test harness |
 | [CONTRACTS.md](CONTRACTS.md) | Platform state semantics, versioning CAS, room lifecycle, ownership zones |
 | [DESIGN.md](DESIGN.md) | Neo-brutalist design system: color tokens, typography, borders, motion, accessibility |
+| [Daily Games contract](packages/games/src/daily/README.md) | The separate solo-puzzle plugin contract — only if you are building a daily game |
+| [docs/daily-content/](docs/daily-content/README.md) | Supplying content to the daily games: pipeline API, editorial standards, per-game schemas |
 
 ---
 
@@ -205,7 +232,7 @@ npx vercel --prod
 ```
 
 > [!NOTE]
-> `vercel.json` configures a cron job that calls `GET /api/sweep` every minute to cover disconnect-grace, host reassignment, idle-room expiry, and bot-tick catch-up in PartyKit mode. Set `CRON_SECRET` in your Vercel Project Settings so this request is authenticated — without it, `GET /api/sweep` is unguarded, the same tradeoff `MB_SWEEP_SECRET` already has for the `POST` variant.
+> `vercel.json` configures a cron job that calls `GET /api/sweep` on the schedule `0 3 * * *` — **once daily at 03:00 UTC**, which is the finest granularity Vercel's Hobby plan allows. The sweep covers disconnect-grace, host reassignment, idle-room expiry, and bot-tick catch-up in PartyKit mode; at a daily cadence it acts as a backstop rather than a live timer, so those paths rely on client nudges in between. Raise the schedule if you move to a plan that permits it. Set `CRON_SECRET` in your Vercel Project Settings so this request is authenticated — without it, `GET /api/sweep` is unguarded, the same tradeoff `MB_SWEEP_SECRET` already has for the `POST` variant.
 
 ---
 
@@ -219,6 +246,8 @@ npx vercel --prod
 | `pnpm build` | Production build |
 | `pnpm --filter @merky/games test` | Run game plugin tests only |
 | `pnpm --filter @merky/web test` | Run platform tests only |
+| `pnpm daily status` | Daily content queue: what's filled, what's next, what's awaiting review |
+| `pnpm daily verify <pack.json>` | Offline preflight of a content pack (no network, no secret) |
 
 ---
 

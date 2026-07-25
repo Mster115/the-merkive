@@ -1,0 +1,183 @@
+# Daily content pipeline — API contract
+
+Base URL (production): `https://the-merkive.vercel.app`
+
+All routes below are implemented in `apps/web/src/app/api/admin/daily/` and
+backed by `apps/web/src/server/daily/service.ts`.
+
+## Auth
+
+Every admin route is gated by `isPipelineAuthorized`
+(`apps/web/src/server/daily/pipelineAuth.ts`). Present the shared secret as
+either:
+
+```
+Authorization: Bearer $DAILY_PIPELINE_SECRET
+```
+
+or
+
+```
+x-mb-pipeline-secret: $DAILY_PIPELINE_SECRET
+```
+
+`DAILY_PIPELINE_SECRET` is set on Vercel for **Production and Preview**. Failure
+returns `401 {"error":"nope","code":"unauthorized"}`.
+
+Note the fail-closed rule: if the env var is unset and `NODE_ENV=production`,
+the routes reject everything. Unset in development means "no auth required", so
+local calls need no header.
+
+> The secret is a bearer credential for writing puzzle content. Do not paste it
+> into a routine's prompt text — put it in the routine's secret/credential
+> store, or keep the routine at "produce JSON, human submits". See
+> [routine-system-prompt.md](routine-system-prompt.md#submission).
+
+## `GET /api/admin/daily/queue-status`
+
+Query: `gameId` (optional; omit for all games).
+
+```json
+{
+  "nexus":    { "queuedFutureDays": 2, "lookaheadDays": 3, "isSufficient": false },
+  "nutshell": { "queuedFutureDays": 2, "lookaheadDays": 3, "isSufficient": false },
+  "relay":    { "queuedFutureDays": 2, "lookaheadDays": 3, "isSufficient": false }
+}
+```
+
+- `queuedFutureDays` — count of rows with `status = "queued"` and
+  `puzzle_date >= today` (server UTC date).
+- `lookaheadDays` — from `DAILY_QUEUE_LOOKAHEAD_DAYS`, default `3`.
+- `isSufficient: false` is a **queue-health flag, not an error**. It means "fewer
+  days queued than the lookahead target", which is exactly the signal the
+  recurring routine exists to clear.
+
+**It returns a count, not a list of dates.** There is no endpoint that says
+"which dates are filled". The queue is therefore assumed contiguous from today,
+which makes the first free date `today + queuedFutureDays` — the count includes
+today, so `+ queuedFutureDays + 1` would skip a day and leave a hole. That
+assumption holds as long as only the pipeline writes content and always fills
+forward.
+
+Do not redo this arithmetic by hand: `firstFreeDate` and `planDates` in
+[`scripts/daily-content.mjs`](../../scripts/daily-content.mjs) implement it,
+including the UTC-date match with the server and the floor at tomorrow, and are
+pinned by tests in
+[`apps/web/src/server/daily/__tests__/dailyContentScript.spec.ts`](../../apps/web/src/server/daily/__tests__/dailyContentScript.spec.ts).
+
+**Drafts are invisible here.** `queuedFutureDays` counts only rows with status
+`queued`, so a pack awaiting review for tomorrow does not register — and
+submitting that date again silently replaces it. The CLI cross-checks
+`/review` for exactly this.
+
+**The queue must never be one day deep.** A device's "today" is
+`localDateFor(device.timezone)`, not server UTC — so a player in UTC+14 asks for
+tomorrow's puzzle up to 14 hours before UTC agrees it is tomorrow. At
+`queuedFutureDays === 1` those players get `no_puzzle_today` through their whole
+evening; at `0`, everyone does. Two days is the floor, which is why the default
+lookahead is 3. `pnpm daily status` flags both cases.
+
+## `GET /api/admin/daily/prompt`
+
+Query: `gameId`, `puzzleDate` (both required).
+
+```json
+{ "gameId": "nexus", "puzzleDate": "2026-07-27", "prompt": "Generate a 3x3 trivia…" }
+```
+
+Returns that game's `generatePrompt(puzzleDate)` — the in-repo research brief.
+Useful as a cross-check that the routine's embedded understanding still matches
+the code, but it is a short summary, not a schema. The per-game documents here
+are the fuller version.
+
+## `POST /api/admin/daily/submit-pack`
+
+Body:
+
+```json
+{
+  "gameId": "nexus",
+  "puzzleDate": "2026-07-27",
+  "payload": { "…": "game-specific, see the per-game doc" },
+  "sourceRefs": [{ "url": "https://…", "title": "…" }],
+  "factCheck": { "status": "needs_review", "…": "free-form" }
+}
+```
+
+- `gameId` and `puzzleDate` are required strings; missing either is
+  `400 invalid_request`.
+- `sourceRefs` must be an array or it is coerced to `[]`.
+- `payload` is opaque to the platform and **includes the answer key**.
+- `factCheck` is free-form and stored verbatim, with exactly one behaviour
+  attached to it: `status === "passed"` (string, exact) makes the pack land as
+  `queued`; anything else — including omitting `factCheck` — lands it as
+  `draft`.
+
+The service builds the envelope `{ gameId, puzzleDate, payload, sourceRefs }`
+and hands it to that game's `validatePack`. Rejection is
+`400 {"code":"invalid_pack","error":"<the validator's message>"}` — the message
+is specific, so surface it rather than retrying blind.
+
+Success:
+
+```json
+{ "ok": true, "status": "queued" | "draft", "gameId": "nexus", "puzzleDate": "2026-07-27" }
+```
+
+### ⚠️ Submissions overwrite by `(game_id, puzzle_date)`
+
+`insertPack` upserts on conflict. Re-submitting a date that already has a
+puzzle **replaces its payload and status**, with no warning and no version
+history. Consequences the routine must respect:
+
+- **Never submit for a date ≤ today.** Today's puzzle is live; overwriting it
+  changes what new players receive mid-day. (Attempts already started keep
+  their own copy of the state, so in-flight players are not corrupted — but
+  players starting later get a different puzzle than the ones before them.)
+- **Never re-submit a date you have already filled** unless you are
+  deliberately replacing it. A retry after a network error is fine (idempotent);
+  a re-run that recomputes target dates from a stale `queue-status` is not.
+- Approving a draft is `status → "queued"`; rejecting **deletes the row**.
+
+## `GET /api/admin/daily/review`
+
+Query: `gameId` (optional). Returns the full `daily_puzzles` rows with
+`status = "draft"`, newest `puzzle_date` first — including `payload`, so this
+response contains answer keys. Treat it as secret.
+
+## `POST /api/admin/daily/review/{id}/decide`
+
+Body: `{ "approve": true }` → row becomes `queued`.
+Body: `{ "approve": false }` → row is **deleted**.
+
+Response: `{ "ok": true, "id": "<id>", "approved": true|false }`.
+
+## Worked example
+
+Prefer the CLI, which applies every guard above:
+
+```bash
+export DAILY_PIPELINE_SECRET=…
+node scripts/daily-content.mjs status
+node scripts/daily-content.mjs submit pack.json --yes
+```
+
+The raw equivalents, if you need them:
+
+```bash
+curl -s "https://the-merkive.vercel.app/api/admin/daily/queue-status" \
+  -H "Authorization: Bearer $DAILY_PIPELINE_SECRET"
+```
+
+```bash
+curl -s -X POST "https://the-merkive.vercel.app/api/admin/daily/submit-pack" \
+  -H "Authorization: Bearer $DAILY_PIPELINE_SECRET" \
+  -H "Content-Type: application/json" \
+  --data @pack.json
+```
+
+## Unrelated secrets that live next to this one
+
+`CRON_SECRET` (Vercel's nightly `/api/sweep` cron, `0 3 * * *` in
+`vercel.json`) and `MB_SWEEP_SECRET` are **not** part of this pipeline. They are
+listed only so nobody assumes one secret covers everything.

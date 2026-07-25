@@ -19,6 +19,10 @@ Read these before touching code; they are binding, in this order:
 4. **[CONTRIBUTING.md](CONTRIBUTING.md)** — contribution guidelines: ownership
    zones, coding standards, commit conventions, PR process, and the new-game
    checklist.
+5. **[packages/games/src/daily/README.md](packages/games/src/daily/README.md)**
+   and **[docs/daily-content/](docs/daily-content/README.md)** — only for the
+   solo Daily Games: the separate `DailyGameModule` contract, and how puzzle
+   content is authored, validated and queued.
 
 ## Golden rules
 
@@ -34,6 +38,10 @@ Read these before touching code; they are binding, in this order:
 - Game logic is pure and deterministic: no `Math.random()`, no `Date.now()`,
   no I/O, no mutation of incoming state. Reject invalid intents with
   `{ error, code }` (snake_case), never throw.
+- Daily-game answer keys live in the content pack and `secretState` only — the
+  same publicState rule, with higher stakes: leaking the key ends the puzzle.
+  Never hand-edit queued content; go through `scripts/daily-content.mjs`, which
+  refuses the writes that silently overwrite a live puzzle.
 - SDK changes are rare and policy-gated — follow §11 of the SDK guide
   (additive-only, every listed surface updated in lockstep, platform + game
   suites green, docs updated in the same change).
