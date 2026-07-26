@@ -274,7 +274,7 @@ function ControllerLobby({ room }: { room: UseRoomResult }) {
                             onClick={() =>
                               void api.transferHost(snap.room.code, room.token, s.seatIndex).catch(() => undefined)
                             }
-                            className="w-8 h-8 rounded bg-[var(--mb-surface)] hover:bg-[var(--mb-line)] flex items-center justify-center text-xs"
+                            className="w-11 h-11 rounded bg-[var(--mb-surface)] hover:bg-[var(--mb-line)] flex items-center justify-center text-xs"
                             title={t("lobby.makeHost")}
                           >
                             <CrownIcon className="w-4 h-4" />
@@ -285,7 +285,7 @@ function ControllerLobby({ room }: { room: UseRoomResult }) {
                             onClick={() =>
                               void api.kick(snap.room.code, room.token, s.seatIndex).catch(() => undefined)
                             }
-                            className="w-8 h-8 rounded bg-[var(--mb-surface)] hover:bg-[var(--mb-danger)] flex items-center justify-center text-xs"
+                            className="w-11 h-11 rounded bg-[var(--mb-surface)] hover:bg-[var(--mb-danger)] flex items-center justify-center text-xs"
                             title={t("lobby.kick")}
                           >
                             <CloseIcon className="w-3.5 h-3.5" />
@@ -377,7 +377,7 @@ function GameChrome({
               <button
                 type="button"
                 onClick={() => setConfirmEnd(true)}
-                className="text-xs font-bold text-[var(--mb-text-dim)] underline underline-offset-4 min-h-9"
+                className="text-xs font-bold text-[var(--mb-text-dim)] underline underline-offset-4 min-h-11 px-1 flex items-center"
               >
                 {t("game.endMatch")}
               </button>

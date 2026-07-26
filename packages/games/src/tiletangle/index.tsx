@@ -76,6 +76,7 @@ export const tiletangle = defineGame({
       "games.tiletangle.reset": "Reset Table",
       "games.tiletangle.newMeld": "+ New Meld",
       "games.tiletangle.returnToRack": "Return to Rack",
+      "games.tiletangle.moveToMeld": "Move selected tile to this meld",
       "games.tiletangle.sort789": "1-2-3",
       "games.tiletangle.sortColor": "Color 🎨",
       "games.tiletangle.moveLeft": "◀ Left",

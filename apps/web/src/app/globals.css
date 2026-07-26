@@ -52,6 +52,19 @@ textarea {
   color: #000;
 }
 
+/* Native <button> doesn't get a pointer cursor from the UA stylesheet in
+   Chrome/Firefox (only Safari does this by default), and role="button"
+   elements never do. Make every clickable surface show its clickability. */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+button:disabled,
+[role="button"][aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
 /* Chunky, always-visible scrollbars look wrong on a party screen. */
 * {
   scrollbar-width: thin;

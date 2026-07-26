@@ -71,7 +71,7 @@ export function Modal({
             type="button"
             onClick={onClose}
             aria-label={closeLabel}
-            className="mb-press absolute top-3 right-3 grid h-9 w-9 place-items-center rounded-md border-2 border-black bg-[var(--mb-surface-2)] text-[var(--mb-text)] shadow-[2px_2px_0_0_#000] hover:bg-[var(--mb-surface-3)] focus-visible:outline focus-visible:outline-4 focus-visible:outline-[var(--mb-violet)] focus-visible:outline-offset-2"
+            className="mb-press absolute top-3 right-3 grid h-11 w-11 place-items-center rounded-md border-2 border-black bg-[var(--mb-surface-2)] text-[var(--mb-text)] shadow-[2px_2px_0_0_#000] hover:bg-[var(--mb-surface-3)] focus-visible:outline focus-visible:outline-4 focus-visible:outline-[var(--mb-violet)] focus-visible:outline-offset-2"
           >
             <CloseIcon className="h-4 w-4" />
           </button>

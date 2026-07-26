@@ -412,9 +412,19 @@ export const Controller: React.FC<ControllerProps> = ({
               <div
                 key={`m-${mIdx}`}
                 onClick={() => selectedTile && moveSelectedToExistingMeld(mIdx)}
+                role={selectedTile ? "button" : undefined}
+                tabIndex={selectedTile ? 0 : undefined}
+                aria-label={selectedTile ? t("games.tiletangle.moveToMeld") : undefined}
+                onKeyDown={(e) => {
+                  if (!selectedTile) return;
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    moveSelectedToExistingMeld(mIdx);
+                  }
+                }}
                 className={`p-3 rounded-xl border-2 border-black flex flex-wrap gap-2 items-center transition-all ${
                   selectedTile
-                    ? "border-[var(--mb-accent-2)] bg-[var(--mb-surface-3)] cursor-pointer shadow-[3px_3px_0_0_#000] mb-press"
+                    ? "border-[var(--mb-accent-2)] bg-[var(--mb-surface-3)] cursor-pointer shadow-[3px_3px_0_0_#000] mb-press focus-visible:outline focus-visible:outline-4 focus-visible:outline-[var(--mb-violet)] focus-visible:outline-offset-2"
                     : "bg-[var(--mb-surface-2)] shadow-[2px_2px_0_0_#000]"
                 }`}
               >

@@ -82,7 +82,7 @@ export function SettingsFields({
                   aria-label="decrease"
                   disabled={disabled || n <= field.min}
                   onClick={() => onChange({ [field.key]: Math.max(field.min, n - (field.step ?? 1)) })}
-                  className="w-9 h-9 rounded-lg bg-[var(--mb-surface-2)] font-black disabled:opacity-40"
+                  className="w-11 h-11 rounded-lg bg-[var(--mb-surface-2)] font-black disabled:opacity-40"
                 >
                   −
                 </button>
@@ -92,7 +92,7 @@ export function SettingsFields({
                   aria-label="increase"
                   disabled={disabled || n >= field.max}
                   onClick={() => onChange({ [field.key]: Math.min(field.max, n + (field.step ?? 1)) })}
-                  className="w-9 h-9 rounded-lg bg-[var(--mb-surface-2)] font-black disabled:opacity-40"
+                  className="w-11 h-11 rounded-lg bg-[var(--mb-surface-2)] font-black disabled:opacity-40"
                 >
                   +
                 </button>

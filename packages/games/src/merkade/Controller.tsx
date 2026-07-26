@@ -219,7 +219,7 @@ export function MerkadeController({ seat, match, privateState, act, t }: Control
                   <Button
                     variant="secondary"
                     onClick={() => setDoodleGrid(createEmptyGrid())}
-                    className="text-xs px-3 min-h-[36px]"
+                    className="text-xs px-3 min-h-[44px]"
                   >
                     {t("games.merkade.ui.clear")}
                   </Button>

@@ -117,7 +117,7 @@ export function TileTangleLobbyOptions({ settings, onChange, disabled, t }: Lobb
               aria-pressed={initialMeldPoints === pts}
               onClick={() => onChange({ initialMeldPoints: pts })}
               className={cn(
-                "min-w-[42px] min-h-[42px] rounded-lg text-xs font-black transition-all flex items-center justify-center border-2 border-black focus-visible:outline-none mb-press",
+                "min-w-[44px] min-h-[44px] rounded-lg text-xs font-black transition-all flex items-center justify-center border-2 border-black focus-visible:outline-none mb-press",
                 initialMeldPoints === pts
                   ? "bg-[var(--mb-accent)] text-[var(--mb-on-accent)] shadow-[2px_2px_0_0_#000]"
                   : "bg-[var(--mb-surface-3)] text-[var(--mb-text-dim)] hover:text-white"
@@ -148,7 +148,7 @@ export function TileTangleLobbyOptions({ settings, onChange, disabled, t }: Lobb
               aria-pressed={turnSeconds === sec}
               onClick={() => onChange({ turnSeconds: sec })}
               className={cn(
-                "min-w-[42px] min-h-[42px] rounded-lg text-xs font-black transition-all flex items-center justify-center border-2 border-black focus-visible:outline-none mb-press",
+                "min-w-[44px] min-h-[44px] rounded-lg text-xs font-black transition-all flex items-center justify-center border-2 border-black focus-visible:outline-none mb-press",
                 turnSeconds === sec
                   ? "bg-[var(--mb-gold)] text-[var(--mb-on-gold)] shadow-[2px_2px_0_0_#000]"
                   : "bg-[var(--mb-surface-3)] text-[var(--mb-text-dim)] hover:text-white"

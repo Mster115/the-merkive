@@ -84,7 +84,7 @@ export function EightstormStage({ room, match, t }: StageProps) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center my-auto">
         {/* 3D Stacked Draw Pile */}
         <div className="flex flex-col items-center justify-center">
-          <div className="relative group cursor-pointer">
+          <div className="relative group">
             {/* Background stacked card layers */}
             <div className="absolute top-2 left-2 w-36 h-52 rounded-2xl bg-[var(--mb-surface-3)] border-[3px] border-black shadow-[var(--mb-shadow)] transform -rotate-6" />
             <div className="absolute top-1 left-1 w-36 h-52 rounded-2xl bg-[var(--mb-surface-2)] border-[3px] border-black shadow-[var(--mb-shadow)] transform rotate-3" />
