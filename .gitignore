@@ -16,7 +16,11 @@ playwright-report/
 blob-report/
 market-research/
 .vercel
-supabase/.temp/
+# `**/` matters: a pattern with a mid-string slash is anchored to this file's
+# directory, so a bare `supabase/.temp/` only ever matched a root-level
+# supabase/ — and this repo keeps it at packages/db/supabase/. The CLI writes
+# link state (project ref, pooler URL) there on `supabase link`.
+**/supabase/.temp/
 
 # Local ledger written by the daily-content MCP server
 scripts/mcp/.daily-ledger.json
