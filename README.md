@@ -103,7 +103,7 @@ cp .env.example .env
 | `NEXT_PUBLIC_PARTYKIT_HOST` | — | Client-side PartyKit WebSocket host |
 | `MB_SWEEP_SECRET` | — | Secret for the external sweeper endpoint |
 | `CRON_SECRET` | — | Vercel-reserved env var name. When set (along with the `crons` entry in `vercel.json`), Vercel automatically sends `Authorization: Bearer $CRON_SECRET` on its cron-invoked `GET /api/sweep` request, authenticating it |
-| `SUPABASE_URL` | — | Daily-games persistence (puzzles, attempts, devices). Unset falls back to the in-memory store |
+| `SUPABASE_URL` | — | Daily-games persistence (puzzles, attempts, devices). Unset falls back to the in-memory store. Schema and migration workflow: [packages/db/README.md](packages/db/README.md) |
 | `SUPABASE_SERVICE_ROLE_KEY` | — | Service-role key for the same. Server-only — never expose to the client |
 | `DAILY_PIPELINE_SECRET` | — | Bearer secret for the `/api/admin/daily/*` content-pipeline routes. Unset means "open" in development and **fails closed** in production. Local tooling reads it from the macOS Keychain instead — see [docs/daily-content/mcp-server.md](docs/daily-content/mcp-server.md#where-the-secret-lives) |
 | `DAILY_QUEUE_LOOKAHEAD_DAYS` | `3` | How many days of queued puzzles the pipeline aims to keep ahead |
@@ -117,7 +117,7 @@ merky-box/
 ├── apps/
 │   └── web/                  # Next.js 15 App Router (Stage & Controller shell, API routes)
 ├── packages/
-│   ├── db/                   # Shared row types for the Supabase-backed daily store
+│   ├── db/                   # Row types + Postgres migrations for the daily store ([README](packages/db/README.md))
 │   ├── game-sdk/             # Core plugin contract: GameModule, deterministic RNG, test harness
 │   ├── games/                # Room-game plugins + registry, and daily/ for the solo games
 │   ├── party/                # PartyKit Edge Room Engine (Durable Objects & WebSockets)
