@@ -145,6 +145,13 @@ export const en: Record<string, string> = {
   "daily.hub.empty.body": "New daily puzzles are currently under construction.",
   "daily.hub.tagline": "Solo daily puzzles refreshed midnight ET",
   "daily.hub.play": "Play",
+  "daily.hub.continue": "Continue",
+  "daily.hub.results": "Results",
+  "daily.hub.continue.aria": "Continue {game}",
+  "daily.hub.results.aria": "See your {game} results",
+  "daily.hub.status.solved": "Solved",
+  "daily.hub.status.done": "Played",
+  "daily.hub.status.inProgress": "In progress",
   "daily.ticker.rollover": "New puzzles in {time}",
   "daily.ticker.rollover.soon": "New puzzles any minute now",
   "daily.ticker.solved": "{game}: solved today",
@@ -190,4 +197,12 @@ export const en: Record<string, string> = {
   "daily.share.playCta": "Play",
   "daily.back.home": "Back to Home",
   "daily.back.hub": "Back to Daily Games",
+  // Phone-width forms of the two back labels. The full phrases are a third of
+  // the screen at 375px and crowd out the title beside them (DESIGN.md §7b).
+  "daily.back.home.short": "Home",
+  "daily.back.hub.short": "Daily",
+  "daily.howto.open": "How to play",
+  "daily.howto.title": "How to play {game}",
+  "daily.howto.close": "Close how to play",
+  "daily.howto.start": "Got it — let's play",
 };

@@ -4,6 +4,42 @@ import { Button, Card, Panel, Pill, ConfettiBurst } from "@merky/ui";
 import type { DailyPlayProps } from "../types";
 import type { RelayPublicState } from "./types";
 
+/**
+ * Renders a word with its first and last letters called out — the two letters
+ * that decide what can link to it.
+ *
+ * The emphasis has to be relative to whatever the chip sits on. Colouring the
+ * first letter `--mb-accent` is invisible on the start chip (bg is
+ * `--mb-accent`) and the last letter `--mb-gold` is invisible on the end chip
+ * (bg `--mb-gold`) — playtesters saw "IRCUS" and "NEBUL". So a tinted chip
+ * keeps its own `on-*` foreground and marks the letters with an underline
+ * instead, which cannot collide with any background.
+ */
+function LinkedWord({ word, tinted }: { word: string; tinted: boolean }) {
+  const first = word.charAt(0);
+  const middle = word.slice(1, -1);
+  const last = word.length > 1 ? word.slice(-1) : "";
+
+  if (tinted) {
+    const mark = "underline decoration-2 underline-offset-2";
+    return (
+      <>
+        <span className={mark}>{first}</span>
+        <span>{middle}</span>
+        {last && <span className={mark}>{last}</span>}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <span className="text-[var(--mb-accent)] font-black">{first}</span>
+      <span>{middle}</span>
+      {last && <span className="text-[var(--mb-gold)] font-black">{last}</span>}
+    </>
+  );
+}
+
 export function Play({
   publicState,
   phase,
@@ -77,7 +113,8 @@ export function Play({
   };
 
   return (
-    <div className="w-full max-w-md mx-auto p-4 space-y-5 text-[var(--mb-text)]">
+    // DailyPlayShell owns the page column — see DESIGN.md §7a.
+    <div className="w-full space-y-5 text-[var(--mb-text)]">
       {/* Screen Reader ARIA Live Region */}
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {ariaMessage}
@@ -86,20 +123,24 @@ export function Play({
       {isSolved && <ConfettiBurst />}
 
       {/* Header Info */}
-      <Card className="flex items-center justify-between gap-2 p-4">
-        <div>
+      <Card className="flex items-center justify-between gap-3 p-4">
+        <div className="min-w-0">
           <div className="text-xs uppercase tracking-wider font-extrabold opacity-75">
             {t("daily.relay.target") || "Target"}
           </div>
-          <div className="text-lg font-black tracking-wide flex items-center gap-2">
+          <div className="text-lg sm:text-xl font-black tracking-wide flex flex-wrap items-center gap-x-2">
             <span className="text-[var(--mb-accent)]">{startWord}</span>
             <span>→</span>
             <span className="text-[var(--mb-gold)]">{endWord}</span>
           </div>
         </div>
 
-        <div className="flex flex-col items-end gap-1">
-          <Pill tone={isSolved ? "ok" : isFailed ? "danger" : "accent"}>
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          {/* whitespace-nowrap: "Moves: 4" broke after the colon at 375px. */}
+          <Pill
+            tone={isSolved ? "ok" : isFailed ? "danger" : "accent"}
+            className="whitespace-nowrap"
+          >
             {t("daily.relay.moves") || "Moves"}: {movesUsed}
           </Pill>
           {isSolved && <Pill tone="ok">{t("daily.relay.solvedTitle") || "Solved!"}</Pill>}
@@ -117,9 +158,7 @@ export function Play({
           {chain.map((w, idx) => {
             const isStart = idx === 0;
             const isEnd = w === endWord;
-            const firstChar = w.charAt(0);
-            const midChars = w.slice(1, -1);
-            const lastChar = w.slice(-1);
+            const tinted = isStart || isEnd;
 
             return (
               <React.Fragment key={`${w}-${idx}`}>
@@ -133,9 +172,7 @@ export function Play({
                       : "bg-[var(--mb-surface-2)] text-[var(--mb-text)]"
                   }`}
                 >
-                  <span className="text-[var(--mb-accent)] font-black">{firstChar}</span>
-                  <span>{midChars}</span>
-                  <span className="text-[var(--mb-gold)] font-black">{lastChar}</span>
+                  <LinkedWord word={w} tinted={tinted} />
                 </div>
               </React.Fragment>
             );
@@ -180,8 +217,10 @@ export function Play({
                     : "bg-[var(--mb-surface)] opacity-70 hover:opacity-100 shadow-[2px_2px_0_0_#000]"
                 }`}
               >
-                <span className="text-[var(--mb-accent)]">{w.charAt(0)}</span>
-                <span>{w.slice(1)}</span>
+                {/* Bank tiles sit on --mb-surface, so the colour emphasis is
+                    safe here; only the tinted chain chips need the underline
+                    treatment. */}
+                <LinkedWord word={w} tinted={false} />
               </button>
             );
           })}

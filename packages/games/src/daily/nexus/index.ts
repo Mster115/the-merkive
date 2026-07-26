@@ -14,8 +14,20 @@ import type {
   NexusPublicState,
   NexusCellPublic,
 } from "./types";
+import { pointsForAttempt } from "./types";
 import { generatePrompt, normalizeAnswer, validatePack } from "./utils";
+
 import { NexusPlay } from "./ui";
+import { HowToPlay } from "./HowToPlay";
+
+/**
+ * Scores land on quarter points, and repeated float addition drifts
+ * (0.5 + 0.25 + 0.25 is not reliably 1). Snap to two decimals so the number the
+ * player sees, and the one written to `daily_attempts.score`, stay exact.
+ */
+function roundScore(n: number): number {
+  return Math.round(n * 100) / 100;
+}
 
 export const nexusMeta: DailyGameMeta = {
   id: "nexus",
@@ -41,6 +53,34 @@ export const en: Record<string, string> = {
   "daily.nexus.selectCellHint": "Select a cell to answer",
   "daily.nexus.cellLocked": "Cell is locked",
   "daily.nexus.answerWas": "Answer:",
+  "daily.nexus.skipCell": "Give up on this one",
+  "daily.nexus.skipped": "Gave up",
+  "daily.nexus.revealed": "Revealed",
+  "daily.nexus.correctIn": "Correct · {points} pt",
+  "daily.nexus.worthFull": "Worth 1 point on your first try.",
+  "daily.nexus.worthNext":
+    "{attempts} tried — get it now and it's worth {points}.",
+  "daily.nexus.worthNothing":
+    "{attempts} tries so far — no points left here, but you can still finish the grid.",
+  "daily.nexus.howto.goal":
+    "Nine questions, each sitting where a row category crosses a column category.",
+  "daily.nexus.howto.step1":
+    "Tap a square to open its question. The answer has to satisfy both of its categories at once.",
+  "daily.nexus.howto.step2":
+    "Type your answer and submit it. Spelling is forgiving, and common alternative names are accepted.",
+  "daily.nexus.howto.step3":
+    "Wrong guess? The square stays open — it is just worth less: 1 point first try, then 1/2, then 1/4, then nothing. Keep going or give up on it.",
+  "daily.nexus.howto.step4":
+    "Once all nine squares are resolved, submit the grid to lock in your score.",
+  "daily.nexus.howto.note":
+    "Reveal shows you the answer but scores nothing, and it counts on your shared result.",
+  "daily.nexus.howto.colA": "Symbols",
+  "daily.nexus.howto.colB": "Firsts",
+  "daily.nexus.howto.rowA": "Astronomy",
+  "daily.nexus.howto.rowB": "Chemistry",
+  "daily.nexus.howto.diagramCaption": "Astronomy × Symbols → one question",
+  "daily.nexus.howto.diagramAlt":
+    "A grid with Astronomy and Chemistry as row categories and Symbols and Firsts as column categories. The highlighted square is where Astronomy meets Symbols.",
 };
 
 export const nexus = defineDailyGame({
@@ -94,9 +134,8 @@ export const nexus = defineDailyGame({
         return { error: "Invalid cell coordinates", code: "invalid_payload" };
       }
 
-      // A cell takes exactly one guess, so an empty one must be rejected rather
-      // than scored: a dropped input or a stray submit would otherwise burn the
-      // player's only attempt at this cell with no way back.
+      // An empty guess is rejected rather than counted — a dropped input or a
+      // stray submit should not push the cell down the scoring ladder.
       if (normalizeAnswer(guess) === "") {
         return { error: "Answer cannot be empty", code: "empty_guess" };
       }
@@ -128,22 +167,69 @@ export const nexus = defineDailyGame({
         normGuess !== "" &&
         (normGuess === normCanonical || normAcceptable.includes(normGuess));
 
-      // An incorrect guess is NOT further guessable — one attempt per cell, matching standard trivia-grid rules.
-      const updatedStatus = isCorrect ? ("correct" as const) : ("incorrect" as const);
-      const newScore = isCorrect ? publicState.score + 1 : publicState.score;
+      // A wrong guess costs value, not the cell. It used to lock immediately —
+      // "when you get a question wrong you can't fix it" — which turned a
+      // typo into a dead square. The cell now stays open and simply pays less:
+      // 1 on the first try, then 0.5, then 0.25, then nothing. A player who
+      // wants to keep going for a full grid still can.
+      //
+      // `?? 0` rather than a bare read: an attempt started before this change
+      // has cells with no `attempts` field, and treating that as NaN would
+      // poison the score for anyone mid-puzzle at deploy time.
+      const attemptsBefore = currentCell.attempts ?? 0;
+      const attempts = attemptsBefore + 1;
+      const points = isCorrect ? pointsForAttempt(attemptsBefore) : 0;
 
       const updatedCells = [...publicState.cells];
       updatedCells[cellIndex] = {
         ...currentCell,
-        status: updatedStatus,
+        status: isCorrect ? "correct" : "unanswered",
+        attempts,
+        ...(isCorrect ? { points } : {}),
       };
 
       return {
         publicState: {
           ...publicState,
           cells: updatedCells,
-          score: newScore,
+          score: roundScore(publicState.score + points),
         },
+        phase: "in_progress",
+        events: [],
+      };
+    }
+
+    if (action.type === "skip_cell") {
+      // Unlimited retries need a way out, or a player who cannot get a cell can
+      // never resolve the grid and never submit. Distinct from reveal_cell:
+      // this one does not show the answer, it just closes the square.
+      const payload = action.payload as { row?: unknown; col?: unknown };
+      const row = Number(payload?.row);
+      const col = Number(payload?.col);
+
+      if (![0, 1, 2].includes(row) || ![0, 1, 2].includes(col)) {
+        return { error: "Invalid cell coordinates", code: "invalid_payload" };
+      }
+
+      if (state.phase !== "in_progress") {
+        return { error: "Attempt is already over", code: "cell_locked" };
+      }
+
+      const cellIndex = publicState.cells.findIndex((c) => c.row === row && c.col === col);
+      if (cellIndex === -1) {
+        return { error: "Cell not found", code: "cell_not_found" };
+      }
+
+      const currentCell = publicState.cells[cellIndex]!;
+      if (currentCell.status !== "unanswered") {
+        return { error: "Cell is already locked", code: "cell_locked" };
+      }
+
+      const updatedCells = [...publicState.cells];
+      updatedCells[cellIndex] = { ...currentCell, status: "incorrect" };
+
+      return {
+        publicState: { ...publicState, cells: updatedCells },
         phase: "in_progress",
         events: [],
       };
@@ -218,7 +304,12 @@ export const nexus = defineDailyGame({
         };
       });
 
-      const finalPhase = publicState.score === 9 ? "solved" : "failed";
+      // All nine correct, regardless of how many tries each took. Testing
+      // `score === 9` would mark a perfect-but-retried grid as failed, since a
+      // cell answered on the second go is only worth half a point.
+      const finalPhase = publicState.cells.every((c) => c.status === "correct")
+        ? "solved"
+        : "failed";
 
       return {
         publicState: {
@@ -252,31 +343,35 @@ export const nexus = defineDailyGame({
     const dateHeader = `Nexus — ${ctx.puzzleDate}`;
     const scoreLine = `${score}/9`;
 
-    // Spoiler-free "route" grid, Wordle-style: shows which cells landed
-    // correct/incorrect/revealed without ever printing a question or answer.
+    // Spoiler-free "route" grid, Wordle-style: which cells landed and how hard
+    // they were, without ever printing a question or an answer. A correct cell
+    // is shaded by the try it fell on, so a grid full of 🟩 reads as a
+    // genuinely different result from one full of 🟧 — which is the point of
+    // sharing it at all.
     const gridRows: string[] = [];
     for (let r = 0; r < 3; r++) {
       let rowStr = "";
       for (let c = 0; c < 3; c++) {
         const cell = cells.find((cell) => cell.row === r && cell.col === c);
-        switch (cell?.status) {
-          case "correct":
-            rowStr += "🟩";
-            break;
-          case "incorrect":
-            rowStr += "🟥";
-            break;
-          case "revealed":
-            rowStr += "🟨";
-            break;
-          default:
-            rowStr += "⬜";
+        if (cell?.status === "correct") {
+          const attempts = cell.attempts ?? 1;
+          rowStr += attempts <= 1 ? "🟩" : attempts === 2 ? "🟨" : attempts === 3 ? "🟧" : "🟦";
+        } else if (cell?.status === "revealed") {
+          rowStr += "👁️";
+        } else if (cell?.status === "incorrect") {
+          rowStr += "🟥";
+        } else {
+          rowStr += "⬜";
         }
       }
       gridRows.push(rowStr);
     }
 
-    const shareText = `${dateHeader}\n${scoreLine}\n\n${gridRows.join("\n")}`;
+    const totalAttempts = cells.reduce((sum, c) => sum + (c.attempts ?? 0), 0);
+    const attemptsLine =
+      totalAttempts > 0 ? `\nAttempts: ${totalAttempts}` : "";
+
+    const shareText = `${dateHeader}\n${scoreLine}${attemptsLine}\n\n${gridRows.join("\n")}`;
 
     const revealsUsed = cells.filter((c) => c.status === "revealed").length;
     const completed = phaseStatus === "solved" || phaseStatus === "failed";
@@ -289,6 +384,7 @@ export const nexus = defineDailyGame({
         score,
         extra: {
           revealsUsed,
+          totalAttempts,
         },
       },
     };
@@ -296,5 +392,6 @@ export const nexus = defineDailyGame({
 
   ui: {
     Play: NexusPlay,
+    HowToPlay,
   },
 });

@@ -1,5 +1,5 @@
 import { matchRng } from "@merky/game-sdk";
-import { dailyGameList, getDailyGame } from "@merky/games/daily";
+import { contentWarnings, dailyGameList, getDailyGame } from "@merky/games/daily";
 import {
   isDailyReduceError,
   type DailyContentPack,
@@ -134,6 +134,12 @@ export async function getOrCreateAttempt(
     });
   }
 
+  // Sent on first paint so the shell knows whether to auto-open the
+  // how-to-play modal without a second round-trip (and without a flash of the
+  // board for a returning player).
+  const device = await store.getDevice(deviceId);
+  const howToSeen = (device?.seen_howto ?? []).includes(gameId);
+
   return {
     puzzleDate,
     publicState: attempt.public_state,
@@ -143,7 +149,17 @@ export async function getOrCreateAttempt(
     status: attempt.status,
     shareText: attempt.share_text,
     summary,
+    howToSeen,
   };
+}
+
+export async function markHowToSeen(deviceId: string, gameId: string) {
+  const store = getDailyStore();
+  if (!getDailyGame(gameId)) {
+    throw new ServiceError("game_unknown", `Unknown daily game: ${gameId}`, 404);
+  }
+  await store.markHowToSeen(deviceId, gameId);
+  return { ok: true as const };
 }
 
 export async function getTodayOrCreateAttempt(
@@ -568,7 +584,13 @@ export async function submitPack(
 
 export async function listDrafts(gameId?: string) {
   const store = getDailyStore();
-  return store.listDraftPacks(gameId);
+  const drafts = await store.listDraftPacks(gameId);
+  // Advisory only — a draft with warnings is still approvable. They exist so a
+  // reviewer sees a quality smell before it goes live, not to gate the queue.
+  return drafts.map((d) => ({
+    ...d,
+    warnings: contentWarnings(d.game_id, d.payload),
+  }));
 }
 
 export async function decideDraft(id: string, approve: boolean) {

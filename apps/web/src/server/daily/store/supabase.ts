@@ -46,6 +46,24 @@ export class SupabaseDailyStore implements DailyStore {
     if (error) throw new Error(`[SupabaseDailyStore] setRecoveryCode failed: ${error.message}`);
   }
 
+  async markHowToSeen(deviceId: string, gameId: string): Promise<void> {
+    // Read-then-write rather than a raw `array_append`: the supabase-js query
+    // builder has no array-append primitive, and the race it loses to is two
+    // tabs opening two different games at the same instant — worst case one
+    // modal shows a second time. Cheap enough not to warrant an RPC.
+    const device = await this.getDevice(deviceId);
+    if (!device) return;
+    const seen = device.seen_howto ?? [];
+    if (seen.includes(gameId)) return;
+
+    const { error } = await this.client
+      .from("daily_devices")
+      .update({ seen_howto: [...seen, gameId] })
+      .eq("id", deviceId);
+
+    if (error) throw new Error(`[SupabaseDailyStore] markHowToSeen failed: ${error.message}`);
+  }
+
   async findDeviceByRecoveryCode(code: string): Promise<DailyDeviceRow | null> {
     const { data, error } = await this.client
       .from("daily_devices")

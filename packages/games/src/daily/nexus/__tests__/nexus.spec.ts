@@ -167,10 +167,11 @@ describe("nexus daily game module", () => {
     expect(pub.cells[0]?.status).toBe("correct");
     expect(pub.score).toBe(1);
 
-    // Test incorrect answer
+    // A wrong answer no longer closes the cell — it stays open, worth less.
     act(run, "answer_cell", { row: 0, col: 1, guess: "Wrong Answer" });
     pub = run.state.publicState as NexusPublicState;
-    expect(pub.cells[1]?.status).toBe("incorrect");
+    expect(pub.cells[1]?.status).toBe("unanswered");
+    expect(pub.cells[1]?.attempts).toBe(1);
     expect(pub.score).toBe(1);
 
     // Test canonical answer with article stripping ("The City of London" -> "city of london")
@@ -330,5 +331,178 @@ describe("nexus daily game module", () => {
       expect(text.toLowerCase()).not.toContain(cell.question.toLowerCase());
       expect(text.toLowerCase()).not.toContain(cell.answer.toLowerCase());
     }
+  });
+});
+
+describe("nexus decaying points", () => {
+  const runFresh = () =>
+    createDailyTestRun(nexus, { puzzleDate: "2026-07-24", pack: samplePack });
+
+  const pubOf = (run: ReturnType<typeof runFresh>) =>
+    run.state.publicState as NexusPublicState;
+
+  it("pays a full point on the first try", () => {
+    const run = runFresh();
+    act(run, "answer_cell", { row: 0, col: 0, guess: "Paris" });
+    expect(pubOf(run).score).toBe(1);
+    expect(pubOf(run).cells[0]?.points).toBe(1);
+  });
+
+  it("pays half on the second try and a quarter on the third", () => {
+    const run = runFresh();
+    act(run, "answer_cell", { row: 0, col: 0, guess: "nope" });
+    act(run, "answer_cell", { row: 0, col: 0, guess: "Paris" });
+    expect(pubOf(run).score).toBe(0.5);
+
+    act(run, "answer_cell", { row: 0, col: 1, guess: "nope" });
+    act(run, "answer_cell", { row: 0, col: 1, guess: "still nope" });
+    act(run, "answer_cell", { row: 0, col: 1, guess: "Stockholm" });
+    expect(pubOf(run).score).toBe(0.75);
+    expect(pubOf(run).cells[1]?.points).toBe(0.25);
+  });
+
+  it("pays nothing from the fourth try on, but still accepts the answer", () => {
+    const run = runFresh();
+    for (const guess of ["a", "b", "c"]) {
+      act(run, "answer_cell", { row: 0, col: 0, guess });
+    }
+    act(run, "answer_cell", { row: 0, col: 0, guess: "Paris" });
+
+    const cell = pubOf(run).cells[0]!;
+    expect(cell.status).toBe("correct");
+    expect(cell.attempts).toBe(4);
+    expect(cell.points).toBe(0);
+    expect(pubOf(run).score).toBe(0);
+  });
+
+  it("never locks a cell for guessing wrong — the reported complaint", () => {
+    const run = runFresh();
+    for (let i = 0; i < 8; i++) {
+      act(run, "answer_cell", { row: 0, col: 0, guess: `wrong ${i}` });
+    }
+    expect(pubOf(run).cells[0]?.status).toBe("unanswered");
+    expect(pubOf(run).cells[0]?.attempts).toBe(8);
+
+    // Still answerable after all that.
+    act(run, "answer_cell", { row: 0, col: 0, guess: "Paris" });
+    expect(pubOf(run).cells[0]?.status).toBe("correct");
+  });
+
+  it("keeps the score exact rather than drifting on float addition", () => {
+    const run = runFresh();
+    // 0.5 + 0.25 + 0.25 must be exactly 1, not 0.9999999999999999.
+    act(run, "answer_cell", { row: 0, col: 0, guess: "x" });
+    act(run, "answer_cell", { row: 0, col: 0, guess: "Paris" });
+    act(run, "answer_cell", { row: 0, col: 1, guess: "x" });
+    act(run, "answer_cell", { row: 0, col: 1, guess: "y" });
+    act(run, "answer_cell", { row: 0, col: 1, guess: "Stockholm" });
+    act(run, "answer_cell", { row: 0, col: 2, guess: "x" });
+    act(run, "answer_cell", { row: 0, col: 2, guess: "y" });
+    act(run, "answer_cell", { row: 0, col: 2, guess: "Tokyo" });
+    expect(pubOf(run).score).toBe(1);
+  });
+
+  it("skip_cell closes a cell without revealing the answer", () => {
+    const run = runFresh();
+    act(run, "answer_cell", { row: 0, col: 0, guess: "nope" });
+    act(run, "skip_cell", { row: 0, col: 0 });
+
+    const cell = pubOf(run).cells[0]!;
+    expect(cell.status).toBe("incorrect");
+    expect(cell.answer).toBeUndefined();
+    expect(pubOf(run).score).toBe(0);
+
+    // And it really is closed now.
+    expect(actErr(run, "answer_cell", { row: 0, col: 0, guess: "Paris" }).code).toBe(
+      "cell_locked"
+    );
+  });
+
+  it("skip_cell is what makes the grid submittable when a cell is unbeatable", () => {
+    const run = runFresh();
+    const answers = ["Paris", "Stockholm", "Tokyo", "London", "Einstein", "Paris", "Rome", "MLK", "Crete"];
+    let i = 0;
+    for (let r = 0; r < 3; r++) {
+      for (let c = 0; c < 3; c++) {
+        // Miss the last cell forever instead of answering it.
+        if (r === 2 && c === 2) {
+          act(run, "answer_cell", { row: r, col: c, guess: "no idea" });
+        } else {
+          act(run, "answer_cell", { row: r, col: c, guess: answers[i]! });
+        }
+        i++;
+      }
+    }
+
+    expect(actErr(run, "submit").code).toBe("incomplete");
+    act(run, "skip_cell", { row: 2, col: 2 });
+    act(run, "submit");
+    expect(run.phase).toBe("failed");
+  });
+
+  it("solving every cell counts as solved even when some took several tries", () => {
+    const run = runFresh();
+    const answers = ["Paris", "Stockholm", "Tokyo", "London", "Einstein", "Paris", "Rome", "MLK", "Crete"];
+    let i = 0;
+    for (let r = 0; r < 3; r++) {
+      for (let c = 0; c < 3; c++) {
+        // Every cell gets one wrong guess first, so the score is 4.5, not 9.
+        act(run, "answer_cell", { row: r, col: c, guess: "wrong" });
+        act(run, "answer_cell", { row: r, col: c, guess: answers[i]! });
+        i++;
+      }
+    }
+    act(run, "submit");
+
+    // The old rule tested `score === 9`, which would have called this failed.
+    expect(run.phase).toBe("solved");
+    expect(pubOf(run).score).toBe(4.5);
+  });
+
+  it("shades the share grid by how many tries each cell took", () => {
+    const run = runFresh();
+    act(run, "answer_cell", { row: 0, col: 0, guess: "Paris" });           // first try
+    act(run, "answer_cell", { row: 0, col: 1, guess: "x" });
+    act(run, "answer_cell", { row: 0, col: 1, guess: "Stockholm" });       // second
+    act(run, "reveal_cell", { row: 0, col: 2 });
+
+    const summary = nexus.summarize(ctxOf(run), run.state);
+    // Find the grid rather than indexing a fixed line — the header grew an
+    // "Attempts" line and a positional assert would silently follow it.
+    const firstRow = summary.shareText
+      .split("\n")
+      .find((line) => /[🟩🟨🟧🟦🟥⬜]|👁/u.test(line));
+    expect(firstRow).toBe("🟩🟨👁️");
+    expect(summary.shareText).toContain("Attempts: 3");
+    expect(summary.stats.extra?.totalAttempts).toBe(3);
+  });
+
+  it("does not leak an answer through the share grid on any status", () => {
+    const run = runFresh();
+    act(run, "answer_cell", { row: 0, col: 0, guess: "x" });
+    act(run, "skip_cell", { row: 0, col: 1 });
+    act(run, "reveal_cell", { row: 0, col: 2 });
+
+    const { shareText } = nexus.summarize(ctxOf(run), run.state);
+    for (const spec of samplePayload.cells) {
+      expect(shareText).not.toContain(spec.answer);
+      expect(shareText).not.toContain(spec.question);
+    }
+  });
+
+  it("tolerates an attempt saved before scoring changed", () => {
+    // Cells written by the previous build carry no `attempts` field. Reading
+    // that as NaN would poison the score for anyone mid-puzzle at deploy.
+    const run = runFresh();
+    const pub = pubOf(run);
+    const legacy = {
+      ...pub,
+      cells: pub.cells.map(({ attempts: _a, points: _p, ...rest }) => rest),
+    };
+    run.state = { ...run.state, publicState: legacy };
+
+    act(run, "answer_cell", { row: 0, col: 0, guess: "Paris" });
+    expect(pubOf(run).score).toBe(1);
+    expect(pubOf(run).cells[0]?.attempts).toBe(1);
   });
 });

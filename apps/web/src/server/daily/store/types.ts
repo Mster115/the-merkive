@@ -8,6 +8,12 @@ export interface DailyStore {
   getDevice(id: string): Promise<DailyDeviceRow | null>;
   /** Sets the device's recovery code. Codes are unique across devices. */
   setRecoveryCode(deviceId: string, code: string): Promise<void>;
+  /**
+   * Records that this device has been shown `gameId`'s how-to-play modal.
+   * Idempotent — marking an already-seen game is a no-op, so the client may
+   * fire it without checking first.
+   */
+  markHowToSeen(deviceId: string, gameId: string): Promise<void>;
   findDeviceByRecoveryCode(code: string): Promise<DailyDeviceRow | null>;
   getPuzzle(gameId: string, puzzleDate: string): Promise<DailyPuzzleRow | null>;
   listArchivePuzzles(gameId: string, beforeDate: string, limit: number): Promise<DailyPuzzleRow[]>;

@@ -18,6 +18,11 @@ export interface DailyDeviceRow {
   created_at: string;
   last_seen_at: string;
   recovery_code: string | null;
+  /**
+   * Game ids whose how-to-play modal this device has already been shown.
+   * Optional because rows written before migration 0002 do not carry it.
+   */
+  seen_howto?: string[];
 }
 
 export interface DailyAttemptRow {
