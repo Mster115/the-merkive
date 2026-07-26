@@ -18,6 +18,132 @@ export function normalizeAnswer(raw: string): string {
   return s;
 }
 
+const ONES: Record<string, number> = {
+  zero: 0,
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+  nine: 9,
+  ten: 10,
+  eleven: 11,
+  twelve: 12,
+  thirteen: 13,
+  fourteen: 14,
+  fifteen: 15,
+  sixteen: 16,
+  seventeen: 17,
+  eighteen: 18,
+  nineteen: 19,
+};
+
+const TENS: Record<string, number> = {
+  twenty: 20,
+  thirty: 30,
+  forty: 40,
+  fifty: 50,
+  sixty: 60,
+  seventy: 70,
+  eighty: 80,
+  ninety: 90,
+};
+
+/**
+ * Parses a spelled-out or digit number ("eight", "twenty-one", "8") into an
+ * integer, or null if the string isn't a recognizable number at all. Every
+ * token must resolve to a number word — a single unrecognized token (e.g.
+ * "paris") bails out to null rather than guessing, so ordinary text answers
+ * can never accidentally parse as a number.
+ */
+export function wordsToNumber(raw: string): number | null {
+  const s = raw.trim().toLowerCase();
+  if (s === "") return null;
+
+  const digitsOnly = s.replace(/,/g, "");
+  if (/^\d+$/.test(digitsOnly)) return parseInt(digitsOnly, 10);
+
+  const tokens = s.replace(/-/g, " ").split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return null;
+
+  let total = 0;
+  let current = 0;
+  let matchedAny = false;
+
+  for (const tok of tokens) {
+    if (tok === "and") continue;
+    if (tok in ONES) {
+      current += ONES[tok]!;
+      matchedAny = true;
+    } else if (tok in TENS) {
+      current += TENS[tok]!;
+      matchedAny = true;
+    } else if (tok === "hundred") {
+      current = (current === 0 ? 1 : current) * 100;
+      matchedAny = true;
+    } else if (tok === "thousand") {
+      total += (current === 0 ? 1 : current) * 1000;
+      current = 0;
+      matchedAny = true;
+    } else {
+      return null;
+    }
+  }
+
+  return matchedAny ? total + current : null;
+}
+
+/** Answers this short aren't worth fuzzy-matching — a 1-edit typo on a short
+ * word often spells a different, wrong answer ("Rome" -> "Dome"). */
+export const MIN_LENGTH_FOR_FUZZY_MATCH = 5;
+
+/**
+ * True if `a` and `b` are exactly one edit apart: one insertion, deletion,
+ * substitution, or adjacent-character transposition. Used to flag a guess as
+ * "close, check your spelling" rather than accepting or rejecting outright.
+ */
+export function isOneEditAway(a: string, b: string): boolean {
+  if (a === b) return false;
+  const lenDiff = a.length - b.length;
+  if (Math.abs(lenDiff) > 1) return false;
+
+  if (lenDiff === 0) {
+    const diffs: number[] = [];
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] !== b[i]) {
+        diffs.push(i);
+        if (diffs.length > 2) return false;
+      }
+    }
+    if (diffs.length === 1) return true;
+    if (diffs.length === 2) {
+      const [i, j] = diffs as [number, number];
+      return j === i + 1 && a[i] === b[j] && a[j] === b[i];
+    }
+    return false;
+  }
+
+  const longer = lenDiff === 1 ? a : b;
+  const shorter = lenDiff === 1 ? b : a;
+  let i = 0;
+  let j = 0;
+  let skipped = false;
+  while (i < longer.length && j < shorter.length) {
+    if (longer[i] === shorter[j]) {
+      i++;
+      j++;
+    } else {
+      if (skipped) return false;
+      skipped = true;
+      i++;
+    }
+  }
+  return true;
+}
+
 export function generatePrompt(puzzleDate: string): string {
   return (
     `Generate a 3x3 trivia intersection matrix puzzle for date ${puzzleDate}. ` +

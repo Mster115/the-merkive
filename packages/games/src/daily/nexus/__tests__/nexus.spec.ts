@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { createDailyTestRun, act, actErr, ctxOf } from "../../testing";
 import { nexus } from "../index";
 import { getDailyGame } from "../../index";
-import { validatePack, normalizeAnswer } from "../utils";
+import { validatePack, normalizeAnswer, wordsToNumber, isOneEditAway } from "../utils";
 import type { DailyContentPack } from "../../types";
 import type { NexusPublicState, NexusPayload } from "../types";
 
@@ -120,6 +120,38 @@ describe("nexus daily game module", () => {
     expect(normalizeAnswer("another")).toBe("another");
   });
 
+  it("wordsToNumber parses digits and spelled-out numbers, and rejects ordinary text", () => {
+    expect(wordsToNumber("8")).toBe(8);
+    expect(wordsToNumber("eight")).toBe(8);
+    expect(wordsToNumber("Eight")).toBe(8);
+    expect(wordsToNumber("zero")).toBe(0);
+    expect(wordsToNumber("twenty-one")).toBe(21);
+    expect(wordsToNumber("twenty one")).toBe(21);
+    expect(wordsToNumber("one hundred")).toBe(100);
+    expect(wordsToNumber("one hundred and one")).toBe(101);
+    expect(wordsToNumber("1,969")).toBe(1969);
+    expect(wordsToNumber("paris")).toBeNull();
+    expect(wordsToNumber("")).toBeNull();
+    expect(wordsToNumber("eight ball")).toBeNull();
+  });
+
+  it("isOneEditAway flags a single insertion, deletion, substitution, or adjacent transposition", () => {
+    expect(isOneEditAway("einstein", "einstien")).toBe(true); // adjacent transposition
+    expect(isOneEditAway("einstein", "einsteinn")).toBe(true); // one extra letter
+    expect(isOneEditAway("einstein", "einsten")).toBe(true); // one missing letter
+    expect(isOneEditAway("einstein", "einstain")).toBe(true); // one substitution
+    // Still a valid 1-edit result on its own — the MIN_LENGTH_FOR_FUZZY_MATCH
+    // guard in index.ts is what keeps this from being treated as "close" for
+    // real, since a short word one edit away is often just a different word.
+    expect(isOneEditAway("rome", "dome")).toBe(true);
+  });
+
+  it("isOneEditAway rejects an exact match (that's just correct) and anything further than 1 edit", () => {
+    expect(isOneEditAway("einstein", "einstein")).toBe(false);
+    expect(isOneEditAway("einstein", "epstein")).toBe(false); // two non-adjacent-fixable diffs
+    expect(isOneEditAway("einstein", "newton")).toBe(false);
+  });
+
   it("validatePack validates structure and rejects invalid packs", () => {
     const validRes = validatePack(samplePack, "2026-07-24");
     expect(validRes.ok).toBe(true);
@@ -178,6 +210,67 @@ describe("nexus daily game module", () => {
     act(run, "answer_cell", { row: 1, col: 0, guess: "London" });
     pub = run.state.publicState as NexusPublicState;
     expect(pub.cells[3]?.status).toBe("correct");
+    expect(pub.score).toBe(2);
+  });
+
+  it("flags a 1-edit typo as 'close' instead of spending the attempt on it", () => {
+    const run = createDailyTestRun(nexus, {
+      puzzleDate: "2026-07-24",
+      pack: samplePack,
+    });
+
+    // Cell (1,1): answer "Albert Einstein", acceptable "Einstein" — 8 letters,
+    // clears the fuzzy-match length guard.
+    const err = actErr(run, "answer_cell", { row: 1, col: 1, guess: "Einstien" });
+    expect(err.code).toBe("close_spelling");
+
+    let pub = run.state.publicState as NexusPublicState;
+    expect(pub.cells[4]?.status).toBe("unanswered");
+    expect(pub.cells[4]?.attempts ?? 0).toBe(0); // rejected outright — no attempt spent
+    expect(pub.score).toBe(0);
+
+    // Fixing the spelling still lands on the first-try value.
+    act(run, "answer_cell", { row: 1, col: 1, guess: "Einstein" });
+    pub = run.state.publicState as NexusPublicState;
+    expect(pub.cells[4]?.status).toBe("correct");
+    expect(pub.score).toBe(1);
+  });
+
+  it("does not extend 'close' leniency to short answers, even 1 edit away", () => {
+    const run = createDailyTestRun(nexus, {
+      puzzleDate: "2026-07-24",
+      pack: samplePack,
+    });
+
+    // Cell (2,0): canonical "Rome" is only 4 letters — under the fuzzy-match
+    // guard — so a 1-edit guess is judged as a plain wrong answer, not "close".
+    act(run, "answer_cell", { row: 2, col: 0, guess: "Dome" });
+    const pub = run.state.publicState as NexusPublicState;
+    expect(pub.cells[6]?.status).toBe("unanswered");
+    expect(pub.cells[6]?.attempts).toBe(1);
+    expect(pub.score).toBe(0);
+  });
+
+  it("treats a spelled-out number and its digit form as the same answer", () => {
+    const numPack = JSON.parse(JSON.stringify(samplePack));
+    // Cell (2,2) canonical -> digit form; cell (2,0) canonical -> word form.
+    numPack.payload.cells[8].answer = "8";
+    numPack.payload.cells[8].acceptableAnswers = [];
+    numPack.payload.cells[6].answer = "eight";
+    numPack.payload.cells[6].acceptableAnswers = [];
+
+    const run = createDailyTestRun(nexus, {
+      puzzleDate: "2026-07-24",
+      pack: numPack,
+    });
+
+    act(run, "answer_cell", { row: 2, col: 2, guess: "eight" });
+    let pub = run.state.publicState as NexusPublicState;
+    expect(pub.cells[8]?.status).toBe("correct");
+
+    act(run, "answer_cell", { row: 2, col: 0, guess: "8" });
+    pub = run.state.publicState as NexusPublicState;
+    expect(pub.cells[6]?.status).toBe("correct");
     expect(pub.score).toBe(2);
   });
 

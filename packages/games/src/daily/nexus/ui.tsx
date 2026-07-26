@@ -2,7 +2,7 @@ import * as React from "react";
 import type { DailyPlayProps } from "../types";
 import type { NexusPublicState, NexusCellPublic } from "./types";
 import { pointsForAttempt } from "./types";
-import { Button, Card, Panel, Pill, CheckIcon, CloseIcon, EyeIcon, QuestionIcon } from "@merky/ui";
+import { Button, Card, Panel, Pill, CheckIcon, CloseIcon, cn, EyeIcon, QuestionIcon } from "@merky/ui";
 
 export const NexusPlay: React.FC<DailyPlayProps> = ({
   publicState,
@@ -18,12 +18,14 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
   } | null>({ row: 0, col: 0 });
   const [guessText, setGuessText] = React.useState("");
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+  const [errorCode, setErrorCode] = React.useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   // Clear input when selection changes
   React.useEffect(() => {
     setGuessText("");
     setErrorMsg(null);
+    setErrorCode(null);
   }, [selectedCoords?.row, selectedCoords?.col]);
 
   if (!state || !Array.isArray(state.cells)) {
@@ -49,6 +51,7 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
   const handleAnswer = async () => {
     if (!selectedCoords || !guessText.trim()) return;
     setErrorMsg(null);
+    setErrorCode(null);
     setIsSubmitting(true);
     const res = await act("answer_cell", {
       row: selectedCoords.row,
@@ -58,6 +61,10 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
     setIsSubmitting(false);
     if (!res.ok) {
       setErrorMsg(res.error);
+      setErrorCode(res.code);
+      // A "close, check your spelling" flag doesn't consume the attempt on
+      // the server, so keep the player's text in place to fix rather than
+      // clearing it like a settled wrong guess.
       return;
     }
     // Cleared whether right or wrong — a wrong guess leaves the cell open, and
@@ -68,18 +75,23 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
   const handleSkip = async () => {
     if (!selectedCoords) return;
     setErrorMsg(null);
+    setErrorCode(null);
     setIsSubmitting(true);
     const res = await act("skip_cell", {
       row: selectedCoords.row,
       col: selectedCoords.col,
     });
     setIsSubmitting(false);
-    if (!res.ok) setErrorMsg(res.error);
+    if (!res.ok) {
+      setErrorMsg(res.error);
+      setErrorCode(res.code);
+    }
   };
 
   const handleReveal = async () => {
     if (!selectedCoords) return;
     setErrorMsg(null);
+    setErrorCode(null);
     setIsSubmitting(true);
     const res = await act("reveal_cell", {
       row: selectedCoords.row,
@@ -88,16 +100,19 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
     setIsSubmitting(false);
     if (!res.ok) {
       setErrorMsg(res.error);
+      setErrorCode(res.code);
     }
   };
 
   const handleSubmitGrid = async () => {
     setErrorMsg(null);
+    setErrorCode(null);
     setIsSubmitting(true);
     const res = await act("submit");
     setIsSubmitting(false);
     if (!res.ok) {
       setErrorMsg(res.error);
+      setErrorCode(res.code);
     }
   };
 
@@ -343,7 +358,14 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
           )}
 
           {errorMsg && (
-            <p className="text-xs font-bold text-[var(--mb-danger)]">
+            <p
+              className={cn(
+                "text-xs font-bold",
+                errorCode === "close_spelling"
+                  ? "text-[var(--mb-gold)]"
+                  : "text-[var(--mb-danger)]"
+              )}
+            >
               {errorMsg}
             </p>
           )}

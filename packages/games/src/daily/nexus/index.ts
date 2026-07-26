@@ -15,7 +15,14 @@ import type {
   NexusCellPublic,
 } from "./types";
 import { pointsForAttempt } from "./types";
-import { generatePrompt, normalizeAnswer, validatePack } from "./utils";
+import {
+  generatePrompt,
+  isOneEditAway,
+  MIN_LENGTH_FOR_FUZZY_MATCH,
+  normalizeAnswer,
+  validatePack,
+  wordsToNumber,
+} from "./utils";
 
 import { NexusPlay } from "./ui";
 import { HowToPlay } from "./HowToPlay";
@@ -162,10 +169,32 @@ export const nexus = defineDailyGame({
       const normGuess = normalizeAnswer(guess);
       const normCanonical = normalizeAnswer(secretCell.answer);
       const normAcceptable = secretCell.acceptableAnswers.map(normalizeAnswer);
+      const allRefs = [normCanonical, ...normAcceptable];
+
+      // "8" and "eight" are the same answer, whichever way the pack or the
+      // player happened to write it — not a fuzzy match, an exact one.
+      const guessAsNumber = wordsToNumber(normGuess);
+      const numericMatch =
+        guessAsNumber !== null && allRefs.some((ref) => wordsToNumber(ref) === guessAsNumber);
 
       const isCorrect =
         normGuess !== "" &&
-        (normGuess === normCanonical || normAcceptable.includes(normGuess));
+        (normGuess === normCanonical || normAcceptable.includes(normGuess) || numericMatch);
+
+      // Close but not quite: flag a likely typo instead of burning an attempt
+      // on it. Only kicks in on answers long enough that a 1-edit difference
+      // still means "same word" rather than "different word" (Rome -> Dome).
+      if (
+        !isCorrect &&
+        allRefs.some(
+          (ref) => ref.length >= MIN_LENGTH_FOR_FUZZY_MATCH && isOneEditAway(normGuess, ref)
+        )
+      ) {
+        return {
+          error: "Close! Check your spelling and try again.",
+          code: "close_spelling",
+        };
+      }
 
       // A wrong guess costs value, not the cell. It used to lock immediately —
       // "when you get a question wrong you can't fix it" — which turned a
