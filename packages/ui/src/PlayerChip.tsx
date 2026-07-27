@@ -226,14 +226,14 @@ export function PlayerChip({
   return (
     <div
       className={cn(
-        "flex items-center gap-3 rounded-md px-3 border-[3px] transition-all duration-300",
+        "flex items-center gap-3 rounded-md px-3 border-[3px] transition-all duration-300 min-w-0",
         "bg-[var(--mb-surface-2)] shadow-[var(--mb-shadow)]",
         size === "lg" ? "min-h-16 text-lg" : "min-h-12",
         highlight ? "border-[var(--mb-accent-2)] bg-[var(--mb-surface-3)]" : "border-black",
         dim && "opacity-55 saturate-50 shadow-none"
       )}
     >
-      <span className="relative">
+      <span className="relative shrink-0">
         <AvatarFace avatarId={avatarId} size={size === "lg" ? 44 : 34} />
         <span
           role="img"
@@ -244,17 +244,17 @@ export function PlayerChip({
           )}
         />
       </span>
-      <span className="font-bold truncate max-w-40">{displayName}</span>
+      <span className="font-bold truncate min-w-0 flex-1">{displayName}</span>
       {isHost && (
         <span
           title={statusLabels.host}
           aria-label={statusLabels.host}
-          className="text-[var(--mb-gold)] inline-flex items-center"
+          className="text-[var(--mb-gold)] inline-flex items-center shrink-0"
         >
           <CrownIcon className="w-4 h-4 fill-amber-400" />
         </span>
       )}
-      {trailing != null && <span className="ml-auto pl-2">{trailing}</span>}
+      {trailing != null && <span className="ml-auto pl-2 shrink-0">{trailing}</span>}
     </div>
   );
 }

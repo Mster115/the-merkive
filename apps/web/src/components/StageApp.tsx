@@ -201,7 +201,7 @@ function StageGame({ room }: { room: UseRoomResult }) {
 
   return (
     <main className="min-h-dvh flex flex-col">
-      <header className="sticky top-0 z-30 px-8 py-4 flex items-center justify-between gap-4 bg-[var(--mb-surface)] border-b-4 border-black shadow-[0_4px_0_0_rgba(0,0,0,0.35)]">
+      <header className="sticky top-0 z-30 px-8 pt-[max(1rem,env(safe-area-inset-top))] pb-4 flex items-center justify-between gap-4 bg-[var(--mb-surface)] border-b-4 border-black shadow-[0_4px_0_0_rgba(0,0,0,0.35)]">
         <span className="text-2xl [font-family:var(--mb-font-display)] font-black italic uppercase tracking-tight">
           {t(game.meta.nameKey)}
         </span>

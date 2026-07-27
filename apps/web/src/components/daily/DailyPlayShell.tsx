@@ -157,11 +157,11 @@ export function DailyPlayShell({ gameId, explicitDate }: DailyPlayShellProps) {
     // §7a) — games render `w-full` inside it rather than centering themselves,
     // so a desktop player doesn't get a phone-width strip of phone-sized type.
     <main className="mx-auto w-full max-w-xl sm:max-w-2xl lg:max-w-4xl min-h-dvh flex flex-col gap-6 p-4 sm:p-6 pb-10">
-      <header className="flex items-center justify-between gap-3 sm:gap-4">
+      <header className="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
         {/* min-w-0 so a long game name absorbs the pressure instead of
             shoving the button out of the row — DESIGN.md §7b. */}
-        <div className="min-w-0">
-          <h1 className="text-2xl sm:text-3xl font-black uppercase text-[var(--mb-text)] [font-family:var(--mb-font-display)]">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl sm:text-3xl font-black uppercase text-[var(--mb-text)] [font-family:var(--mb-font-display)] break-words">
             {t(game.meta.nameKey)}
           </h1>
           {puzzleDate && (

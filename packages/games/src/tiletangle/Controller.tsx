@@ -309,7 +309,7 @@ export const Controller: React.FC<ControllerProps> = ({
   }, [hasMelded, placedTileIds, serverTable, localTable]);
 
   return (
-    <div className="w-full min-h-full p-4 text-[var(--mb-text)] flex flex-col justify-between space-y-4 max-w-lg mx-auto">
+    <div className="w-full min-h-full p-4 text-[var(--mb-text)] flex flex-col justify-between space-y-4">
       {/* Turn Header */}
       <div
         className={cn(
@@ -319,10 +319,10 @@ export const Controller: React.FC<ControllerProps> = ({
             : "bg-[var(--mb-surface-2)] text-[var(--mb-text)]"
         )}
       >
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center space-x-2">
-            <LightningIcon className="w-5 h-5" />
-            <span className="font-black uppercase text-base tracking-wider [font-family:var(--mb-font-display)]">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center space-x-2 min-w-0 flex-1">
+            <LightningIcon className="w-5 h-5 shrink-0" />
+            <span className="font-black uppercase text-base tracking-wider [font-family:var(--mb-font-display)] truncate">
               {isMyTurn
                 ? t("games.tiletangle.yourTurn")
                 : t("games.tiletangle.waitingFor", { name: activePlayerName })}
@@ -332,7 +332,7 @@ export const Controller: React.FC<ControllerProps> = ({
           {!hasMelded && isMyTurn && (
             <span
               className={cn(
-                "text-xs font-black uppercase tracking-wider px-2 py-0.5 border-2 border-black rounded bg-black text-[var(--mb-gold)]",
+                "text-xs font-black uppercase tracking-wider px-2 py-0.5 border-2 border-black rounded bg-black text-[var(--mb-gold)] shrink-0",
                 newTilesPoints >= initialMeldPoints && "bg-[var(--mb-gold)] text-black mb-tada"
               )}
             >
@@ -365,17 +365,17 @@ export const Controller: React.FC<ControllerProps> = ({
       {errorMsg && (
         <div
           role="alert"
-          className="mb-shake bg-[var(--mb-danger)] text-[var(--mb-on-danger)] border-3 border-black p-3.5 rounded-xl text-sm font-black text-center shadow-[var(--mb-shadow)] uppercase tracking-tight [font-family:var(--mb-font-display)]"
+          className="mb-shake bg-[var(--mb-danger)] text-[var(--mb-on-danger)] border-3 border-black p-3.5 rounded-xl text-sm font-black text-center shadow-[var(--mb-shadow)] uppercase tracking-tight [font-family:var(--mb-font-display)] break-words"
         >
           {errorMsg}
         </div>
       )}
 
       {/* Main Workbench Area: Table Melds */}
-      <div className="flex-1 bg-[var(--mb-surface)] border-[3px] border-black shadow-[var(--mb-shadow-lg)] rounded-2xl p-4 flex flex-col justify-start space-y-3 min-h-[220px] rotate-[0.3deg]">
-        <div className="flex items-center justify-between gap-2 border-b-2 border-black/40 pb-2">
+      <div className="flex-1 bg-[var(--mb-surface)] border-[3px] border-black shadow-[var(--mb-shadow-lg)] rounded-2xl p-4 flex flex-col justify-start space-y-3 min-h-[220px] max-h-[40dvh] overflow-y-auto rotate-[0.3deg]">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-black/40 pb-2">
           <span className="text-xs font-black uppercase text-[var(--mb-violet)] tracking-widest [font-family:var(--mb-font-display)] flex items-center gap-1.5">
-            <ToolsIcon className="w-4 h-4" /> {t("games.tiletangle.tableMelds")}
+            <ToolsIcon className="w-4 h-4 shrink-0" /> {t("games.tiletangle.tableMelds")}
           </span>
           {isMyTurn && (
             <div className="flex gap-1.5 flex-wrap">

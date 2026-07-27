@@ -59,7 +59,7 @@ export function YougotitStage({ room, match, t }: StageProps) {
   const oracleSeat = room.seats.find((s) => s.seatIndex === pub.oracleSeat);
 
   return (
-    <div className="flex flex-col h-full w-full max-w-[1800px] mx-auto p-4 md:p-6 gap-4 select-none">
+    <div className="flex flex-col h-full w-full max-w-[1800px] mx-auto p-4 md:p-6 gap-4 select-none overflow-y-auto">
       <div className="sr-only" aria-live="polite">
         {phaseAnnouncement(t, phase)}
       </div>
@@ -295,11 +295,11 @@ function GameOverOverlay({
   const tone = TEAM_TONE[winnerTeam];
   const Icon = winnerTeam === "bass" ? BassIcon : TrebleIcon;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/85">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/85 overflow-y-auto">
       <ConfettiBurst />
       <Card
         raised
-        className="max-w-md w-full p-8 text-center flex flex-col items-center gap-4 border-4 border-black bg-[var(--mb-surface)] shadow-[var(--mb-shadow-lg)] mb-pop"
+        className="max-w-md w-full max-h-[calc(100dvh-3rem)] overflow-y-auto p-8 text-center flex flex-col items-center gap-4 border-4 border-black bg-[var(--mb-surface)] shadow-[var(--mb-shadow-lg)] mb-pop"
       >
         <Icon className={cn("w-20 h-20", tone.text)} />
         <h2 className={cn("text-4xl font-black uppercase italic [font-family:var(--mb-font-display)]", tone.text)}>

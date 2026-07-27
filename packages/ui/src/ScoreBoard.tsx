@@ -28,7 +28,7 @@ export function ScoreBoard({
 }) {
   const sorted = [...rows].sort((a, b) => b.points - a.points || a.seatIndex - b.seatIndex);
   return (
-    <ol className={cn("flex flex-col gap-2", animated && "mb-stagger", className)} aria-label="scoreboard">
+    <ol className={cn("flex flex-col gap-2", compact && "max-h-[60dvh] overflow-y-auto pr-1", animated && "mb-stagger", className)} aria-label="scoreboard">
       {sorted.map((r, i) => (
         <li
           key={r.seatIndex}
@@ -43,12 +43,12 @@ export function ScoreBoard({
             r.abandoned && "opacity-50 saturate-50 shadow-none"
           )}
         >
-          <span className={cn("w-7 flex items-center justify-center", animated && i === 0 && "mb-tada")}>
+          <span className={cn("w-7 flex items-center justify-center shrink-0", animated && i === 0 && "mb-tada")}>
             <RankBadge rank={i} className="w-6 h-6" />
           </span>
-          <AvatarFace avatarId={r.avatarId} size={compact ? 24 : 30} />
-          <span className="font-bold truncate">{r.displayName}</span>
-          <span className="ml-auto font-black tabular-nums text-[var(--mb-gold)] [font-family:var(--mb-font-display)]">
+          <AvatarFace avatarId={r.avatarId} size={compact ? 24 : 30} className="shrink-0" />
+          <span className="font-bold truncate min-w-0 flex-1">{r.displayName}</span>
+          <span className="ml-auto shrink-0 font-black tabular-nums text-[var(--mb-gold)] [font-family:var(--mb-font-display)]">
             {animated ? <CountUp value={r.points} /> : r.points}
             <span className="ml-1 text-xs font-bold text-[var(--mb-text-dim)]">{pointsLabel}</span>
           </span>

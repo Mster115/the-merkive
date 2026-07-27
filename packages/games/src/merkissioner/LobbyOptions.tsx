@@ -29,7 +29,7 @@ export function MerkissionerLobbyOptions({ settings, onChange, disabled, t }: Lo
         <span className="text-xs font-black text-white uppercase tracking-wider [font-family:var(--mb-font-display)]">
           {t("games.merkissioner.settings.pace")}
         </span>
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
           {PACES.map((p) => (
             <button
               key={p}
@@ -140,7 +140,7 @@ function ToggleTile({
         active ? activeBg : "bg-[var(--mb-surface-2)] text-[var(--mb-text-dim)] opacity-70"
       )}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 min-w-0 flex-1">
         <div
           className={cn(
             "w-10 h-10 rounded-lg border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0_0_#000]",
@@ -149,7 +149,7 @@ function ToggleTile({
         >
           {icon}
         </div>
-        <div>
+        <div className="min-w-0 flex-1">
           <p className="font-black text-sm uppercase tracking-wider [font-family:var(--mb-font-display)]">{label}</p>
           <span className="text-xs font-bold opacity-90">{hint}</span>
         </div>

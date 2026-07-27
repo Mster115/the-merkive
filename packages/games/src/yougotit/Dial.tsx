@@ -348,7 +348,7 @@ export function Dial({
           }}
         >
           <div className="w-full h-full rounded-[10px] border-[3px] border-black bg-[var(--mb-paper)] shadow-[3px_3px_0_0_#000] flex items-center justify-center px-1.5 -rotate-1">
-            <span className="text-[10px] sm:text-xs leading-[1.15] font-black uppercase text-black text-center [font-family:var(--mb-font-display)]">
+            <span className="text-[10px] sm:text-xs leading-[1.15] font-black uppercase text-black text-center [font-family:var(--mb-font-display)] break-words line-clamp-2">
               {leftLabel}
             </span>
           </div>
@@ -364,7 +364,7 @@ export function Dial({
           }}
         >
           <div className="w-full h-full rounded-[10px] border-[3px] border-black bg-[var(--mb-paper)] shadow-[3px_3px_0_0_#000] flex items-center justify-center px-1.5 rotate-1">
-            <span className="text-[10px] sm:text-xs leading-[1.15] font-black uppercase text-black text-center [font-family:var(--mb-font-display)]">
+            <span className="text-[10px] sm:text-xs leading-[1.15] font-black uppercase text-black text-center [font-family:var(--mb-font-display)] break-words line-clamp-2">
               {rightLabel}
             </span>
           </div>
@@ -372,7 +372,7 @@ export function Dial({
       </div>
 
       {interactive && (
-        <div className="flex items-center justify-center gap-2 mt-4" role="group" aria-label={labels?.slider ?? defaultAria}>
+        <div className="flex flex-wrap items-center justify-center gap-1.5 mt-4" role="group" aria-label={labels?.slider ?? defaultAria}>
           <NudgeButton label={labels?.nudgeMinus5 ?? "-5"} disabled={disabled} onPress={() => commit(visualAngle - 5, true)}>
             −5
           </NudgeButton>

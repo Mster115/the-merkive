@@ -76,10 +76,10 @@ export function PowerTargetPicker({
                 disabled && "opacity-60"
               )}
             >
-              <AvatarFace avatarId={s.avatarId} size={32} />
-              <span className="truncate max-w-40">{s.displayName}</span>
+              <AvatarFace avatarId={s.avatarId} size={32} className="shrink-0" />
+              <span className="truncate min-w-0 flex-1">{s.displayName}</span>
               {kind === "audit" && pub.auditedSeats.includes(s.seatIndex) && (
-                <span className="ml-auto text-[0.6rem] font-black uppercase text-[var(--mb-text-dim)]">
+                <span className="shrink-0 ml-auto text-[0.6rem] font-black uppercase text-[var(--mb-text-dim)]">
                   {t("games.merkissioner.ui.already_audited_badge")}
                 </span>
               )}

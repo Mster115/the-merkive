@@ -106,7 +106,7 @@ export function YougotitController({ room, match, seat, privateState, act, t }: 
     : t("games.yougotit.ui.role_undercutter");
 
   return (
-    <div className="flex flex-col min-h-full w-full max-w-md mx-auto p-3 gap-3 select-none">
+    <div className="flex flex-col min-h-full w-full p-3 gap-3 select-none">
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {roleLabel}
       </div>
@@ -114,21 +114,21 @@ export function YougotitController({ room, match, seat, privateState, act, t }: 
       {/* Header: team plate + role, always visible */}
       <Card
         className={cn(
-          "flex items-center justify-between p-3 rounded-xl border-[3px] border-black shadow-[var(--mb-shadow)] -rotate-[0.4deg]",
+          "flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 p-3 rounded-xl border-[3px] border-black shadow-[var(--mb-shadow)] -rotate-[0.4deg]",
           tone ? tone.bg : "bg-[var(--mb-surface-2)]"
         )}
       >
         <span
           className={cn(
-            "flex items-center gap-1.5 font-black uppercase text-sm [font-family:var(--mb-font-display)]",
+            "flex items-center gap-1.5 font-black uppercase text-sm [font-family:var(--mb-font-display)] min-w-0 flex-1 truncate",
             tone ? tone.on : "text-[var(--mb-text)]"
           )}
         >
-          {myTeam === "bass" && <BassIcon className="w-4 h-4" />}
-          {myTeam === "treble" && <TrebleIcon className="w-4 h-4" />}
-          {myTeam ? teamLabel(t, myTeam) : t("games.yougotit.ui.role_spectating")}
+          {myTeam === "bass" && <BassIcon className="w-4 h-4 shrink-0" />}
+          {myTeam === "treble" && <TrebleIcon className="w-4 h-4 shrink-0" />}
+          <span className="truncate">{myTeam ? teamLabel(t, myTeam) : t("games.yougotit.ui.role_spectating")}</span>
         </span>
-        <Pill tone={isOracle ? "gold" : "neutral"} className="text-[0.65rem] gap-1">
+        <Pill tone={isOracle ? "gold" : "neutral"} className="text-[0.65rem] gap-1 shrink-0">
           {isOracle && <OracleIcon className="w-3 h-3" />}
           {roleLabel}
         </Pill>

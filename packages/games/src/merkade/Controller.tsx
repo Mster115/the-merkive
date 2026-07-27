@@ -50,7 +50,7 @@ export function MerkadeController({ seat, match, privateState, act, t }: Control
   const isGameOver = match.over || match.phase === "game_over";
 
   return (
-    <div className="flex flex-col h-full w-full max-w-md mx-auto p-4 select-none justify-between gap-4">
+    <div className="flex flex-col min-h-full w-full p-4 select-none justify-between gap-4 overflow-y-auto">
       {/* Accessibility live region */}
       <div className="sr-only" aria-live="polite">
         {t(`games.merkade.phase.${match.phase}`)}
@@ -114,7 +114,7 @@ export function MerkadeController({ seat, match, privateState, act, t }: Control
                     value={fibText}
                     onChange={(e) => setFibText(e.target.value)}
                     placeholder={t("games.merkade.ui.fib_placeholder")}
-                    className="w-full min-h-[44px] px-3 py-2 rounded-lg bg-[var(--mb-surface-3)] border-2 border-black text-white font-bold text-sm focus:outline-none focus:ring-2 focus:ring-[var(--mb-gold)]"
+                    className="w-full min-h-[44px] pl-3 pr-14 py-2 rounded-lg bg-[var(--mb-surface-3)] border-2 border-black text-white font-bold text-sm focus:outline-none focus:ring-2 focus:ring-[var(--mb-gold)]"
                   />
                   <span className="absolute right-3 top-2.5 text-xs font-bold text-[var(--mb-text-dim)]">
                     {fibText.length}/40
@@ -197,8 +197,8 @@ export function MerkadeController({ seat, match, privateState, act, t }: Control
                 />
 
                 {/* Palette picker */}
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     {COLOR_PALETTE.map((c) => (
                       <button
                         key={c.id}
@@ -265,7 +265,7 @@ export function MerkadeController({ seat, match, privateState, act, t }: Control
                     value={guessText}
                     onChange={(e) => setGuessText(e.target.value)}
                     placeholder={t("games.merkade.ui.guess_placeholder")}
-                    className="w-full min-h-[44px] px-3 py-2 rounded-lg bg-[var(--mb-surface-3)] border-2 border-black text-white font-bold text-sm focus:outline-none focus:ring-2 focus:ring-[var(--mb-pink)]"
+                    className="w-full min-h-[44px] pl-3 pr-14 py-2 rounded-lg bg-[var(--mb-surface-3)] border-2 border-black text-white font-bold text-sm focus:outline-none focus:ring-2 focus:ring-[var(--mb-pink)]"
                   />
                   <span className="absolute right-3 top-2.5 text-xs font-bold text-[var(--mb-text-dim)]">
                     {guessText.length}/40
@@ -309,11 +309,11 @@ export function MerkadeController({ seat, match, privateState, act, t }: Control
                     disabled={pending}
                     onClick={() => handleAct("submit_guess_vote", { optionIndex: idx })}
                     className={cn(
-                      "min-h-[44px] p-3 rounded-xl border-2 border-black text-left font-black text-sm uppercase tracking-wider flex items-center justify-between mb-press shadow-[2px_2px_0_0_#000] [font-family:var(--mb-font-display)] disabled:opacity-60",
+                      "min-h-[44px] p-3 rounded-xl border-2 border-black text-left font-black text-sm uppercase tracking-wider flex items-center justify-between mb-press shadow-[2px_2px_0_0_#000] [font-family:var(--mb-font-display)] disabled:opacity-60 break-words",
                       "bg-[var(--mb-surface-3)] text-white hover:bg-[var(--mb-pink)] hover:text-black"
                     )}
                   >
-                    <span>{opt}</span>
+                    <span className="break-words">{opt}</span>
                   </button>
                 ))}
               </div>
@@ -348,7 +348,7 @@ export function MerkadeController({ seat, match, privateState, act, t }: Control
                         type="button"
                         onClick={() => setMajorityChoice(idx as 0 | 1)}
                         className={cn(
-                          "min-h-[48px] p-2 rounded-xl border-2 border-black font-black text-xs uppercase tracking-wider mb-press [font-family:var(--mb-font-display)]",
+                          "min-h-[48px] p-2 rounded-xl border-2 border-black font-black text-xs uppercase tracking-wider mb-press [font-family:var(--mb-font-display)] break-words",
                           majorityChoice === idx
                             ? "bg-[var(--mb-gold)] text-black shadow-[2px_2px_0_0_#000]"
                             : "bg-[var(--mb-surface-3)] text-white"
@@ -372,7 +372,7 @@ export function MerkadeController({ seat, match, privateState, act, t }: Control
                         type="button"
                         onClick={() => setMajorityPrediction(idx as 0 | 1)}
                         className={cn(
-                          "min-h-[48px] p-2 rounded-xl border-2 border-black font-black text-xs uppercase tracking-wider mb-press [font-family:var(--mb-font-display)]",
+                          "min-h-[48px] p-2 rounded-xl border-2 border-black font-black text-xs uppercase tracking-wider mb-press [font-family:var(--mb-font-display)] break-words",
                           majorityPrediction === idx
                             ? "bg-[var(--mb-accent)] text-[var(--mb-on-accent)] shadow-[2px_2px_0_0_#000]"
                             : "bg-[var(--mb-surface-3)] text-white"

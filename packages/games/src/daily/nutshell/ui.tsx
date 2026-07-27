@@ -390,7 +390,7 @@ export const Play: React.FC<DailyPlayProps> = ({
     // A crossword is square, so unlike Nexus and Relay this one keeps a cap —
     // but it is a cap on the *board*, not on the page, and it rises with the
     // viewport rather than freezing at phone width. See DESIGN.md §7a.
-    <div className="flex flex-col items-center justify-between w-full max-w-md lg:max-w-xl mx-auto p-2 min-h-[500px] select-none text-[var(--mb-text)]">
+    <div className="flex flex-col items-center justify-between w-full p-2 min-h-[500px] select-none text-[var(--mb-text)]">
       {/* Screen Reader Announcements */}
       <div aria-live="polite" className="sr-only">
         {statusMessage}
@@ -442,16 +442,16 @@ export const Play: React.FC<DailyPlayProps> = ({
       <button
         type="button"
         onClick={() => setDirection((d) => (d === "across" ? "down" : "across"))}
-        className="w-full min-h-[44px] p-2 mb-2 bg-[var(--mb-surface-2)] border-2 border-black rounded-md font-bold text-sm text-left flex items-center justify-between hover:bg-[var(--mb-surface-3)] transition-colors"
+        className="w-full min-h-[44px] p-2 mb-2 bg-[var(--mb-surface-2)] border-2 border-black rounded-md font-bold text-sm text-left flex items-center justify-between hover:bg-[var(--mb-surface-3)] transition-colors gap-2"
         aria-label="Active clue, tap to toggle direction"
       >
-        <span>
+        <span className="min-w-0 flex-1">
           <strong className="uppercase mr-2 text-[var(--mb-violet)]">
             {activeSlot ? `${activeSlot.number} ${direction}:` : `${direction}:`}
           </strong>
           {activeSlot?.clue ?? (t("daily.nutshell.no_clue") ?? "Select a word")}
         </span>
-        <span className="flex items-center gap-1 text-xs px-2 py-0.5 bg-[var(--mb-accent)] text-[var(--mb-on-accent)] rounded font-black">
+        <span className="shrink-0 flex items-center gap-1 text-xs px-2 py-0.5 bg-[var(--mb-accent)] text-[var(--mb-on-accent)] rounded font-black">
           {direction.toUpperCase()}
           <SwapIcon className="w-3.5 h-3.5" />
         </span>

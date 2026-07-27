@@ -69,7 +69,7 @@ export function Ticker({
   if (entries.length === 0) return null;
 
   const shell =
-    "bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)] border-t-[3px] border-black py-2";
+    "bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)] border-t-[3px] border-black pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]";
 
   if (reduced) {
     const item = entries[index % entries.length]!;

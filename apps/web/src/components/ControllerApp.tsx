@@ -365,8 +365,8 @@ function GameChrome({
   const paused = snap.room.seats.length > 0 && snap.room.seats.every((s) => !s.connected || s.abandoned);
 
   return (
-    <div className="mx-auto max-w-md min-h-dvh flex flex-col">
-      <header className="mb-glass sticky top-0 z-30 bg-[var(--mb-bg)]/80 px-4 py-2 flex flex-col gap-2">
+    <div className="mx-auto w-full max-w-md min-h-dvh flex flex-col">
+      <header className="mb-glass sticky top-0 z-30 bg-[var(--mb-bg)]/80 px-4 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 flex flex-col gap-2">
         <div className="flex items-center justify-between gap-2">
           <span className="font-black">{t(game.meta.nameKey)}</span>
           <span className="flex items-center gap-2">

@@ -61,7 +61,7 @@ export function Modal({
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          "mb-pop relative w-full max-w-md max-h-[calc(100vh-2rem)] overflow-y-auto rounded-lg bg-[var(--mb-surface)] p-6 outline-none",
+          "mb-pop relative w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-lg bg-[var(--mb-surface)] p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] outline-none",
           "border-4 border-black shadow-[var(--mb-shadow-lg)]",
           className
         )}

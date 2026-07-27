@@ -254,9 +254,10 @@ export function Play({
         {!isOver && (
           <Button
             variant="danger"
-            size="sm"
+            size="md"
             block
             onClick={handleGiveUp}
+            className="min-h-[44px]"
           >
             {t("daily.relay.giveUp") || "Give Up"}
           </Button>

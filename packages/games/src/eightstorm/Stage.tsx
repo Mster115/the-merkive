@@ -35,7 +35,7 @@ export function EightstormStage({ room, match, t }: StageProps) {
   const winnerSeat = isGameOver && pub.outSeat !== null ? room.seats.find((s) => s.seatIndex === pub.outSeat) : null;
 
   return (
-    <div className="flex flex-col h-full w-full max-w-[1800px] mx-auto p-4 md:p-8 justify-between select-none">
+    <div className="flex flex-col h-full w-full max-w-[1800px] mx-auto p-4 md:p-8 justify-between select-none overflow-y-auto">
       {/* Live accessibility region */}
       <div className="sr-only" aria-live="polite">
         {isGameOver

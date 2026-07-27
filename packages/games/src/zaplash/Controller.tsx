@@ -104,17 +104,17 @@ export function ZaplashController({ room, match, seat, privateState, act, t }: C
   const handleFinaleVote = (targetSeat: number) => runAction("finale_vote", { targetSeat }, 20);
 
   return (
-    <div className="flex flex-col min-h-full w-full max-w-md mx-auto p-4 gap-4 select-none">
+    <div className="flex flex-col min-h-full w-full p-4 gap-4 select-none">
       {/* Live accessibility region */}
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {t(`games.zaplash.phase.${match.phase}`)}
       </div>
 
       {/* Header Info */}
-      <Card className="flex items-center justify-between p-3.5 rounded-xl bg-[var(--mb-surface-2)] border-[3px] border-black shadow-[var(--mb-shadow)] -rotate-[0.5deg]">
+      <Card className="flex flex-wrap items-center justify-between gap-y-1.5 p-3.5 rounded-xl bg-[var(--mb-surface-2)] border-[3px] border-black shadow-[var(--mb-shadow)] -rotate-[0.5deg]">
         <div className="flex items-center gap-2">
           <Pill tone="accent" className="text-xs px-3 py-1 font-black uppercase tracking-wider [font-family:var(--mb-font-display)] border border-black shadow-[2px_2px_0_0_#000]">
-<LightningIcon className="w-3.5 h-3.5" /> {t("games.zaplash.name")}
+            <LightningIcon className="w-3.5 h-3.5" /> {t("games.zaplash.name")}
           </Pill>
         </div>
         {match.phase === "finale_write" || match.phase === "finale_vote" || match.phase === "finale_reveal" ? (
@@ -191,9 +191,9 @@ export function ZaplashController({ room, match, seat, privateState, act, t }: C
                       placeholder={t("games.zaplash.ui.type_answer_ph")}
                       className="w-full p-3 rounded-xl bg-white text-black border-2 border-black font-extrabold placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-[var(--mb-accent-2)] text-base resize-none shadow-[2px_2px_0_0_#000]"
                     />
-                    <div className="flex items-center justify-between gap-2 text-xs font-bold text-[var(--mb-text-dim)]">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-[var(--mb-text-dim)]">
                       <span className="font-mono shrink-0">{120 - textVal.length} {t("games.zaplash.ui.chars_left")}</span>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <Button
                           variant="ghost"
                           size="md"
@@ -267,9 +267,9 @@ export function ZaplashController({ room, match, seat, privateState, act, t }: C
                     placeholder={t("games.zaplash.ui.type_answer_ph")}
                     className="w-full p-3 rounded-xl bg-white text-black border-2 border-black font-extrabold placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-[var(--mb-accent-2)] text-base resize-none shadow-[2px_2px_0_0_#000]"
                   />
-                  <div className="flex items-center justify-between gap-2 text-xs font-bold text-[var(--mb-text-dim)]">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-[var(--mb-text-dim)]">
                     <span className="font-mono shrink-0">{120 - textVal.length} {t("games.zaplash.ui.chars_left")}</span>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Button
                         variant="ghost"
                         size="md"

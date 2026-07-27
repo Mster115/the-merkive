@@ -41,7 +41,7 @@ export function MerkadeStage({ room, match, t }: StageProps) {
   );
 
   return (
-    <div className="flex flex-col h-full w-full max-w-5xl mx-auto p-4 md:p-8 justify-between select-none">
+    <div className="flex flex-col h-full w-full max-w-5xl mx-auto p-4 md:p-8 justify-between select-none overflow-y-auto">
       {/* Live accessibility region */}
       <div className="sr-only" aria-live="polite">
         {t(`games.merkade.phase.${match.phase}`)}

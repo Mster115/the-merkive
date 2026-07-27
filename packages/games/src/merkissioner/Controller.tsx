@@ -204,9 +204,9 @@ function PlayerChipForSeat({ seat, room }: { seat: SeatIndex; room: RoomView }) 
   const s = room.seats.find((x) => x.seatIndex === seat);
   if (!s) return null;
   return (
-    <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md border-2 border-black bg-[var(--mb-surface-2)]">
-      <AvatarFace avatarId={s.avatarId} size={26} />
-      <span className="font-bold text-sm truncate">{s.displayName}</span>
+    <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md border-2 border-black bg-[var(--mb-surface-2)] min-w-0">
+      <AvatarFace avatarId={s.avatarId} size={26} className="shrink-0" />
+      <span className="font-bold text-sm truncate min-w-0 flex-1">{s.displayName}</span>
     </div>
   );
 }
@@ -371,10 +371,10 @@ function NominatePanel({
                   : "bg-[var(--mb-surface-2)] shadow-[2px_2px_0_0_#000]"
               )}
             >
-              <AvatarFace avatarId={s.avatarId} size={32} />
-              <span className="truncate max-w-32">{s.displayName}</span>
+              <AvatarFace avatarId={s.avatarId} size={32} className="shrink-0" />
+              <span className="truncate min-w-0 flex-1">{s.displayName}</span>
               {termLimitReason && (
-                <span className="ml-auto text-[0.6rem] font-black uppercase text-[var(--mb-danger)] text-right">
+                <span className="shrink-0 ml-auto text-[0.6rem] font-black uppercase text-[var(--mb-danger)] text-right">
                   {termLimitReason}
                 </span>
               )}

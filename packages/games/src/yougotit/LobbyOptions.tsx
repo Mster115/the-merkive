@@ -90,7 +90,7 @@ export function YougotitLobbyOptions({ settings, onChange, disabled, t }: LobbyO
               : "bg-[var(--mb-surface-2)] text-[var(--mb-text-dim)] opacity-70"
           )}
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
             <div
               className={cn(
                 "w-10 h-10 rounded-lg border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0_0_#000]",
@@ -99,7 +99,7 @@ export function YougotitLobbyOptions({ settings, onChange, disabled, t }: LobbyO
             >
               <UndercutIcon className="w-6 h-6 text-current" />
             </div>
-            <div>
+            <div className="min-w-0 flex-1">
               <p
                 className={cn(
                   "font-black text-sm uppercase tracking-wider [font-family:var(--mb-font-display)]",

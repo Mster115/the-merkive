@@ -105,7 +105,7 @@ export function EightstormController({ room, match, seat, privateState, act, t }
   };
 
   return (
-    <div className="flex flex-col min-h-full w-full max-w-md mx-auto p-3 gap-3 select-none">
+    <div className="flex flex-col min-h-full w-full p-3 gap-3 select-none">
       {/* Live accessibility region */}
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {isMyTurn ? t("games.eightstorm.ui.your_turn") : t("games.eightstorm.ui.waiting_for", { name: activeName })}
@@ -114,7 +114,7 @@ export function EightstormController({ room, match, seat, privateState, act, t }
       </div>
 
       {/* Top Header Card Info */}
-      <Card className="flex items-center justify-between p-3.5 rounded-xl bg-[var(--mb-surface-2)] border-[3px] border-black shadow-[var(--mb-shadow)] -rotate-[0.5deg]">
+      <Card className="flex flex-wrap items-center justify-between gap-y-1.5 p-3.5 rounded-xl bg-[var(--mb-surface-2)] border-[3px] border-black shadow-[var(--mb-shadow)] -rotate-[0.5deg]">
         <div className="flex items-center gap-2">
           <span className="text-xs uppercase font-black text-[var(--mb-violet)] [font-family:var(--mb-font-display)] tracking-wider">
             {t("games.eightstorm.ui.top_card")}:
@@ -153,7 +153,7 @@ export function EightstormController({ room, match, seat, privateState, act, t }
       {/* Turn Banner & Status */}
       <div className="text-center">
         {isMyTurn ? (
-          <div className="flex items-center justify-center gap-2">
+          <div className="flex flex-wrap items-center justify-center gap-2">
             <Pill tone="accent" className="text-sm px-5 py-1.5 font-black border-2 border-black shadow-[var(--mb-shadow)] flex items-center gap-1.5 mb-pop -rotate-1">
               <LightningIcon className="w-4 h-4 text-[var(--mb-on-accent)]" />
               {t("games.eightstorm.ui.your_turn")}
@@ -171,7 +171,7 @@ export function EightstormController({ room, match, seat, privateState, act, t }
             )}
           </div>
         ) : (
-          <span className="text-sm font-black uppercase tracking-wider text-[var(--mb-text-dim)] flex items-center justify-center gap-2 [font-family:var(--mb-font-display)]">
+          <span className="text-sm font-black uppercase tracking-wider text-[var(--mb-text-dim)] flex flex-wrap items-center justify-center gap-2 [font-family:var(--mb-font-display)]">
             <span className="w-2.5 h-2.5 rounded-full bg-[var(--mb-gold)] mb-blink" />
             ⏳ {t("games.eightstorm.ui.waiting_for", { name: activeName })}
           </span>
@@ -180,14 +180,14 @@ export function EightstormController({ room, match, seat, privateState, act, t }
 
       {/* Inline Error Message */}
       {errorMsg && (
-        <div role="alert" className="p-3 text-sm font-black bg-[var(--mb-danger)] border-2 border-black text-[var(--mb-on-danger)] rounded-xl text-center shadow-[var(--mb-shadow)] mb-shake uppercase tracking-wider [font-family:var(--mb-font-display)]">
+        <div role="alert" className="p-3 text-sm font-black bg-[var(--mb-danger)] border-2 border-black text-[var(--mb-on-danger)] rounded-xl text-center shadow-[var(--mb-shadow)] mb-shake uppercase tracking-wider [font-family:var(--mb-font-display)] break-words">
           {errorMsg}
         </div>
       )}
 
       {/* Action Buttons (Draw / Pass) */}
       {isMyTurn && (
-        <div className="flex gap-2.5">
+        <div className="flex flex-wrap gap-2.5">
           <Button
             variant={pub.pendingDraw > 0 ? "danger" : "secondary"}
             size="lg"
@@ -219,7 +219,7 @@ export function EightstormController({ room, match, seat, privateState, act, t }
 
       {/* Hand Cards Fan / Grid Showcase */}
       <div className="flex-1 my-1">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex flex-wrap items-center justify-between gap-y-2 mb-2">
           <h3 className="text-xs font-black uppercase tracking-wider text-[var(--mb-text-dim)] [font-family:var(--mb-font-display)] flex items-center gap-2">
             <span>🃏 {t("games.eightstorm.ui.your_hand", { count: hand.length })}</span>
             {pub.pendingDraw > 0 && isMyTurn && (

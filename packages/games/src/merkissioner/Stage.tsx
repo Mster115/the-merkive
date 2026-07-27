@@ -123,7 +123,7 @@ export function MerkissionerStage({ room, match, t }: StageProps) {
   const isGameOver = match.over || phase === "game_over";
 
   return (
-    <div className="relative flex flex-col h-full w-full max-w-[1800px] mx-auto p-3 md:p-6 gap-3 md:gap-4 select-none overflow-hidden">
+    <div className="relative flex flex-col h-full w-full max-w-[1800px] mx-auto p-3 md:p-6 gap-3 md:gap-4 select-none overflow-y-auto">
       <div className="sr-only" aria-live="polite">
         {phaseAnnouncement(t, phase)}
       </div>
