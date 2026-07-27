@@ -72,6 +72,13 @@ in…"`, `"which 1994 album…"`). A question that a knowledgeable player can an
 with the franchise name is a broken question, and it is the most common source
 of "I was right and it said no".
 
+`daily_check` warns on this: a multi-word answer beginning with "The", or a
+question mentioning a film/album/book/episode, has to carry a year, an ordinal,
+or a word like "first"/"final", or preflight flags the cell. It warns rather
+than rejects because the heuristic cannot read the question — clear it either by
+pinning the question down, or by satisfying yourself that the series name is not
+an answer a reasonable player would give.
+
 ## Payload schema
 
 `validatePack` enforces every rule below and rejects with a specific message.

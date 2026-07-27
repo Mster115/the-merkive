@@ -143,6 +143,64 @@ describe("daily-content preflight", () => {
     expect(problems).toContainEqual(expect.stringContaining('"Magma"'));
   });
 
+  it("flags a Nexus question about one film in a series that names no year or position", () => {
+    // Reported live: a player answered "The Lord of the Rings" for a key of
+    // "The Return of the King". The grader cannot accept the franchise — it
+    // would equally answer the other two films — so the fix is upstream, in a
+    // question that says which installment it means.
+    const seriesCell = (question: string) => ({
+      row: 0,
+      col: 0,
+      question,
+      answer: "The Return of the King",
+      acceptableAnswers: [],
+    });
+    const filler = Array.from({ length: 8 }, (_, i) => ({
+      row: Math.floor((i + 1) / 3),
+      col: (i + 1) % 3,
+      question: "Fourth planet?",
+      answer: "Mars",
+      acceptableAnswers: [],
+    }));
+    const run = (question: string) =>
+      preflight({
+        gameId: "nexus",
+        puzzleDate: "2026-07-27",
+        sourceRefs: [{ url: "https://example.gov/x", title: "X" }],
+        payload: {
+          rowLabels: ["a", "b", "c"],
+          colLabels: ["d", "e", "f"],
+          cells: [seriesCell(question), ...filler],
+        },
+      }).warnings.filter((w: string) => w.includes("under-specified"));
+
+    expect(run("Which film features Frodo and Sam?")).toHaveLength(1);
+    // Either kind of marker is enough to pin it down.
+    expect(run("Which 2003 film completed the Middle-earth trilogy?")).toEqual([]);
+    expect(run("Which third film in the trilogy won Best Picture?")).toEqual([]);
+  });
+
+  it("does not flag a Nexus answer that no franchise name could stand in for", () => {
+    const cells = [
+      { row: 0, col: 0, question: "Which physicist was born in Ulm?", answer: "Albert Einstein", acceptableAnswers: [] },
+      { row: 0, col: 1, question: "Which film star made The Great Dictator?", answer: "Chaplin", acceptableAnswers: [] },
+      ...Array.from({ length: 7 }, (_, i) => ({
+        row: Math.floor((i + 2) / 3),
+        col: (i + 2) % 3,
+        question: "Fourth planet?",
+        answer: "Mars",
+        acceptableAnswers: [],
+      })),
+    ];
+    const { warnings } = preflight({
+      gameId: "nexus",
+      puzzleDate: "2026-07-27",
+      sourceRefs: [{ url: "https://example.gov/x", title: "X" }],
+      payload: { rowLabels: ["a", "b", "c"], colLabels: ["d", "e", "f"], cells },
+    });
+    expect(warnings.filter((w: string) => w.includes("under-specified"))).toEqual([]);
+  });
+
   it("names the Nutshell candidates the solver would silently drop", () => {
     const { problems } = preflight({
       gameId: "nutshell",

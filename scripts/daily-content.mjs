@@ -277,6 +277,36 @@ export function preflight(pack) {
         }
       }
     }
+
+    // A question about one entry in a series has to say *which* entry. The
+    // grader will never accept the franchise name for one of its films — doing
+    // so would accept it for the other films too — so an under-specified
+    // question marks a player wrong for an answer they had good reason to give.
+    // Reported live: "Lord of the Rings" for a key of "The Return of the King".
+    for (const c of cells) {
+      const question = String(c?.question ?? "");
+      const answer = String(c?.answer ?? "").trim();
+      // Only title-shaped answers: a multi-word name is what a franchise can
+      // stand in for. A one-word answer has no broader form to confuse it with.
+      if (answer.split(/\s+/).filter(Boolean).length < 2) continue;
+      const q = question.toLowerCase();
+      const looksSerial =
+        /^the\s/i.test(answer) ||
+        /\b(film|movie|album|book|novel|sequel|episode|season|series|instal?ment|volume)\b/.test(q);
+      if (!looksSerial) continue;
+      const isPinned =
+        /\b(1[89]|20)\d{2}\b/.test(q) ||
+        /\b\d+(st|nd|rd|th)\b/.test(q) ||
+        /\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|final|last|debut|original|latest)\b/.test(
+          q
+        );
+      if (!isPinned) {
+        warnings.push(
+          `cell (${c.row},${c.col}) asks for "${answer}" without naming a year or position — ` +
+            `if the series name alone reads as an answer, the question is under-specified`
+        );
+      }
+    }
   }
 
   if (pack.gameId === "nutshell") {
