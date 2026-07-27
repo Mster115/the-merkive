@@ -85,6 +85,19 @@ describe("daily-content preflight — Nutshell layouts", () => {
     expect(problems).toEqual([]);
   });
 
+  it("accepts a four_corners_blocked pool (four 3s and six 5s)", () => {
+    // This shape (patterns.ts's four_corners_blocked) is distinct from the
+    // eight-3s corner layout above and was rejected by a stale MCP server
+    // process still running preflight's old hardcoded staircase check —
+    // 2026-07-26 incident. Pinned here so a future regression in either the
+    // check or the pattern library shows up as a failing test, not a live
+    // daily_check rejection.
+    const { problems } = preflight(
+      pool(["NEW", "SOLID", "IVORY", "TEPEE", "LED", "NOVEL", "ELOPE", "WIRED", "SIT", "DYE"])
+    );
+    expect(problems).toEqual([]);
+  });
+
   it("rejects a pool that fills no layout at all", () => {
     const { problems } = preflight(
       pool(["CAT", "DOG", "BAT", "RAT", "HAT", "MAT", "PAT", "SAT", "VAT", "OAT"])
