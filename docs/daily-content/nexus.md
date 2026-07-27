@@ -8,40 +8,69 @@ Code: `packages/games/src/daily/nexus/` (`utils.ts` holds `validatePack`).
 ## How it plays (this drives the content rules)
 
 - The player sees 3 row labels, 3 column labels, and 9 questions.
-- **One guess per cell.** A wrong guess locks the cell as `incorrect` — there is
-  no second attempt.
+- **Unlimited guesses, decaying value.** A wrong guess leaves the cell open and
+  worth less: 1 point first try, then ½, then ¼, then nothing. A player can also
+  give up on a cell, which closes it as `incorrect` without showing the answer.
 - A cell can instead be `revealed`, which shows the answer and scores nothing.
-- All 9 cells must be resolved before submitting. Score is correct cells out of
-  9; `9/9` is `solved`, anything less is `failed`.
+- All 9 cells must be resolved before submitting. Score is fractional out of 9;
+  a full 9 correct is `solved`, anything less is `failed`.
 
-One guess per cell is the whole reason `acceptableAnswers` matters. A player who
-knows the answer but types the surname, or the abbreviation, or the British
-spelling, must not be marked wrong.
+Retries soften a thin `acceptableAnswers` list but do not fix it: a player who
+knows the answer and types it a different way loses points for being right.
 
 ## Answer matching
 
 `normalizeAnswer` (shared by `validatePack` and `reduce`) does exactly this:
 
-1. trim, lowercase
-2. collapse internal whitespace runs to one space
-3. strip a single leading article: `a `, `an `, or `the `
+1. fold accents (`Beyoncé` → `beyonce`) and lowercase
+2. drop parentheticals (`Mercury (planet)` → `mercury`)
+3. expand `&` to `and`
+4. delete apostrophes (`O'Brien` → `obrien`) and turn all other punctuation into
+   a space (`Wall-E` → `wall e`, `Dr. Seuss` → `dr seuss`)
+5. collapse whitespace runs to one space, trim
+6. strip a single leading article: `a `, `an `, or `the `
 
-A guess is correct if its normalized form equals the normalized `answer` **or**
-any normalized entry in `acceptableAnswers`.
+A guess then counts as correct when, against the `answer` or any entry in
+`acceptableAnswers`, it is:
 
-So you do **not** need variants for case, spacing, or a leading article. You
-**do** need them for:
+- **the same string**, normalized; or
+- **the same number** written either way (`8` / `eight` / `twenty-one`); or
+- **the same answer with up to two extra words**, the key appearing intact
+  (`"Charlie Chaplin"` for a key of `"Chaplin"`, `"Lake Erie"` for `"Erie"`) —
+  refused if the guess hedges (`"Mercury or Venus"`) or either side is a number;
+  or
+- **a two-word key with its first word dropped**, where the guess is the second
+  word (`"Chaplin"` for `"Charlie Chaplin"`) — refused when the dropped word is
+  what identifies the answer (`"Korea"` is not `"North Korea"`, `"Zealand"` is
+  not `"New Zealand"`).
 
-- surname-only vs full name (`answer: "Ada Lovelace"` → `"Lovelace"`)
+A guess one typo away from a key (5+ characters) is neither accepted nor
+counted: the player is told to check their spelling and the attempt is not
+spent.
+
+So you no longer need variants for case, spacing, articles, punctuation,
+accents, numerals-vs-words, or first-name-vs-surname. You **do** still need them
+for:
+
 - abbreviations and expansions (`"NASA"` ↔ `"National Aeronautics and Space Administration"`)
-- spelling variants (`"colour"` / `"color"`), transliterations, diacritic-free forms
+- spelling variants (`"colour"` / `"color"`) and transliterations
 - common alternative names (`"Mumbai"` / `"Bombay"` where the question allows)
-- numerals vs words (`"7"` / `"seven"`)
-- punctuation-bearing forms — hyphens and apostrophes are **not** stripped, so
-  `"Wall-E"` needs `"WallE"` and `"Wall E"` if you want to accept them
+- anything a reasonable player would say that shares no words with the key
+  (`"the Bard"` for `"William Shakespeare"`)
 
 Keep the canonical `answer` in its most natural display form: it is what gets
 shown on reveal and in the end-of-game grid.
+
+### Ambiguity is a question problem, not a matching problem
+
+Matching will never accept a *broader* answer than the key, and it should not:
+`"The Lord of the Rings"` cannot be allowed to score for `"The Return of the
+King"`, because it would equally score for the other two films. When the answer
+is one installment of a series — a film, a book, an album, a numbered event —
+the **question** has to pin it down (`"Which 2003 film…"`, `"the third film
+in…"`, `"which 1994 album…"`). A question that a knowledgeable player can answer
+with the franchise name is a broken question, and it is the most common source
+of "I was right and it said no".
 
 ## Payload schema
 

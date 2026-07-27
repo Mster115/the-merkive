@@ -159,9 +159,16 @@ NEXUS SPECIFICS.
 - Every answer must genuinely satisfy both its row and its column category.
   That is the premise of the game; one violation costs the player's trust in
   the whole grid.
-- One guess per cell, so list `acceptableAnswers` for surname-only forms,
-  abbreviations, spelling variants and alternative names. Case, spacing and a
-  leading "a/an/the" are already handled.
+- List `acceptableAnswers` for abbreviations, spelling variants, transliterations
+  and alternative names. Case, spacing, punctuation, accents, a leading
+  "a/an/the", numerals-vs-words, and full-name-vs-surname are already handled by
+  the grader.
+- THE QUESTION MUST PIN DOWN WHICH ONE. If the answer is a single installment of
+  a series — a film, a book, an album, a numbered event — the question must name
+  the year, the position, or another marker that rules out the franchise as an
+  answer. "Which film features Frodo and Sam?" has no correct single answer;
+  "Which 2003 film…" does. The grader will never accept the broader franchise
+  name, so an under-specified question marks a player wrong for being right.
 - NO QUESTION MAY CONTAIN ANOTHER CELL'S ANSWER. All nine questions are visible
   from the first render, so one wording hands a different cell over for free.
   Check all pairs. This is easy to miss: "the element named after the Titans"

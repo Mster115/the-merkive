@@ -3,11 +3,29 @@ import type { NexusPayload, NexusCellSpec } from "./types";
 
 /**
  * Pure answer normalization helper shared between validatePack and reduce.
- * Lowercases, trims, collapses internal whitespace, and strips leading articles ("a", "an", "the").
+ *
+ * Lowercases, folds accents ("Beyoncé" -> "beyonce"), drops a trailing
+ * disambiguating parenthetical ("Mercury (planet)" -> "mercury"), spells "&"
+ * as "and", removes punctuation entirely rather than treating it as a word
+ * boundary for apostrophes ("O'Brien" -> "obrien", "don't" -> "dont") and as a
+ * space for everything else ("Wall-E" -> "wall e", "Dr. Seuss" -> "dr seuss"),
+ * collapses whitespace, and strips a leading article ("a", "an", "the").
+ *
+ * Punctuation is where a player's typing and a content pack's house style
+ * differ most often, and none of those differences mean the player was wrong.
  */
 export function normalizeAnswer(raw: string): string {
   if (typeof raw !== "string") return "";
-  let s = raw.trim().toLowerCase().replace(/\s+/g, " ");
+  let s = raw
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  // Parentheticals are editorial notes on the answer, not part of it.
+  s = s.replace(/\([^()]*\)/g, " ");
+  s = s.replace(/&/g, " and ");
+  s = s.replace(/['’`ʼ]/g, "");
+  s = s.replace(/[^\p{L}\p{N}]+/gu, " ");
+  s = s.trim().replace(/\s+/g, " ");
   if (s.startsWith("a ")) {
     s = s.slice(2).trim();
   } else if (s.startsWith("an ")) {
@@ -142,6 +160,113 @@ export function isOneEditAway(a: string, b: string): boolean {
     }
   }
   return true;
+}
+
+/** A containment match has to hang on something substantial. Four characters
+ *  keeps "cup" from standing in for "Stanley Cup" while "Chaplin" still
+ *  stands in for "Charlie Chaplin". */
+const MIN_LENGTH_FOR_CONTAINMENT = 4;
+
+/** Words that change *which* thing the answer is, so dropping them changes the
+ *  answer: "Korea" is not "North Korea". A guess may leave off a first name;
+ *  it may not leave off one of these. */
+const QUALIFIER_PREFIXES = new Set([
+  "north", "south", "east", "west", "northern", "southern", "eastern", "western",
+  "new", "old", "great", "greater", "lesser", "little", "big", "upper", "lower",
+  "united", "saint", "st", "san", "santa", "los", "las", "el", "la", "le",
+  "mount", "mt", "lake", "cape", "port", "fort", "sir", "king", "queen",
+  "president", "first", "second", "third", "last", "next",
+]);
+
+/** Tokens whose presence means the player listed options rather than answered.
+ *  "mercury or venus" should not score just because "mercury" is in there. */
+const HEDGE_TOKENS = new Set(["or", "either", "maybe", "vs", "versus"]);
+
+function tokenize(norm: string): string[] {
+  return norm === "" ? [] : norm.split(" ");
+}
+
+/** True if `needle` appears as a contiguous run of whole tokens in `hay`. */
+function containsRun(hay: string[], needle: string[]): boolean {
+  if (needle.length === 0 || needle.length > hay.length) return false;
+  for (let i = 0; i + needle.length <= hay.length; i++) {
+    let hit = true;
+    for (let j = 0; j < needle.length; j++) {
+      if (hay[i + j] !== needle[j]) {
+        hit = false;
+        break;
+      }
+    }
+    if (hit) return true;
+  }
+  return false;
+}
+
+function isNumericAnswer(norm: string): boolean {
+  return wordsToNumber(norm) !== null;
+}
+
+/**
+ * The player said everything the key says and then some — "Charlie Chaplin"
+ * for a key of "Chaplin", "Lake Erie" for "Erie". The whole key is present, so
+ * the extra words are the player being more specific, not less correct.
+ *
+ * Capped at two extra words, and refused when the guess hedges ("Mercury or
+ * Venus") or when either side is a number, where "four" and "four hundred"
+ * are different answers rather than the same one said longer.
+ */
+function guessRestatesKey(guessTokens: string[], keyTokens: string[]): boolean {
+  const extra = guessTokens.length - keyTokens.length;
+  if (extra <= 0 || extra > 2) return false;
+  if (keyTokens.join("").length < MIN_LENGTH_FOR_CONTAINMENT) return false;
+  if (guessTokens.some((tk) => HEDGE_TOKENS.has(tk))) return false;
+  if (isNumericAnswer(keyTokens.join(" ")) || isNumericAnswer(guessTokens.join(" "))) {
+    return false;
+  }
+  return containsRun(guessTokens, keyTokens);
+}
+
+/**
+ * The player gave the tail of a two-word key — "Chaplin" for "Charlie
+ * Chaplin", "Einstein" for "Albert Einstein". Surname-only is how people
+ * actually answer trivia.
+ *
+ * Deliberately narrow: two-word keys only, the guess must be the final word,
+ * and the dropped word must not be a qualifier that carries the answer's
+ * identity, so "Korea" is still wrong for "North Korea" and "Rings" is still
+ * wrong for "The Lord of the Rings" (that key is longer than two words).
+ */
+function guessDropsGivenName(guessTokens: string[], keyTokens: string[]): boolean {
+  if (keyTokens.length !== 2 || guessTokens.length !== 1) return false;
+  const [first, last] = keyTokens as [string, string];
+  const [only] = guessTokens as [string];
+  if (only !== last) return false;
+  if (only.length < MIN_LENGTH_FOR_CONTAINMENT) return false;
+  if (QUALIFIER_PREFIXES.has(first)) return false;
+  if (isNumericAnswer(keyTokens.join(" "))) return false;
+  return true;
+}
+
+/**
+ * Whether a normalized guess counts as the normalized key: exactly, as the
+ * same number written another way, or as the same answer said with one more
+ * or one fewer word (see the two helpers above).
+ *
+ * Everything here is an *exact* match on meaning. Typo tolerance is separate
+ * and deliberately does not score — see `isOneEditAway`.
+ */
+export function matchesAnswer(normGuess: string, normKey: string): boolean {
+  if (normGuess === "" || normKey === "") return false;
+  if (normGuess === normKey) return true;
+
+  const guessAsNumber = wordsToNumber(normGuess);
+  if (guessAsNumber !== null && wordsToNumber(normKey) === guessAsNumber) return true;
+
+  const guessTokens = tokenize(normGuess);
+  const keyTokens = tokenize(normKey);
+  return (
+    guessRestatesKey(guessTokens, keyTokens) || guessDropsGivenName(guessTokens, keyTokens)
+  );
 }
 
 export function generatePrompt(puzzleDate: string): string {

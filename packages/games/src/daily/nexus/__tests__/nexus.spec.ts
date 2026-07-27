@@ -4,7 +4,8 @@ import { nexus } from "../index";
 import { getDailyGame } from "../../index";
 import { validatePack, normalizeAnswer, wordsToNumber, isOneEditAway } from "../utils";
 import type { DailyContentPack } from "../../types";
-import type { NexusPublicState, NexusPayload } from "../types";
+import type { NexusPublicState, NexusPayload, NexusSecretState } from "../types";
+import { NEXUS_MAX_LOGGED_MISSES } from "../types";
 
 const samplePayload: NexusPayload = {
   rowLabels: ["Geography", "Science", "History"],
@@ -597,5 +598,127 @@ describe("nexus decaying points", () => {
     act(run, "answer_cell", { row: 0, col: 0, guess: "Paris" });
     expect(pubOf(run).score).toBe(1);
     expect(pubOf(run).cells[0]?.attempts).toBe(1);
+  });
+});
+
+/**
+ * Every case here comes from players saying "I answered that correctly and it
+ * told me I was wrong" — plus the guards that keep the fix from swinging so
+ * far the other way that a different answer starts scoring.
+ */
+describe("nexus answer grading — what counts as the same answer", () => {
+  /** A pack whose (0,0) cell has one canonical answer and nothing else. */
+  const packWithKey = (answer: string, acceptableAnswers: string[] = []) => {
+    const p = JSON.parse(JSON.stringify(samplePack)) as DailyContentPack;
+    const payload = p.payload as NexusPayload;
+    payload.cells[0]!.answer = answer;
+    payload.cells[0]!.acceptableAnswers = acceptableAnswers;
+    return p;
+  };
+
+  const grade = (answer: string, guess: string, acceptable: string[] = []) => {
+    const run = createDailyTestRun(nexus, {
+      puzzleDate: "2026-07-24",
+      pack: packWithKey(answer, acceptable),
+    });
+    const res = nexus.reduce(ctxOf(run), run.state, {
+      type: "answer_cell",
+      payload: { row: 0, col: 0, guess },
+    });
+    if ("error" in res) return res.code;
+    const cells = (res.publicState as NexusPublicState).cells;
+    return cells[0]!.status === "correct" ? "correct" : "wrong";
+  };
+
+  it("accepts a full name when the key is only the surname", () => {
+    // Reported: the key was "Chaplin", a player typed "Charlie Chaplin" and
+    // was marked wrong for knowing more.
+    expect(grade("Chaplin", "Charlie Chaplin")).toBe("correct");
+    expect(grade("Erie", "Lake Erie")).toBe("correct");
+  });
+
+  it("accepts a surname when the key is the full name", () => {
+    expect(grade("Charlie Chaplin", "Chaplin")).toBe("correct");
+    expect(grade("Albert Einstein", "Einstein")).toBe("correct");
+  });
+
+  it("still requires the qualifier that decides which answer it is", () => {
+    expect(grade("North Korea", "Korea")).toBe("wrong");
+    expect(grade("New Zealand", "Zealand")).toBe("wrong");
+    expect(grade("Stanley Cup", "Cup")).toBe("wrong");
+  });
+
+  it("does not accept the franchise for the film", () => {
+    // Reported the other way round: "Lord of the Rings" for a key of "The
+    // Return of the King". It shares no distinctive word with the key, and
+    // three-plus-word keys are outside the drop-a-word rule entirely.
+    expect(grade("The Return of the King", "The Lord of the Rings")).toBe("wrong");
+    expect(grade("The Return of the King", "Rings")).toBe("wrong");
+  });
+
+  it("ignores punctuation, accents, and editorial parentheticals", () => {
+    expect(grade("Beyoncé", "Beyonce")).toBe("correct");
+    expect(grade("Beyonce", "Beyoncé")).toBe("correct");
+    expect(grade("Dr. Seuss", "Dr Seuss")).toBe("correct");
+    expect(grade("Wall-E", "Wall E")).toBe("correct");
+    expect(grade("O'Brien", "OBrien")).toBe("correct");
+    expect(grade("Mercury (planet)", "Mercury")).toBe("correct");
+    expect(grade("Rock & Roll Hall of Fame", "Rock and Roll Hall of Fame")).toBe(
+      "correct"
+    );
+  });
+
+  it("does not let a hedged guess score by containing the answer", () => {
+    expect(grade("Mercury", "Mercury or Venus")).toBe("wrong");
+  });
+
+  it("keeps numbers exact — a longer number is a different number", () => {
+    expect(grade("four", "four hundred")).toBe("wrong");
+    expect(grade("4", "four")).toBe("correct");
+  });
+
+  it("does not let an extra word carry a guess past a short key", () => {
+    // "Rome" survives; "the city Rom" must not become a match by containment.
+    expect(grade("Rome", "Rom City")).toBe("wrong");
+  });
+});
+
+describe("nexus miss log", () => {
+  const runFresh = () =>
+    createDailyTestRun(nexus, { puzzleDate: "2026-07-24", pack: samplePack });
+
+  const missesOf = (run: ReturnType<typeof runFresh>) =>
+    (run.state.secretState as NexusSecretState).misses ?? [];
+
+  it("records what a rejected guess actually said, server-side only", () => {
+    const run = runFresh();
+    act(run, "answer_cell", { row: 0, col: 1, guess: "Gothenburg" });
+
+    expect(missesOf(run)).toEqual([{ row: 0, col: 1, guess: "Gothenburg" }]);
+    // publicState is broadcast verbatim — the log must not ride along.
+    expect(JSON.stringify(run.state.publicState)).not.toContain("Gothenburg");
+  });
+
+  it("logs nothing for a correct answer and keeps the pack intact", () => {
+    const run = runFresh();
+    act(run, "answer_cell", { row: 0, col: 0, guess: "Paris" });
+
+    expect(missesOf(run)).toEqual([]);
+    const secret = run.state.secretState as NexusSecretState;
+    expect(secret.cells).toHaveLength(9);
+    expect(secret.rowLabels).toEqual(samplePayload.rowLabels);
+  });
+
+  it("caps the log so repeated guessing cannot inflate the stored attempt", () => {
+    const run = runFresh();
+    for (let i = 0; i < NEXUS_MAX_LOGGED_MISSES + 12; i++) {
+      act(run, "answer_cell", { row: 0, col: 1, guess: `wrong-${i}` });
+    }
+    const misses = missesOf(run);
+    expect(misses).toHaveLength(NEXUS_MAX_LOGGED_MISSES);
+    // Keeps the most recent, drops the oldest.
+    expect(misses[misses.length - 1]?.guess).toBe(
+      `wrong-${NEXUS_MAX_LOGGED_MISSES + 11}`
+    );
   });
 });

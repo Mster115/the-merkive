@@ -60,7 +60,7 @@ Score each Nexus cell (word games skip this — see below):
 | Unique | No other answer also satisfies the question *and* both category labels |
 | Stable | The answer will still be correct on the puzzle date and afterwards |
 | Fresh enough | Nothing depending on a fact younger than 72h (retractions cluster there) |
-| Unambiguous | Spelling/format variants are enumerated in `acceptableAnswers` |
+| Unambiguous | Alternative names are enumerated in `acceptableAnswers`, and a question about one installment of a series names the year or position that rules out the franchise |
 
 A pack is `factCheck.status: "passed"` only if **all 9 cells** clear **all six
 rows**. Otherwise `"needs_review"` with the specific failing cells named. There

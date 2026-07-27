@@ -19,6 +19,7 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
   const [guessText, setGuessText] = React.useState("");
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
   const [errorCode, setErrorCode] = React.useState<string | null>(null);
+  const [missMsg, setMissMsg] = React.useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   // Clear input when selection changes
@@ -26,7 +27,35 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
     setGuessText("");
     setErrorMsg(null);
     setErrorCode(null);
+    setMissMsg(null);
   }, [selectedCoords?.row, selectedCoords?.col]);
+
+  // Read off `state` before the loading guard below — the miss-feedback effect
+  // has to run on every render, guard or not.
+  const watched: NexusCellPublic | undefined =
+    selectedCoords && Array.isArray(state?.cells)
+      ? state.cells.find(
+          (c) => c.row === selectedCoords.row && c.col === selectedCoords.col
+        )
+      : undefined;
+  const watchedKey = selectedCoords ? `${selectedCoords.row}:${selectedCoords.col}` : "";
+  const watchedAttempts = watched?.attempts ?? 0;
+  const watchedStatus = watched?.status;
+
+  // A wrong guess comes back as a *successful* action — the cell stays open and
+  // just costs more — so nothing told the player they'd missed: the box emptied
+  // and the points line quietly changed. Say it out loud instead.
+  const seenRef = React.useRef<{ key: string; attempts: number } | null>(null);
+  React.useEffect(() => {
+    const prev = seenRef.current;
+    seenRef.current = { key: watchedKey, attempts: watchedAttempts };
+    if (!prev || prev.key !== watchedKey) return;
+    if (watchedStatus === "unanswered" && watchedAttempts > prev.attempts) {
+      setMissMsg(t("daily.nexus.notQuite"));
+    } else if (watchedStatus !== "unanswered") {
+      setMissMsg(null);
+    }
+  }, [watchedKey, watchedAttempts, watchedStatus, t]);
 
   if (!state || !Array.isArray(state.cells)) {
     return (
@@ -36,11 +65,7 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
     );
   }
 
-  const selectedCell: NexusCellPublic | undefined = selectedCoords
-    ? state.cells.find(
-        (c) => c.row === selectedCoords.row && c.col === selectedCoords.col
-      )
-    : undefined;
+  const selectedCell: NexusCellPublic | undefined = watched;
 
   const allResolved = state.cells.every((c) => c.status !== "unanswered");
   const isGameOver = phase === "solved" || phase === "failed";
@@ -52,6 +77,7 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
     if (!selectedCoords || !guessText.trim()) return;
     setErrorMsg(null);
     setErrorCode(null);
+    setMissMsg(null);
     setIsSubmitting(true);
     const res = await act("answer_cell", {
       row: selectedCoords.row,
@@ -246,18 +272,18 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
       {/* Selected Cell Action Panel */}
       {selectedCoords && selectedCell && (
         <Panel className="p-3 sm:p-4 space-y-3 bg-[var(--mb-surface)] border-2 border-black shadow-[var(--mb-shadow)]">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <Pill tone="accent">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 flex-wrap min-w-0 flex-1">
+              <Pill tone="accent" className="shrink-0">
                 {state.rowLabels[selectedCoords.row]}
               </Pill>
-              <span className="text-xs text-[var(--mb-text-dim)]">×</span>
-              <Pill tone="accent">
+              <span className="text-xs text-[var(--mb-text-dim)] shrink-0">×</span>
+              <Pill tone="accent" className="shrink-0">
                 {state.colLabels[selectedCoords.col]}
               </Pill>
             </div>
             {selectedCell.status === "correct" && (
-              <Pill tone="ok" className="whitespace-nowrap">
+              <Pill tone="ok" className="whitespace-nowrap shrink-0">
                 {t("daily.nexus.correctIn", {
                   points: String(selectedCell.points ?? 1),
                   attempts: String(selectedCell.attempts ?? 1),
@@ -265,10 +291,10 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
               </Pill>
             )}
             {selectedCell.status === "incorrect" && (
-              <Pill tone="danger" className="whitespace-nowrap">{t("daily.nexus.skipped")}</Pill>
+              <Pill tone="danger" className="whitespace-nowrap shrink-0">{t("daily.nexus.skipped")}</Pill>
             )}
             {selectedCell.status === "revealed" && (
-              <Pill tone="gold" className="whitespace-nowrap">{t("daily.nexus.revealed")}</Pill>
+              <Pill tone="gold" className="whitespace-nowrap shrink-0">{t("daily.nexus.revealed")}</Pill>
             )}
           </div>
 
@@ -340,7 +366,7 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
                   size="sm"
                   onClick={handleSkip}
                   disabled={isSubmitting}
-                  className="text-xs text-[var(--mb-text-dim)]"
+                  className="text-xs text-[var(--mb-text-dim)] min-h-[44px]"
                 >
                   {t("daily.nexus.skipCell")}
                 </Button>
@@ -349,7 +375,7 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
                   size="sm"
                   onClick={handleReveal}
                   disabled={isSubmitting}
-                  className="text-xs text-[var(--mb-text-dim)] hover:text-[var(--mb-danger)]"
+                  className="text-xs text-[var(--mb-text-dim)] hover:text-[var(--mb-danger)] min-h-[44px]"
                 >
                   {t("daily.nexus.revealCell")}
                 </Button>
@@ -357,16 +383,20 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
             </div>
           )}
 
-          {errorMsg && (
+          {/* One line, announced either way: a rejected submit (empty, locked,
+              "close — check your spelling") or a guess that was simply wrong. */}
+          {(errorMsg || missMsg) && (
             <p
+              role="status"
+              aria-live="polite"
               className={cn(
                 "text-xs font-bold",
-                errorCode === "close_spelling"
+                errorMsg && errorCode === "close_spelling"
                   ? "text-[var(--mb-gold)]"
                   : "text-[var(--mb-danger)]"
               )}
             >
-              {errorMsg}
+              {errorMsg ?? missMsg}
             </p>
           )}
         </Panel>

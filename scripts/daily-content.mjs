@@ -255,7 +255,9 @@ export function preflight(pack) {
       if (!String(c?.question ?? "").trim()) problems.push(`cell ${key} has an empty question`);
       if (!String(c?.answer ?? "").trim()) problems.push(`cell ${key} has an empty answer`);
       if (!Array.isArray(c?.acceptableAnswers) || c.acceptableAnswers.length === 0) {
-        warnings.push(`cell ${key} lists no acceptableAnswers — one guess per cell is unforgiving`);
+        warnings.push(
+          `cell ${key} lists no acceptableAnswers — retries cost points, so a player who says it another way still loses`
+        );
       }
     }
 

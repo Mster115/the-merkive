@@ -13,15 +13,16 @@ import type {
   NexusPayload,
   NexusPublicState,
   NexusCellPublic,
+  NexusSecretState,
 } from "./types";
-import { pointsForAttempt } from "./types";
+import { NEXUS_MAX_LOGGED_MISSES, pointsForAttempt } from "./types";
 import {
   generatePrompt,
   isOneEditAway,
+  matchesAnswer,
   MIN_LENGTH_FOR_FUZZY_MATCH,
   normalizeAnswer,
   validatePack,
-  wordsToNumber,
 } from "./utils";
 
 import { NexusPlay } from "./ui";
@@ -59,6 +60,7 @@ export const en: Record<string, string> = {
   "daily.nexus.scoreLabel": "Score",
   "daily.nexus.selectCellHint": "Select a cell to answer",
   "daily.nexus.cellLocked": "Cell is locked",
+  "daily.nexus.notQuite": "Not quite — the square is still open, try again.",
   "daily.nexus.answerWas": "Answer:",
   "daily.nexus.skipCell": "Give up on this one",
   "daily.nexus.skipped": "Gave up",
@@ -74,7 +76,7 @@ export const en: Record<string, string> = {
   "daily.nexus.howto.step1":
     "Tap a square to open its question. The answer has to satisfy both of its categories at once.",
   "daily.nexus.howto.step2":
-    "Type your answer and submit it. Spelling is forgiving, and common alternative names are accepted.",
+    "Type your answer and submit it. Spelling, punctuation and accents are forgiving, and a surname on its own or a full name both count.",
   "daily.nexus.howto.step3":
     "Wrong guess? The square stays open — it is just worth less: 1 point first try, then 1/2, then 1/4, then nothing. Keep going or give up on it.",
   "daily.nexus.howto.step4":
@@ -125,7 +127,7 @@ export const nexus = defineDailyGame({
     action: DailyAction
   ): DailyReduceResult | DailyReduceError {
     const publicState = state.publicState as NexusPublicState;
-    const secretState = state.secretState as NexusPayload;
+    const secretState = state.secretState as NexusSecretState;
 
     if (!publicState || !secretState) {
       return { error: "Invalid state structure", code: "invalid_state" };
@@ -171,15 +173,11 @@ export const nexus = defineDailyGame({
       const normAcceptable = secretCell.acceptableAnswers.map(normalizeAnswer);
       const allRefs = [normCanonical, ...normAcceptable];
 
-      // "8" and "eight" are the same answer, whichever way the pack or the
-      // player happened to write it — not a fuzzy match, an exact one.
-      const guessAsNumber = wordsToNumber(normGuess);
-      const numericMatch =
-        guessAsNumber !== null && allRefs.some((ref) => wordsToNumber(ref) === guessAsNumber);
-
-      const isCorrect =
-        normGuess !== "" &&
-        (normGuess === normCanonical || normAcceptable.includes(normGuess) || numericMatch);
+      // Exact on meaning, not on characters: same number written either way
+      // ("8"/"eight"), same name with or without the first name ("Chaplin" /
+      // "Charlie Chaplin"), same title with an extra word or two ("Lake Erie"
+      // for "Erie"). See `matchesAnswer` for the guards on each.
+      const isCorrect = allRefs.some((ref) => matchesAnswer(normGuess, ref));
 
       // Close but not quite: flag a likely typo instead of burning an attempt
       // on it. Only kicks in on answers long enough that a 1-edit difference
@@ -217,12 +215,23 @@ export const nexus = defineDailyGame({
         ...(isCorrect ? { points } : {}),
       };
 
+      // Log what a rejected guess actually said. Without this there is no way
+      // to answer "that should have counted" after the fact — the attempt row
+      // records how many tries a cell took and nothing about what was typed.
+      // Server-only: `secretState` never leaves the server.
+      const misses = isCorrect
+        ? secretState.misses
+        : [...(secretState.misses ?? []), { row, col, guess: guess.trim().slice(0, 120) }].slice(
+            -NEXUS_MAX_LOGGED_MISSES
+          );
+
       return {
         publicState: {
           ...publicState,
           cells: updatedCells,
           score: roundScore(publicState.score + points),
         },
+        ...(isCorrect ? {} : { secretState: { ...secretState, misses } }),
         phase: "in_progress",
         events: [],
       };
