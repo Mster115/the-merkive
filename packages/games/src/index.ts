@@ -48,7 +48,7 @@ export const contentPacks: ContentPack[] = [
     badge: "pack.merkaggeddon.badge",
     isComingSoon: true,
     gameIds: [],
-    gradientTheme: "from-cyan-950/60 via-blue-900/50 to-indigo-950/60 border-cyan-500/50",
+    gradientTheme: "from-cyan-950/60 via-blue-900/50 to-indigo-950/60",
   },
   {
     id: "merky_after_dark",
@@ -58,7 +58,7 @@ export const contentPacks: ContentPack[] = [
     badge: "pack.dark.badge",
     isComingSoon: true,
     gameIds: [],
-    gradientTheme: "from-rose-950/60 via-red-950/50 to-purple-950/60 border-rose-500/50",
+    gradientTheme: "from-rose-950/60 via-red-950/50 to-purple-950/60",
   },
   {
     id: "seen_heard",
@@ -68,7 +68,7 @@ export const contentPacks: ContentPack[] = [
     badge: "pack.seenheard.badge",
     isComingSoon: true,
     gameIds: [],
-    gradientTheme: "from-amber-950/60 via-yellow-900/50 to-orange-950/60 border-amber-500/50",
+    gradientTheme: "from-amber-950/60 via-yellow-900/50 to-orange-950/60",
   },
 ];
 

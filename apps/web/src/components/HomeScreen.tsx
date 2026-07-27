@@ -344,50 +344,50 @@ export function HomeScreen() {
 
             {/* Coming Soon Vault Content Packs Header */}
             <div className="flex items-center justify-between gap-3 mt-2">
-              <span className="text-xs font-black uppercase tracking-widest text-[var(--mb-violet)] flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[var(--mb-warn)] animate-ping inline-block" />
-                EXPANSION PACK VAULT
+              <span className="shrink-0 bg-[var(--mb-surface-2)] text-[var(--mb-violet)] border-2 border-black shadow-[2px_2px_0_0_#000] px-3 py-1 text-xs sm:text-sm font-black uppercase tracking-wider -rotate-1">
+                {t("home.games.vault_title")}
               </span>
-              <span className="text-[10px] font-black uppercase bg-black text-[var(--mb-warn)] border border-[var(--mb-warn)] px-2 py-0.5">
-                IN DEVELOPMENT
-              </span>
+              <Pill tone="warn">{t("home.games.vault_status")}</Pill>
             </div>
 
             {/* Grid of Coming Soon Content Packs */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {comingSoonPacks.map((pack) => (
+              {comingSoonPacks.map((pack, i) => (
                 <div
                   key={pack.id}
-                  className={`relative overflow-hidden rounded-xl border-2 border-dashed border-neutral-600 bg-gradient-to-br ${pack.gradientTheme ?? "from-neutral-900 to-black"} p-4 sm:p-5 flex flex-col justify-between gap-4 opacity-90 hover:opacity-100 transition-all group shadow-[4px_4px_0_0_#000]`}
+                  className={
+                    `relative overflow-hidden rounded-xl border-[3px] border-black bg-gradient-to-br ${pack.gradientTheme ?? "from-neutral-900 to-black"} p-4 sm:p-5 flex flex-col justify-between gap-4 shadow-[4px_4px_0_0_#000] hover:shadow-[8px_8px_0_0_#000] transition-all group ` +
+                    (i % 2 === 0 ? "rotate-[0.4deg]" : "-rotate-[0.4deg]")
+                  }
                 >
                   {/* Top Header & COMING SOON Banner Badge */}
                   <div className="flex items-center justify-between gap-2">
-                    <span className="bg-black/90 text-neutral-200 border-2 border-black shadow-[2px_2px_0_0_#000] px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider">
-                      {pack.badge ? t(pack.badge) : "VAULT"}
+                    <span className="shrink-0 bg-[var(--mb-surface-2)] text-[var(--mb-text)] border-2 border-black shadow-[2px_2px_0_0_#000] px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider">
+                      {pack.badge ? t(pack.badge) : t("home.games.vault_tag")}
                     </span>
-                    <span className="bg-[var(--mb-warn)] text-[var(--mb-on-gold)] border-2 border-black shadow-[2px_2px_0_0_#000] px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider -rotate-1">
-                      COMING SOON
+                    <span className="shrink-0 bg-[var(--mb-warn)] text-[var(--mb-on-gold)] border-2 border-black shadow-[2px_2px_0_0_#000] px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider -rotate-1">
+                      {t("home.games.coming_soon")}
                     </span>
                   </div>
 
                   {/* Pack info */}
                   <div>
-                    <h4 className="text-lg sm:text-xl [font-family:var(--mb-font-display)] font-black italic uppercase text-neutral-200 tracking-tight leading-tight">
+                    <h4 className="text-lg sm:text-xl [font-family:var(--mb-font-display)] font-black italic uppercase text-[var(--mb-text)] tracking-tight leading-tight">
                       {t(pack.nameKey)}
                     </h4>
-                    <p className="text-xs font-bold text-neutral-400 mt-1">
+                    <p className="text-xs font-bold text-[var(--mb-text-dim)] mt-1">
                       {t(pack.taglineKey ?? pack.descriptionKey)}
                     </p>
-                    <p className="text-[11px] text-neutral-500 mt-1.5 leading-relaxed">
+                    <p className="text-[11px] font-medium text-[var(--mb-text-dim)] mt-1.5 leading-relaxed">
                       {t(pack.descriptionKey)}
                     </p>
                   </div>
 
                   {/* Lock icon */}
-                  <div className="border-t border-white/10 pt-3 flex items-center gap-2">
+                  <div className="border-t-2 border-black/30 pt-3 flex items-center gap-2 text-[var(--mb-text-dim)]">
                     <LockIcon className="w-[18px] h-[18px]" />
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-neutral-500">
-                      Content TBD
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider">
+                      {t("home.games.pack_locked")}
                     </span>
                   </div>
                 </div>
