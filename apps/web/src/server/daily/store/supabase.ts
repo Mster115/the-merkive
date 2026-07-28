@@ -218,4 +218,20 @@ export class SupabaseDailyStore implements DailyStore {
       if (error) throw new Error(`[SupabaseDailyStore] decideDraftPack reject failed: ${error.message}`);
     }
   }
+
+  async countAttemptsForPuzzle(puzzleId: string): Promise<number> {
+    const { count, error } = await this.client
+      .from("daily_attempts")
+      .select("id", { count: "exact", head: true })
+      .eq("puzzle_id", puzzleId);
+    if (error) {
+      throw new Error(`[SupabaseDailyStore] countAttemptsForPuzzle failed: ${error.message}`);
+    }
+    return count ?? 0;
+  }
+
+  async deletePuzzleById(id: string): Promise<void> {
+    const { error } = await this.client.from("daily_puzzles").delete().eq("id", id);
+    if (error) throw new Error(`[SupabaseDailyStore] deletePuzzleById failed: ${error.message}`);
+  }
 }

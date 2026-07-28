@@ -641,6 +641,39 @@ async function cmdDecide(args) {
   console.log(`${res.id} → ${res.approved ? "queued" : "deleted"}`);
 }
 
+async function cmdUnqueue(args) {
+  const positional = args.filter((a) => !a.startsWith("--"));
+  const [gameId, puzzleDate] = positional;
+  const confirmed = args.includes("--yes");
+  if (!gameId || !puzzleDate) fail("usage: unqueue <gameId> <YYYY-MM-DD> --yes");
+
+  const today = currentPuzzleDate();
+  // Mirrored server-side, but refusing here means an obvious mistake never
+  // leaves the machine — and the message can say why before anything is sent.
+  if (puzzleDate <= today) {
+    fail(
+      `refusing: ${puzzleDate} is not in the future (today is ${today}). ` +
+        "Today's puzzle is live and earlier ones are already played."
+    );
+  }
+
+  console.log(`today (US Eastern): ${today}   base: ${BASE_URL}\n`);
+  console.log(`  DELETE ${gameId} ${puzzleDate}`);
+  console.log("\nnote: this DELETES the row — it cannot be recovered.");
+  console.log("      the date reopens, and the content stops counting as already used.");
+
+  if (!confirmed) {
+    console.log("\nnothing sent. re-run with --yes to delete.");
+    return;
+  }
+
+  const res = await api("/api/admin/daily/unqueue", {
+    method: "POST",
+    body: JSON.stringify({ gameId, puzzleDate }),
+  });
+  console.log(`\n${res.gameId} ${res.puzzleDate} → deleted (was ${res.status})`);
+}
+
 // --- plumbing ---------------------------------------------------------------
 
 function flagValue(args, name) {
@@ -663,6 +696,7 @@ const commands = {
   submit: cmdSubmit,
   review: cmdReview,
   decide: cmdDecide,
+  unqueue: cmdUnqueue,
 };
 
 if (import.meta.url === `file://${process.argv[1]}`) {

@@ -598,3 +598,58 @@ export async function decideDraft(id: string, approve: boolean) {
   await store.decideDraftPack(id, approve);
   return { ok: true, id, approved: approve };
 }
+
+/**
+ * Removes a future puzzle so its date opens up again.
+ *
+ * The mirror image of `submitPack`, and it refuses on the same principle: it
+ * will not touch a puzzle that is live or already played. Two guards, both
+ * server-side because the CLI is not the only possible caller —
+ *
+ *  1. `puzzleDate` must be strictly in the future. Today's puzzle is being
+ *     played right now and past ones are somebody's history.
+ *  2. The row must have no attempts. `daily_attempts.puzzle_id` cascades on
+ *     delete, so removing a played puzzle would silently destroy attempt rows
+ *     and the streaks derived from them.
+ *
+ * Deleting a row also releases its content fingerprint, so the puzzle stops
+ * counting as "already used" and equivalent content may be generated again.
+ */
+export async function unqueuePuzzle(gameId: string, puzzleDate: string) {
+  const store = getDailyStore();
+
+  if (!getDailyGame(gameId)) {
+    throw new ServiceError("game_unknown", `Unknown daily game: ${gameId}`, 404);
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(puzzleDate)) {
+    throw new ServiceError("invalid_request", `puzzleDate must be YYYY-MM-DD, got "${puzzleDate}"`, 400);
+  }
+
+  const today = currentPuzzleDate();
+  if (puzzleDate <= today) {
+    throw new ServiceError(
+      "date_not_future",
+      `Refusing to unqueue ${puzzleDate}: only future puzzles can be removed, and today is ${today}. ` +
+        "Today's puzzle is live and earlier ones are already played.",
+      400
+    );
+  }
+
+  const puzzle = await store.getPuzzle(gameId, puzzleDate);
+  if (!puzzle) {
+    throw new ServiceError("not_found", `No ${gameId} puzzle queued for ${puzzleDate}`, 404);
+  }
+
+  const attempts = await store.countAttemptsForPuzzle(puzzle.id);
+  if (attempts > 0) {
+    throw new ServiceError(
+      "puzzle_has_attempts",
+      `Refusing to unqueue ${gameId} ${puzzleDate}: ${attempts} attempt(s) reference it, ` +
+        "and deleting the puzzle would cascade and destroy them.",
+      409
+    );
+  }
+
+  await store.deletePuzzleById(puzzle.id);
+  return { ok: true, gameId, puzzleDate, status: puzzle.status, deleted: true };
+}

@@ -61,6 +61,7 @@ node scripts/daily-content.mjs verify pack.json        # offline preflight
 node scripts/daily-content.mjs submit pack.json --yes  # guarded submit
 node scripts/daily-content.mjs review
 node scripts/daily-content.mjs decide <id> --approve
+node scripts/daily-content.mjs unqueue relay 2026-08-15 --yes   # remove a future puzzle
 ```
 
 `submit` refuses, rather than warns, on the ways to destroy content: a
@@ -68,6 +69,12 @@ node scripts/daily-content.mjs decide <id> --approve
 puzzle or a pending draft, and a puzzle whose content has been used before.
 `--force` overrides the date checks deliberately; the repeat check is enforced
 server-side and cannot be overridden.
+
+`unqueue` is the inverse and refuses on the same principle: future dates only,
+and never a puzzle that has attempts against it — `daily_attempts.puzzle_id`
+cascades on delete, so removing a played puzzle would take players' streaks with
+it. Removing a row frees its date *and* its content fingerprint. Like approval,
+it is deliberately not exposed as an MCP tool.
 
 ## Never repeating a puzzle
 

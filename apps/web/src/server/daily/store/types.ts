@@ -32,4 +32,14 @@ export interface DailyStore {
   insertPack(pack: DailyContentPack, status: "draft" | "queued", factCheck: unknown): Promise<void>;
   listDraftPacks(gameId?: string): Promise<DailyPuzzleRow[]>;
   decideDraftPack(id: string, approve: boolean): Promise<void>;
+  /**
+   * How many attempts reference this puzzle.
+   *
+   * `daily_attempts.puzzle_id` cascades on delete, so removing a puzzle row
+   * silently takes its attempts — and the players' streaks — with it. Callers
+   * must check this before deleting anything.
+   */
+  countAttemptsForPuzzle(puzzleId: string): Promise<number>;
+  /** Hard-deletes a puzzle row by id. Guard rails live in the service. */
+  deletePuzzleById(id: string): Promise<void>;
 }

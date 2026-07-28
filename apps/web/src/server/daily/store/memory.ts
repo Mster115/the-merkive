@@ -173,4 +173,16 @@ export class MemoryDailyStore implements DailyStore {
       this.puzzles.delete(id);
     }
   }
+
+  async countAttemptsForPuzzle(puzzleId: string): Promise<number> {
+    let count = 0;
+    for (const a of this.attempts.values()) {
+      if (a.puzzle_id === puzzleId) count += 1;
+    }
+    return count;
+  }
+
+  async deletePuzzleById(id: string): Promise<void> {
+    this.puzzles.delete(id);
+  }
 }
