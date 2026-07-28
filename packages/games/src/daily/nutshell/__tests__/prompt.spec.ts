@@ -50,6 +50,23 @@ describe("nutshell content brief", () => {
     expect(prompt).not.toMatch(/pool of \d+-\d+ candidate/i);
   });
 
+  it("points at daily_grid before the manual procedure", () => {
+    // The pipeline has a tool that does this construction. A brief that only
+    // taught hand-building contradicted it outright, and a run following the
+    // brief would hand-build a grid the tool would have produced correctly.
+    // Order matters: the tool has to be offered before the fallback it replaces.
+    const prompt = generatePrompt("2026-07-27");
+
+    const tool = prompt.indexOf("daily_grid");
+    const manual = prompt.search(/design the interlocking grid yourself/i);
+
+    expect(tool).toBeGreaterThan(-1);
+    expect(manual).toBeGreaterThan(-1);
+    expect(tool).toBeLessThan(manual);
+    // …and the manual half must be named as the fallback, not a second opinion.
+    expect(prompt).toMatch(/manual fallback/i);
+  });
+
   it("ships a worked example the solver actually accepts", () => {
     // The example is the one part of the brief a constructor copies verbatim.
     // If it stops interlocking, everything downstream inherits the mistake.

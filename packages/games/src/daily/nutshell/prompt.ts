@@ -101,7 +101,14 @@ function describeExample(pattern: PatternTemplate): string {
 /**
  * The content brief for a Nutshell puzzle.
  *
- * It asks for a *constructed* grid rather than a loose pool of nice words,
+ * Two callers, two paths. The pipeline's `daily_grid` MCP tool performs the
+ * construction directly, so the brief points there first; the manual procedure
+ * below it is the fallback for a caller without that tool. Both are kept because
+ * a brief that only described hand-construction contradicted the tool, and a
+ * brief that only named the tool would be useless without it.
+ *
+ * The manual path asks for a *constructed* grid rather than a loose pool of nice
+ * words,
  * because `solveGrid` verifies an interlock — it does not discover one.
  * Measured: a pool of ~1,200 curated everyday 3-5 letter words yields NO fill
  * on any of the seven patterns — the search exhausts, and neither a 20M step
@@ -126,6 +133,13 @@ export function generatePrompt(puzzleDate: string): string {
   const totalSlots = pattern.across.length + pattern.down.length;
 
   return `Construct a 5x5 mini crossword grid for date ${puzzleDate}, then submit its words.
+
+FIRST, IF YOU HAVE THE \`daily_grid\` TOOL: call it and skip the construction
+below. It performs exactly this construction for you — returning ${totalSlots}
+interlocking words that have never been used, optionally built around a topical
+seed or theme — and its output is your candidate list. Write a clue for each word
+and submit. Do not hand-build a grid when that tool is available; everything from
+"IMPORTANT" down is the manual fallback for callers without it.
 
 IMPORTANT: you must design the interlocking grid yourself. The server's solver
 verifies a construction; it does not discover one. Submitting an assortment of
