@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { Button, Card, Panel, Pill, ConfettiBurst } from "@merky/ui";
+import { Button, Card, Panel, Pill, ConfettiBurst, CloseIcon } from "@merky/ui";
 import type { DailyPlayProps } from "../types";
 import type { RelayPublicState } from "./types";
 
@@ -48,6 +48,7 @@ export function Play({
 }: DailyPlayProps) {
   const state = publicState as RelayPublicState;
   const [ariaMessage, setAriaMessage] = React.useState<string>("");
+  const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
   const [copied, setCopied] = React.useState<boolean>(false);
 
   const {
@@ -68,6 +69,7 @@ export function Play({
 
   const handleAddWord = async (word: string) => {
     if (isOver) return;
+    setErrorMsg(null);
     const res = await act("add_word", { word });
     if (res.ok) {
       const nextLastChar = word.charAt(word.length - 1).toUpperCase();
@@ -79,11 +81,13 @@ export function Play({
       );
     } else {
       setAriaMessage(res.error);
+      setErrorMsg(res.error);
     }
   };
 
   const handleRemoveLast = async () => {
     if (isOver || chain.length <= 1) return;
+    setErrorMsg(null);
     const res = await act("remove_last");
     if (res.ok) {
       setAriaMessage(
@@ -91,16 +95,19 @@ export function Play({
       );
     } else {
       setAriaMessage(res.error);
+      setErrorMsg(res.error);
     }
   };
 
   const handleSubmit = async () => {
     if (isOver) return;
+    setErrorMsg(null);
     const res = await act("submit");
     if (res.ok) {
       setAriaMessage(t("daily.relay.ariaSolved") || "Puzzle solved!");
     } else {
       setAriaMessage(res.error);
+      setErrorMsg(res.error);
     }
   };
 
@@ -147,6 +154,19 @@ export function Play({
           {isFailed && <Pill tone="danger">{t("daily.relay.failedTitle") || "Failed"}</Pill>}
         </div>
       </Card>
+
+      {/* Error feedback — sits right under the header so it's seen
+          immediately, matching the Nexus error banner placement. */}
+      {errorMsg && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="mb-drop flex items-start gap-2 p-3 border-2 border-black rounded shadow-[var(--mb-shadow)] bg-[var(--mb-danger)] text-[var(--mb-on-danger)]"
+        >
+          <CloseIcon className="w-4 h-4 shrink-0 mt-0.5" />
+          <p className="text-xs sm:text-sm font-bold leading-snug">{errorMsg}</p>
+        </div>
+      )}
 
       {/* Chain Container */}
       <Panel className="p-4 space-y-3">
@@ -202,25 +222,27 @@ export function Play({
           {wordBank.map((w) => {
             const isUsed = usedWords.includes(w);
             const links = w.charAt(0).toUpperCase() === currentLastChar;
+            const isPlayable = links && !isUsed && !isOver;
 
             return (
               <button
                 key={w}
                 type="button"
-                disabled={isUsed || isOver}
+                disabled={!isPlayable}
+                title={!isUsed && !links ? `Needs to start with ${currentLastChar}` : undefined}
                 onClick={() => handleAddWord(w)}
-                className={`flex items-center justify-center px-3 py-2 rounded-md border-2 border-black font-black uppercase text-sm transition-all min-h-[44px] select-none ${
+                className={`flex items-center justify-center px-3 py-2 rounded-md border-2 font-black uppercase text-sm transition-all min-h-[44px] select-none ${
                   isUsed
-                    ? "opacity-30 bg-[var(--mb-surface-3)] line-through cursor-not-allowed border-[var(--mb-outline)]"
-                    : links
-                    ? "bg-[var(--mb-surface)] hover:bg-[var(--mb-surface-3)] shadow-[2px_2px_0_0_#000] active:translate-x-0.5 active:translate-y-0.5"
-                    : "bg-[var(--mb-surface)] opacity-70 hover:opacity-100 shadow-[2px_2px_0_0_#000]"
+                    ? "bg-[var(--mb-surface-3)] text-[var(--mb-text-dim)] line-through decoration-2 decoration-[var(--mb-danger)] cursor-not-allowed border-[var(--mb-outline)]"
+                    : isPlayable
+                    ? "border-black bg-[var(--mb-surface)] hover:bg-[var(--mb-surface-3)] shadow-[2px_2px_0_0_#000] active:translate-x-0.5 active:translate-y-0.5"
+                    : "opacity-40 bg-[var(--mb-surface-3)] text-[var(--mb-text-dim)] border-[var(--mb-outline)] cursor-not-allowed"
                 }`}
               >
                 {/* Bank tiles sit on --mb-surface, so the colour emphasis is
-                    safe here; only the tinted chain chips need the underline
-                    treatment. */}
-                <LinkedWord word={w} tinted={false} />
+                    safe here; only playable tiles get it, so a glance at the
+                    letter colour alone tells you which tiles are live. */}
+                <LinkedWord word={w} tinted={!isPlayable} />
               </button>
             );
           })}
