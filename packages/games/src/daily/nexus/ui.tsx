@@ -2,7 +2,7 @@ import * as React from "react";
 import type { DailyPlayProps } from "../types";
 import type { NexusPublicState, NexusCellPublic } from "./types";
 import { pointsForAttempt } from "./types";
-import { Button, Card, Panel, Pill, CheckIcon, CloseIcon, cn, EyeIcon, QuestionIcon } from "@merky/ui";
+import { Button, Card, Panel, Pill, CheckIcon, CloseIcon, cn, EyeIcon, InfoIcon, QuestionIcon } from "@merky/ui";
 
 export const NexusPlay: React.FC<DailyPlayProps> = ({
   publicState,
@@ -177,6 +177,31 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
           </div>
         </div>
       </Card>
+
+      {/* Error / miss feedback — sits right under the header so it's seen
+          immediately, instead of buried below the answer panel's buttons
+          where a submit could scroll it off-screen on a phone. */}
+      {(errorMsg || missMsg) && (
+        <div
+          role="status"
+          aria-live="polite"
+          className={cn(
+            "mb-drop flex items-start gap-2 p-3 border-2 border-black rounded shadow-[var(--mb-shadow)]",
+            errorMsg && errorCode === "close_spelling"
+              ? "bg-[var(--mb-gold)] text-[var(--mb-on-gold)]"
+              : "bg-[var(--mb-danger)] text-[var(--mb-on-danger)]"
+          )}
+        >
+          {errorMsg && errorCode === "close_spelling" ? (
+            <InfoIcon className="w-4 h-4 shrink-0 mt-0.5" />
+          ) : (
+            <CloseIcon className="w-4 h-4 shrink-0 mt-0.5" />
+          )}
+          <p className="text-xs sm:text-sm font-bold leading-snug">
+            {errorMsg ?? missMsg}
+          </p>
+        </div>
+      )}
 
       {/* 3x3 Trivia Matrix Grid */}
       <Card className="p-2 sm:p-3 bg-[var(--mb-surface-2)] border-[3px] border-black shadow-[var(--mb-shadow-lg)]">
@@ -381,23 +406,6 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
                 </Button>
               </div>
             </div>
-          )}
-
-          {/* One line, announced either way: a rejected submit (empty, locked,
-              "close — check your spelling") or a guess that was simply wrong. */}
-          {(errorMsg || missMsg) && (
-            <p
-              role="status"
-              aria-live="polite"
-              className={cn(
-                "text-xs font-bold",
-                errorMsg && errorCode === "close_spelling"
-                  ? "text-[var(--mb-gold)]"
-                  : "text-[var(--mb-danger)]"
-              )}
-            >
-              {errorMsg ?? missMsg}
-            </p>
           )}
         </Panel>
       )}
