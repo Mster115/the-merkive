@@ -4,6 +4,7 @@ import { resetDailyStore } from "../store";
 import { MemoryDailyStore } from "../store/memory";
 import * as service from "../service";
 import { ServiceError } from "../../errors";
+import { currentPuzzleDate } from "../timezone";
 
 describe("daily service layer", () => {
   beforeEach(() => {
@@ -67,5 +68,129 @@ describe("daily service layer", () => {
     await service.decideDraft(draftId, true);
     const updatedDrafts = await service.listDrafts();
     expect(updatedDrafts).toHaveLength(0);
+  });
+});
+
+describe("unqueuePuzzle", () => {
+  /** Dates are derived from the real rollover so these never rot. */
+  const today = currentPuzzleDate();
+  const shift = (days: number) => {
+    const d = new Date(`${today}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + days);
+    return d.toISOString().slice(0, 10);
+  };
+  const future = shift(5);
+
+  /** Verified solvable: STONE→ECHO→OASIS→SNOW→WHALE. */
+  const relayPayload = {
+    startWord: "STONE",
+    endWord: "WHALE",
+    wordBank: [
+      "ECHO", "OASIS", "SNOW", "WHALE", "EAGLE", "ORBIT",
+      "SPARK", "WAGON", "TIGER", "NOVEL", "ERASE", "WHEAT",
+    ],
+  };
+
+  let store: MemoryDailyStore;
+  beforeEach(() => {
+    store = new MemoryDailyStore();
+    resetDailyStore(store);
+  });
+
+  const seed = (puzzleDate: string, gameId = "relay") =>
+    store.insertPack({ gameId, puzzleDate, payload: relayPayload, sourceRefs: [] }, "queued", null);
+
+  it("deletes a future puzzle and frees its date", async () => {
+    await seed(future);
+    expect(await store.getPuzzle("relay", future)).not.toBeNull();
+
+    const res = await service.unqueuePuzzle("relay", future);
+
+    expect(res).toMatchObject({ ok: true, gameId: "relay", puzzleDate: future, deleted: true });
+    expect(await store.getPuzzle("relay", future)).toBeNull();
+  });
+
+  it("refuses today's puzzle — it is live", async () => {
+    await seed(today);
+    await expect(service.unqueuePuzzle("relay", today)).rejects.toMatchObject({
+      code: "date_not_future",
+      status: 400,
+    });
+    expect(await store.getPuzzle("relay", today)).not.toBeNull();
+  });
+
+  it("refuses a past puzzle — it is somebody's history", async () => {
+    const past = shift(-3);
+    await seed(past);
+    await expect(service.unqueuePuzzle("relay", past)).rejects.toMatchObject({
+      code: "date_not_future",
+    });
+    expect(await store.getPuzzle("relay", past)).not.toBeNull();
+  });
+
+  it("refuses to delete a puzzle that has attempts against it", async () => {
+    await seed(future);
+    const puzzle = (await store.getPuzzle("relay", future))!;
+    await store.upsertAttempt({
+      id: "attempt-1",
+      device_id: "device-1",
+      puzzle_id: puzzle.id,
+      game_id: "relay",
+      puzzle_date: future,
+      phase: "playing",
+      public_state: {},
+      secret_state: {},
+      version: 1,
+      status: "in_progress",
+      on_time: true,
+      started_at: new Date().toISOString(),
+      completed_at: null,
+      duration_ms: null,
+      score: null,
+      share_text: null,
+      updated_at: new Date().toISOString(),
+    });
+
+    await expect(service.unqueuePuzzle("relay", future)).rejects.toMatchObject({
+      code: "puzzle_has_attempts",
+      status: 409,
+    });
+    // The cascade never fired, so the puzzle and its attempt both survive.
+    expect(await store.getPuzzle("relay", future)).not.toBeNull();
+    expect(await store.countAttemptsForPuzzle(puzzle.id)).toBe(1);
+  });
+
+  it("404s when no puzzle is queued for that date", async () => {
+    await expect(service.unqueuePuzzle("relay", future)).rejects.toMatchObject({
+      code: "not_found",
+      status: 404,
+    });
+  });
+
+  it("rejects an unknown game and a malformed date", async () => {
+    await expect(service.unqueuePuzzle("not-a-game", future)).rejects.toMatchObject({
+      code: "game_unknown",
+    });
+    await expect(service.unqueuePuzzle("relay", "07-2026-30")).rejects.toMatchObject({
+      code: "invalid_request",
+    });
+  });
+
+  it("releases the content fingerprint, so the same puzzle can be built again", async () => {
+    const laterDate = shift(6);
+    await service.submitPack("relay", future, relayPayload, [], { status: "passed" });
+
+    // While it is queued, the same content anywhere else is a duplicate.
+    await expect(
+      service.submitPack("relay", laterDate, relayPayload, [], { status: "passed" })
+    ).rejects.toMatchObject({ code: "duplicate_puzzle", status: 409 });
+
+    await service.unqueuePuzzle("relay", future);
+
+    // Once removed it stops counting as used — this is what makes a purge-then-
+    // refill run possible without every pack colliding with what it replaced.
+    await expect(
+      service.submitPack("relay", laterDate, relayPayload, [], { status: "passed" })
+    ).resolves.toMatchObject({ ok: true, status: "queued" });
   });
 });

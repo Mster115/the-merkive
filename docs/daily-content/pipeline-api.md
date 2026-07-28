@@ -195,6 +195,31 @@ Body: `{ "approve": false }` → row is **deleted**.
 
 Response: `{ "ok": true, "id": "<id>", "approved": true|false }`.
 
+## `POST /api/admin/daily/unqueue`
+
+Body: `{ "gameId": "relay", "puzzleDate": "2026-08-15" }` → the row is
+**deleted**, freeing both the date and the content fingerprint.
+
+Response: `{ "ok": true, "gameId", "puzzleDate", "status", "deleted": true }`.
+
+The mirror image of `submit-pack`, and it refuses on the same principle — it
+will not touch a puzzle that is live or already played:
+
+| Refusal | Code | Why |
+| --- | --- | --- |
+| `puzzleDate` ≤ today | `date_not_future` 400 | Today's puzzle is live; earlier ones are somebody's history |
+| No puzzle at that date | `not_found` 404 | Nothing to remove |
+| Attempts reference the row | `puzzle_has_attempts` 409 | `daily_attempts.puzzle_id` **cascades on delete**, so removing a played puzzle would silently destroy attempts and the streaks derived from them |
+
+Both guards are server-side, because the CLI is not the only possible caller.
+
+Deleting a row also releases its fingerprint, so that content stops counting as
+"already used" and may be generated again. That is what makes a purge-then-refill
+run possible without every new pack colliding with the one it replaced.
+
+**This is deliberately not an MCP tool.** Like draft approval, deciding to
+destroy queued content is the operator's call, not a content routine's.
+
 ## Worked example
 
 Prefer the CLI, which applies every guard above:

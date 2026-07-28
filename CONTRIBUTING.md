@@ -162,12 +162,12 @@ Documentation improvements are always welcome:
 - Fix typos, clarify instructions, add examples
 - No issue required — just open a PR
 
-Two docs are load-bearing rather than descriptive, and go stale silently:
+Two things are load-bearing rather than descriptive, and go stale silently:
 [docs/daily-content/](docs/daily-content/README.md) states the content schemas a
-game's `validatePack` enforces, and
-[routine-system-prompt.md](docs/daily-content/routine-system-prompt.md) embeds
-them for a generator that has no repo access. Change a daily game's payload
-shape and both must change in the same PR.
+game's `validatePack` enforces, and the daily-fill skills under
+[`.claude/skills/daily-merkive-*`](docs/daily-content/scheduled-tasks.md) are the
+live instructions three scheduled tasks execute every night. Change a daily
+game's payload shape and both must change in the same PR.
 
 ---
 
