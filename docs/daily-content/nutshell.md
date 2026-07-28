@@ -198,6 +198,12 @@ words are submitted.
 
 ## How to construct a grid
 
+> **If you have the `daily_grid` MCP tool, you do not do any of this.** That tool
+> performs this construction and returns ten interlocking, never-used words,
+> optionally built around a topical seed or theme. This section — and the
+> matching half of the `daily_brief` output — is the manual fallback for a caller
+> without it. See [mcp-server.md](mcp-server.md).
+
 Worked example on `staircase_tl_br` (`##...` top, `...##` bottom):
 
 ```

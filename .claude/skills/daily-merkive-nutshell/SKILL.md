@@ -20,8 +20,14 @@ submit for them.
 
 Deeper background, only if something here is ambiguous:
 [docs/daily-content/nutshell.md](../../../docs/daily-content/nutshell.md) for the
-full spec, and `daily_brief` for the live payload schema. Trust `daily_brief` over
-any document — the code is the contract.
+full spec, and `daily_brief` for the live payload schema and grid geometry —
+both generated from the code, so trust them over any document.
+
+**One exception, and it is the important one:** `daily_brief` also carries a
+manual grid-construction procedure for callers that have no `daily_grid` tool.
+**You have that tool, so that section does not apply to you.** The brief says so
+itself now, but if you ever see it telling you to design the interlock by hand,
+that is the fallback path — call `daily_grid` regardless.
 
 ## The solver builds the grid, not you
 
