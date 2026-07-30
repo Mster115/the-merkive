@@ -519,13 +519,16 @@ export const Play: React.FC<DailyPlayProps> = ({
         )}
       </div>
 
-      {/* Action Controls */}
-      <div className="w-full flex flex-wrap gap-2 justify-center my-3">
+      {/* Action Controls — an even four-across row on a phone rather than a
+          wrapping pile. Wrapped, these ran to three ragged rows between the
+          grid and the keyboard, which is the space that pushed the keyboard
+          off-screen entirely. */}
+      <div className="w-full grid grid-cols-4 gap-1.5 my-2 sm:my-3 sm:flex sm:flex-wrap sm:gap-2 sm:justify-center">
         <Button
           onClick={handleCheckCell}
           disabled={phase !== "in_progress"}
           variant="secondary"
-          className="min-h-[44px] text-xs font-bold px-3"
+          className="min-h-[44px] text-[11px] leading-tight sm:text-xs font-bold px-1 sm:px-3"
         >
           {t("daily.nutshell.check_cell")}
         </Button>
@@ -533,7 +536,7 @@ export const Play: React.FC<DailyPlayProps> = ({
           onClick={handleCheckAll}
           disabled={phase !== "in_progress"}
           variant="secondary"
-          className="min-h-[44px] text-xs font-bold px-3"
+          className="min-h-[44px] text-[11px] leading-tight sm:text-xs font-bold px-1 sm:px-3"
         >
           {t("daily.nutshell.check_all")}
         </Button>
@@ -541,7 +544,7 @@ export const Play: React.FC<DailyPlayProps> = ({
           onClick={handleRevealCell}
           disabled={phase !== "in_progress"}
           variant="secondary"
-          className="min-h-[44px] text-xs font-bold px-3"
+          className="min-h-[44px] text-[11px] leading-tight sm:text-xs font-bold px-1 sm:px-3"
         >
           {t("daily.nutshell.reveal_cell")}
         </Button>
@@ -549,24 +552,34 @@ export const Play: React.FC<DailyPlayProps> = ({
           onClick={handleSubmit}
           disabled={phase !== "in_progress"}
           variant="primary"
-          className="min-h-[44px] text-xs font-bold px-4"
+          className="min-h-[44px] text-[11px] leading-tight sm:text-xs font-bold px-1 sm:px-4"
         >
           {t("daily.nutshell.submit")}
         </Button>
-        {phase === "in_progress" && (
+      </div>
+
+      {/* Give up steps down from a full-width red bar to a quiet ghost
+          control, matching Nexus and Relay: it is the one action here you
+          cannot take back, so it should not be the loudest thing on screen. */}
+      {phase === "in_progress" && (
+        <div className="w-full flex justify-center mb-2">
           <Button
             onClick={handleGiveUp}
-            variant="danger"
-            className="min-h-[44px] text-xs font-bold px-3"
+            variant="ghost"
+            className="min-h-[44px] text-xs font-bold px-3 text-[var(--mb-text-dim)] hover:text-[var(--mb-danger)]"
           >
             {t("daily.nutshell.give_up")}
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* On-screen Virtual Keyboard */}
+      {/* On-screen Virtual Keyboard — pinned to the bottom of the viewport on
+          a phone. Unpinned it sat below the fold under the grid and the
+          action row, so typing a letter meant scrolling down to the keyboard,
+          which pushed the grid you are filling out of sight. Static from sm
+          up, where the whole board already fits. */}
       {phase === "in_progress" && (
-        <div className="w-full flex flex-col gap-1.5 items-center">
+        <div className="sticky bottom-0 z-10 -mx-4 w-[calc(100%+2rem)] flex flex-col gap-1.5 items-center border-t-2 border-black bg-[var(--mb-bg)] px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:static sm:mx-0 sm:w-full sm:border-0 sm:bg-transparent sm:p-0">
           {keyboardRows.map((row, rowIdx) => (
             <div key={rowIdx} className="flex gap-1 justify-center w-full">
               {row.map((key) => (
