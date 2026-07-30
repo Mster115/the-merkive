@@ -81,7 +81,27 @@ an error that quotes a secret has leaked it into every log that catches it.
 | `daily_history` | Fingerprints, which of your candidate items are already spent, and answers from dates already played | Lets a generator prove its puzzle is new without seeing what it must differ from |
 | `daily_grid` | A verified Nutshell interlock, ten words, guaranteed unused — optionally built around a topical `seedWords` answer or a loose `themeWords` vocabulary | Crossword construction is the hardest task in the pipeline; this removes it, and lets the week's culture into the answers without giving up verified construction |
 | `daily_check` | `wouldSubmit`, blockers, warnings, and where the pack would land | Dry run against every rule before anything is sent |
-| `daily_submit` | Submission result plus item overlaps | Refuses past dates, occupied dates and repeat puzzles |
+| `daily_submit` | Submission result plus item overlaps | Refuses past dates, occupied dates and repeat puzzles; `replaceDraft: true` replaces a draft, never a queued puzzle |
+
+### `replaceDraft` — the one refusal a generator may answer
+
+A draft normally blocks its date, so a pending human decision is never silently
+overwritten. That guard also walled generators in: having landed a pack as a
+draft, one could not resubmit (the draft blocks the date) and cannot approve
+(deliberately not a tool). A pack drafted by mistake — a mistyped
+`factCheck.status`, most often — had no move left.
+
+`replaceDraft: true` is the way out, and its blast radius is exactly one draft:
+
+- ✅ Replaces a **draft** on a future date.
+- ❌ Never replaces a **queued** puzzle. That blocker is unconditional.
+- ❌ Never reaches today or the past.
+- ❌ Never bypasses the repeat check — except for the draft it is replacing,
+  which must not count as a repeat of itself, or fixing only the status would
+  be refused.
+
+Approval remains outside the toolset. `replaceDraft` lets a generator correct
+its own mistake; it does not let one decide that unverified content goes live.
 
 ## Selective disclosure
 
