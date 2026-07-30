@@ -104,10 +104,15 @@ Nutshell's exposure depends entirely on whether the puzzle asserts anything abou
 the world:
 
 - **`"passed"`** — only an all-everyday grid clued purely by definition and
-  wordplay. No seed word, no clue naming a title, date, person or event.
+  wordplay. No seed word, no clue naming a title, date, person or event. Such a
+  grid **is** meeting its bar, so it queues — send `"passed"`, not some third
+  value, and never omit `factCheck` and leave it to drift into a draft.
 - **`"needs_review"`** — everything else. If the grid contains a seed word, or
   any clue asserts a real-world fact, submit as a draft with a `sourceRef` for
   each verifying page.
+
+Those two strings are the only permitted values; anything else is rejected. See
+[the gate](../_daily-shared/run-procedure.md#the-draft--queued-gate).
 
 ## Report
 

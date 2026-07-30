@@ -113,7 +113,9 @@ block halfway through a cell.
 - Music — officialcharts.com (UK charts), Wikipedia award pages
 - Science and space — phys.org, science.nasa.gov, riken.jp,
   periodic-table.rsc.org, usgs.gov glossaries, tsunami.gov
-- History and culture — smithsonianmag.com, unesco.org/en/articles
+- History and culture — unesco.org/en/articles, cnrs.fr/en/press (research
+  institutions publish reachable, citable press releases — so do
+  kobe-u.ac.jp and most universities)
 - Language and words — etymonline.com
 - Sport — espn.com, nbcolympics.com, and federation or team sites
   (olympic.ca, englandfootball.com, mlssoccer.com)
@@ -148,7 +150,7 @@ remedies — read the error before reacting.
 | "unable to fetch from X" | Refused on our side, not the publisher's | Treat as unavailable. Cite something else |
 
 - **403 tier:** Britannica, Merriam-Webster, nobelprize.org, thebookerprizes.com,
-  the Michelin Guide, whc.unesco.org.
+  the Michelin Guide, whc.unesco.org, smithsonianmag.com, museodelprado.es.
 - **Paywall tier:** Variety, Billboard, the Japan Times.
 - **Refused tier:** bbc.com, theguardian.com, reuters.com, apnews.com,
   arstechnica.com, theverge.com, dw.com. Do not go hunting for another tool that

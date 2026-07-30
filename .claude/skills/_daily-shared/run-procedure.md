@@ -66,12 +66,23 @@ job, not yours.
 
 ## The draft / queued gate
 
-`factCheck.status` decides whether a pack goes live unreviewed:
+`factCheck.status` decides whether a pack goes live unreviewed. **It takes
+exactly two values. There are no others, and inventing one is rejected:**
 
-- **`"passed"`** — queues directly. Only when the game's evidence bar is met in
-  full.
-- **`"needs_review"`** — holds the pack as a draft for a human, visible in
-  `pnpm daily review`.
+| Send literally | Effect |
+| --- | --- |
+| `"passed"` | Queues directly. Only when the game's evidence bar is met in full. |
+| `"needs_review"` | Holds the pack as a draft for a human, in `pnpm daily review`. |
+
+Anything else — `"unreviewed"`, `"not_applicable"`, `"pass"`, `"PASSED"` — is a
+`400 invalid_fact_check_status`. Omitting `factCheck` entirely is legal and
+drafts, but say `"needs_review"` if you mean it.
+
+**Do not reach for `"not_applicable"` when a game asserts no facts.** That game
+has met its bar — which is `"passed"`. A Relay pack, or an all-everyday Nutshell
+grid, is *supposed* to queue. Marking it otherwise strands content that needed no
+review at all: this silently drafted three days of eligible Relay and Nutshell
+content once, and the queue came within one approval of serving nothing.
 
 **Never mark a pack passed because the queue is short.** A short queue is a
 recoverable problem; a wrong answer key that shipped is not. Each game's skill
