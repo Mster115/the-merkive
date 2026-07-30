@@ -530,6 +530,15 @@ export async function getPrompt(gameId: string, puzzleDate: string) {
   };
 }
 
+/**
+ * The only two values `factCheck.status` may carry.
+ *
+ * `"passed"` queues the pack directly; `"needs_review"` holds it as a draft.
+ * Anything else is a typo, and used to draft silently — see `submitPack`.
+ */
+export const FACT_CHECK_STATUSES = ["passed", "needs_review"] as const;
+export type FactCheckStatus = (typeof FACT_CHECK_STATUSES)[number];
+
 export async function submitPack(
   gameId: string,
   puzzleDate: string,
@@ -564,12 +573,33 @@ export async function submitPack(
     );
   }
 
-  const isFactChecked =
-    typeof factCheck === "object" &&
-    factCheck !== null &&
-    (factCheck as { status?: string }).status === "passed";
+  // `factCheck` stays free-form, but `status` is a two-value contract, and
+  // getting it wrong used to fail *silently*: any unrecognised value simply
+  // drafted, so a pack that should have queued sat waiting for a human nobody
+  // knew to summon. Observed in the wild: "unreviewed", "not_applicable", and
+  // packs omitting factCheck entirely — which is how three days of Relay and
+  // Nutshell content, all of it eligible to queue, ended up as drafts.
+  //
+  // Reject an unrecognised status rather than guessing what it meant. Omitting
+  // factCheck altogether stays legal and still drafts: "I did not check" is a
+  // real answer, "I checked and the answer is "not_applicable"" is a typo.
+  const factCheckStatus =
+    typeof factCheck === "object" && factCheck !== null
+      ? (factCheck as { status?: unknown }).status
+      : undefined;
 
-  const status = isFactChecked ? "queued" : "draft";
+  if (factCheckStatus !== undefined && !FACT_CHECK_STATUSES.includes(factCheckStatus as FactCheckStatus)) {
+    throw new ServiceError(
+      "invalid_fact_check_status",
+      `factCheck.status must be one of ${FACT_CHECK_STATUSES.map((s) => `"${s}"`).join(" or ")}, ` +
+        `got ${JSON.stringify(factCheckStatus)}. ` +
+        `"passed" queues the pack; "needs_review" holds it as a draft for a human. ` +
+        `Omit factCheck entirely if you did not fact-check at all.`,
+      400
+    );
+  }
+
+  const status = factCheckStatus === "passed" ? "queued" : "draft";
   await store.insertPack(valid.pack, status, factCheck);
 
   return {

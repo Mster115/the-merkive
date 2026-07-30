@@ -71,6 +71,71 @@ describe("daily service layer", () => {
   });
 });
 
+describe("factCheck.status contract", () => {
+  const today = currentPuzzleDate();
+  const shift = (days: number) => {
+    const d = new Date(`${today}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + days);
+    return d.toISOString().slice(0, 10);
+  };
+  const relayPayload = {
+    startWord: "STONE",
+    endWord: "WHALE",
+    wordBank: [
+      "ECHO", "OASIS", "SNOW", "WHALE", "EAGLE", "ORBIT",
+      "SPARK", "WAGON", "TIGER", "NOVEL", "ERASE", "WHEAT",
+    ],
+  };
+
+  beforeEach(() => {
+    resetDailyStore(new MemoryDailyStore());
+  });
+
+  it('"passed" queues and "needs_review" drafts', async () => {
+    await expect(
+      service.submitPack("relay", shift(3), relayPayload, [], { status: "passed" })
+    ).resolves.toMatchObject({ status: "queued" });
+
+    resetDailyStore(new MemoryDailyStore());
+    await expect(
+      service.submitPack("relay", shift(3), relayPayload, [], { status: "needs_review" })
+    ).resolves.toMatchObject({ status: "draft" });
+  });
+
+  it("omitting factCheck entirely is legal and drafts", async () => {
+    // "I did not fact-check" is a real answer; only a wrong *value* is a typo.
+    await expect(
+      service.submitPack("relay", shift(3), relayPayload, [])
+    ).resolves.toMatchObject({ status: "draft" });
+  });
+
+  // These are the exact values live fill runs sent. Each one silently drafted
+  // a pack that was eligible to queue, which is how Nutshell came within one
+  // approval of serving nothing.
+  it.each(["not_applicable", "unreviewed", "PASSED", "pass", "", null])(
+    "rejects %j rather than silently drafting",
+    async (bad) => {
+      await expect(
+        service.submitPack("relay", shift(3), relayPayload, [], { status: bad })
+      ).rejects.toMatchObject({ code: "invalid_fact_check_status", status: 400 });
+    }
+  );
+
+  it("names both valid values in the error, so the fix is obvious", async () => {
+    await expect(
+      service.submitPack("relay", shift(3), relayPayload, [], { status: "not_applicable" })
+    ).rejects.toThrow(/"passed".*"needs_review"/);
+  });
+
+  it("nothing is written when the status is rejected", async () => {
+    const date = shift(3);
+    await expect(
+      service.submitPack("relay", date, relayPayload, [], { status: "unreviewed" })
+    ).rejects.toThrow();
+    expect(await service.listDrafts("relay")).toHaveLength(0);
+  });
+});
+
 describe("unqueuePuzzle", () => {
   /** Dates are derived from the real rollover so these never rot. */
   const today = currentPuzzleDate();

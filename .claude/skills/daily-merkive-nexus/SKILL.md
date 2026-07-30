@@ -110,7 +110,11 @@ following hold for all nine cells**:
 Anything short of that is `"needs_review"`, which holds the pack as a draft. A
 `sourceRef` is required for every cell either way. Never pass a pack because the
 queue is short — see the draft gate in
-[run-procedure.md](../_daily-shared/run-procedure.md).
+[run-procedure.md](../_daily-shared/run-procedure.md#the-draft--queued-gate).
+
+`"passed"` and `"needs_review"` are the **only** permitted values, sent
+literally. Anything else — `"unreviewed"` among them — is rejected outright, so a
+typo costs you the run rather than quietly drafting.
 
 ## Report
 

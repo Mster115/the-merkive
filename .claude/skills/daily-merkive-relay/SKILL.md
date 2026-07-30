@@ -81,13 +81,21 @@ any day where a theme does not fall out naturally.
 
 ## The fact-check bar
 
-Relay is closed-vocabulary wordplay verified by the solver, so it may carry
-`factCheck.status: "passed"` and queue directly as a matter of course.
+Relay is closed-vocabulary wordplay verified by the solver, so **the normal case
+is `factCheck.status: "passed"`, and it queues directly.** Send that string
+literally.
+
+There is no "not applicable" here. Asserting no facts *is* how Relay meets its
+bar, so it passes — marking it anything else strands a puzzle that needed no
+review and leaves the queue a day shorter than you think.
 
 The one exception: if you theme the bank in a way that **asserts a real-world
 fact** — a title, a date, a person, an event — that assertion needs a source like
 any other, and the pack goes in as `"needs_review"` with a `sourceRef`. A bank of
 ordinary words that merely evokes autumn asserts nothing and stays `"passed"`.
+
+Those two strings are the only permitted values; anything else is rejected. See
+[the gate](../_daily-shared/run-procedure.md#the-draft--queued-gate).
 
 ## Report
 

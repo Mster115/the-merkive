@@ -118,10 +118,20 @@ Body:
   `400 invalid_request`.
 - `sourceRefs` must be an array or it is coerced to `[]`.
 - `payload` is opaque to the platform and **includes the answer key**.
-- `factCheck` is free-form and stored verbatim, with exactly one behaviour
-  attached to it: `status === "passed"` (string, exact) makes the pack land as
-  `queued`; anything else — including omitting `factCheck` — lands it as
-  `draft`.
+- `factCheck` is free-form and stored verbatim **except for `status`**, which is
+  a closed two-value enum:
+
+  | `factCheck.status` | Result |
+  | --- | --- |
+  | `"passed"` | pack lands `queued` |
+  | `"needs_review"` | pack lands `draft` |
+  | omitted, or no `factCheck` at all | pack lands `draft` |
+  | anything else | `400 invalid_fact_check_status`, nothing written |
+
+  The rejection is deliberate. An unrecognised status used to draft silently, so
+  a pack that should have queued waited for a human nobody knew to summon —
+  `"not_applicable"` and `"unreviewed"` both stranded eligible content this way.
+  A game that asserts no facts has *met* its bar and should send `"passed"`.
 
 The service builds the envelope `{ gameId, puzzleDate, payload, sourceRefs }`
 and hands it to that game's `validatePack`. Rejection is
