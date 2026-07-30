@@ -294,8 +294,15 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
         </div>
       </Card>
 
-      {/* Selected Cell Action Panel */}
+      {/* Selected Cell Action Panel — docked to the bottom of the viewport on
+          a phone. The 3x3 grid alone fills a phone screen, so tapping a cell
+          used to open this panel below the fold: you scrolled down to answer,
+          then back up to pick the next cell, nine times over. Pinned, the
+          question and the input are always where your thumb already is.
+          `max-h`/`overflow-y-auto` keep a long question from swallowing the
+          grid, and it reverts to normal flow from sm up where both fit. */}
       {selectedCoords && selectedCell && (
+        <div className="sticky bottom-0 z-10 -mx-4 max-h-[65vh] overflow-y-auto bg-[var(--mb-bg)] px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 sm:static sm:mx-0 sm:max-h-none sm:overflow-visible sm:bg-transparent sm:p-0">
         <Panel className="p-3 sm:p-4 space-y-3 bg-[var(--mb-surface)] border-2 border-black shadow-[var(--mb-shadow)]">
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-1.5 flex-wrap min-w-0 flex-1">
@@ -412,6 +419,7 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
             </div>
           )}
         </Panel>
+        </div>
       )}
 
       {/* Grid Submit Action (When all 9 are answered/revealed but not submitted) */}
