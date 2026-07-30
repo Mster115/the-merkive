@@ -68,8 +68,13 @@ export function Ticker({
 
   if (entries.length === 0) return null;
 
+  // will-change + translateZ(0) promote the fixed strip to its own compositor
+  // layer. Without it, iOS/WebKit defers repainting `position: fixed`
+  // elements until a scroll gesture settles, so mid-scroll the strip visibly
+  // lags behind and appears to float over whatever card the page has already
+  // scrolled to underneath it, instead of staying pinned to the screen edge.
   const shell =
-    "bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)] border-t-[3px] border-black pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]";
+    "bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)] border-t-[3px] border-black pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] will-change-transform [transform:translateZ(0)]";
 
   if (reduced) {
     const item = entries[index % entries.length]!;
