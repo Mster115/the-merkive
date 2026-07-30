@@ -48,6 +48,16 @@ unavailable" is a correct outcome.
    **If it refuses, that is information, not an obstacle to work around.** Never
    try to force a date it rejected.
 
+   **The one refusal you may answer:** "already holds a draft awaiting review",
+   when the draft is one *you* just created and got wrong — most often a pack
+   that should have carried `"passed"`. Resubmit the corrected pack with
+   `replaceDraft: true`. Without it you are stuck: the draft blocks its own
+   date and approving is not a tool you have.
+
+   `replaceDraft` only ever reaches a **draft**. It cannot touch a queued
+   puzzle, today, or the past — those refusals stand, and you must not attempt
+   to work around them.
+
 ## When the pipeline disagrees with itself
 
 One failure mode is worth recognising early, because grinding on it wastes an

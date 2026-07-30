@@ -719,6 +719,12 @@ const TOOLS = [
         puzzleDate: { type: "string" },
         payload: { type: "object" },
         sourceRefs: { type: "array", items: { type: "object" } },
+        factCheck: { type: "object" },
+        replaceDraft: {
+          type: "boolean",
+          description:
+            "Mirror the same flag you intend to pass to daily_submit, so the dry run reflects what will actually happen.",
+        },
       },
       required: ["gameId", "puzzleDate", "payload"],
     },
@@ -726,7 +732,7 @@ const TOOLS = [
   {
     name: "daily_submit",
     description:
-      "Submit a pack. Refuses a date that is not in the future, a date that already holds a puzzle or draft, and any puzzle whose content has been used before. Lands as a draft for human review unless factCheck.status is 'passed'.",
+      "Submit a pack. Refuses a date that is not in the future, a date that already holds a puzzle or draft, and any puzzle whose content has been used before. Lands as a draft for human review unless factCheck.status is 'passed' — the only two permitted values are 'passed' and 'needs_review'.",
     inputSchema: {
       type: "object",
       properties: {
@@ -735,6 +741,11 @@ const TOOLS = [
         payload: { type: "object" },
         sourceRefs: { type: "array", items: { type: "object" } },
         factCheck: { type: "object" },
+        replaceDraft: {
+          type: "boolean",
+          description:
+            "Replace a draft already sitting on this date. Use to correct a pack you drafted by mistake — most often one that should have carried factCheck.status 'passed'. Never replaces a queued puzzle, and never touches today or the past.",
+        },
       },
       required: ["gameId", "puzzleDate", "payload"],
     },
@@ -940,13 +951,33 @@ async function callTool(name, args = {}) {
     if ((entry.queuedDates ?? []).includes(pack.puzzleDate)) {
       blockers.push(`${pack.puzzleDate} already holds a queued puzzle for ${pack.gameId}`);
     }
-    if ((entry.draftDates ?? []).includes(pack.puzzleDate)) {
-      blockers.push(`${pack.puzzleDate} already holds a draft awaiting review`);
+    // A draft normally blocks its date, so a pending human decision is never
+    // silently overwritten. But that also walled a generator in: having landed
+    // a pack as a draft it could not resubmit (this blocker) and cannot approve
+    // (deliberately not a tool), so a pack drafted by mistake — a mistyped
+    // factCheck.status, say — was stranded with no move available.
+    //
+    // `replaceDraft` is the way out, and it only ever reaches a draft. A draft
+    // has never been shown to a player, so replacing one destroys nothing. The
+    // queued-date blocker below is untouched and unconditional.
+    const replacingOwnDraft =
+      args.replaceDraft === true && (entry.draftDates ?? []).includes(pack.puzzleDate);
+    if ((entry.draftDates ?? []).includes(pack.puzzleDate) && !replacingOwnDraft) {
+      blockers.push(
+        `${pack.puzzleDate} already holds a draft awaiting review` +
+          " (pass replaceDraft: true to replace it — only ever allowed for a draft, never a queued puzzle)"
+      );
     }
 
     const history = await api(`/api/admin/daily/history?gameId=${encodeURIComponent(pack.gameId)}`);
-    const spentFingerprints = new Set((history.digests ?? []).map((d) => d.fingerprint));
-    const spentItems = new Set((history.digests ?? []).flatMap((d) => d.itemTokens ?? []));
+    // When replacing a draft, that draft's own content must not count as
+    // "already used" — otherwise resubmitting the identical pack to fix its
+    // status would be refused as a repeat of itself.
+    const digests = (history.digests ?? []).filter(
+      (d) => !(replacingOwnDraft && d.puzzleDate === pack.puzzleDate)
+    );
+    const spentFingerprints = new Set(digests.map((d) => d.fingerprint));
+    const spentItems = new Set(digests.flatMap((d) => d.itemTokens ?? []));
     const items = puzzleItems(pack.gameId, pack.payload);
     if (spentFingerprints.has(fingerprintPuzzle(pack.gameId, pack.payload))) {
       blockers.push("this exact puzzle has been used before — daily puzzles are never repeated");

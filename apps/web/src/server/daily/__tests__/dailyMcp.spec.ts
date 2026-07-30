@@ -281,6 +281,110 @@ describe("daily MCP protocol surface", () => {
     expect(data.blockers.join(" ")).toContain("draft awaiting review");
   });
 
+  describe("replaceDraft", () => {
+    const relayPayload = {
+      startWord: "STONE",
+      endWord: "WHALE",
+      wordBank: ["ECHO", "OASIS", "SNOW", "WHALE", "EAGLE", "ORBIT", "SPARK", "WAGON", "TIGER", "NOVEL", "ERASE", "WHEAT"],
+    };
+
+    const check = (args: Record<string, unknown>) =>
+      handle({
+        jsonrpc: "2.0",
+        id: 9,
+        method: "tools/call",
+        params: { name: "daily_check", arguments: { gameId: "relay", payload: relayPayload, ...args } },
+      });
+
+    it("lets a generator replace a draft it drafted by mistake", async () => {
+      // The dead end this exists for: a pack drafted with the wrong
+      // factCheck.status cannot be resubmitted (the draft blocks its own date)
+      // and cannot be approved (deliberately not a tool).
+      stubApi({
+        "/api/admin/daily/queue-status": {
+          relay: { queuedFutureDays: 1, lookaheadDays: 3, queuedDates: [], draftDates: ["2099-01-02"], openDates: [] },
+        },
+        "/api/admin/daily/history": { digests: [] },
+      });
+
+      const data = toolJson(await check({ puzzleDate: "2099-01-02", replaceDraft: true }));
+      expect(data.wouldSubmit).toBe(true);
+      expect(data.blockers).toEqual([]);
+    });
+
+    it("does not let it replace a QUEUED puzzle — the guarantee that matters", async () => {
+      stubApi({
+        "/api/admin/daily/queue-status": {
+          relay: { queuedFutureDays: 1, lookaheadDays: 3, queuedDates: ["2099-01-02"], draftDates: [], openDates: [] },
+        },
+        "/api/admin/daily/history": { digests: [] },
+      });
+
+      const data = toolJson(await check({ puzzleDate: "2099-01-02", replaceDraft: true }));
+      expect(data.wouldSubmit).toBe(false);
+      expect(data.blockers.join(" ")).toContain("already holds a queued puzzle");
+    });
+
+    it("does not let it reach today or the past", async () => {
+      stubApi({
+        "/api/admin/daily/queue-status": {
+          relay: { queuedFutureDays: 0, lookaheadDays: 3, queuedDates: [], draftDates: ["2020-01-01"], openDates: [] },
+        },
+        "/api/admin/daily/history": { digests: [] },
+      });
+
+      const data = toolJson(await check({ puzzleDate: "2020-01-01", replaceDraft: true }));
+      expect(data.wouldSubmit).toBe(false);
+      expect(data.blockers.join(" ")).toContain("not in the future");
+    });
+
+    it("stops the draft counting as a repeat of itself", async () => {
+      // Fixing only the status means resubmitting byte-identical content, so
+      // the pack must not collide with the very draft it is replacing.
+      stubApi({
+        "/api/admin/daily/queue-status": {
+          relay: { queuedFutureDays: 1, lookaheadDays: 3, queuedDates: [], draftDates: ["2099-01-02"], openDates: [] },
+        },
+        "/api/admin/daily/history": {
+          digests: [
+            { puzzleDate: "2099-01-02", fingerprint: fingerprintPuzzle("relay", relayPayload), itemTokens: [] },
+          ],
+        },
+      });
+
+      const data = toolJson(await check({ puzzleDate: "2099-01-02", replaceDraft: true }));
+      expect(data.wouldSubmit).toBe(true);
+
+      // …but a genuine repeat from a *different* date is still refused.
+      stubApi({
+        "/api/admin/daily/queue-status": {
+          relay: { queuedFutureDays: 1, lookaheadDays: 3, queuedDates: [], draftDates: ["2099-01-02"], openDates: [] },
+        },
+        "/api/admin/daily/history": {
+          digests: [
+            { puzzleDate: "2026-02-02", fingerprint: fingerprintPuzzle("relay", relayPayload), itemTokens: [] },
+          ],
+        },
+      });
+
+      const repeat = toolJson(await check({ puzzleDate: "2099-01-02", replaceDraft: true }));
+      expect(repeat.wouldSubmit).toBe(false);
+      expect(repeat.blockers.join(" ")).toContain("used before");
+    });
+
+    it("names the flag in the blocker, so the way out is discoverable", async () => {
+      stubApi({
+        "/api/admin/daily/queue-status": {
+          relay: { queuedFutureDays: 1, lookaheadDays: 3, queuedDates: [], draftDates: ["2099-01-02"], openDates: [] },
+        },
+        "/api/admin/daily/history": { digests: [] },
+      });
+
+      const data = toolJson(await check({ puzzleDate: "2099-01-02" }));
+      expect(data.blockers.join(" ")).toContain("replaceDraft");
+    });
+  });
+
   it("blocks a repeat puzzle before it ever reaches the API", async () => {
     const payload = { startWord: "STONE", endWord: "WHALE", wordBank: ["WHALE", "ECHO", "OASIS", "SNOW"] };
     stubApi({
