@@ -30,6 +30,20 @@ export function relayContentWarnings(payload: unknown): string[] {
   );
 }
 
+/**
+ * Content authors write the intended chain first and append the decoys, so an
+ * unshuffled bank hands the answer to anyone who reads the first rows in order.
+ * Seeded from ctx.rng, so the order is stable for a given attempt.
+ */
+function shuffleBank(bank: string[], rng: () => number): string[] {
+  const out = [...bank];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [out[i], out[j]] = [out[j]!, out[i]!];
+  }
+  return out;
+}
+
 export const relay = defineDailyGame({
   meta: {
     id: "relay",
@@ -166,7 +180,7 @@ export const relay = defineDailyGame({
     const publicState: RelayPublicState = {
       startWord: payload.startWord,
       endWord: payload.endWord,
-      wordBank: payload.wordBank,
+      wordBank: shuffleBank(payload.wordBank, ctx.rng),
       chain: [payload.startWord],
       usedWords: [],
       movesUsed: 0,

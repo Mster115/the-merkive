@@ -70,6 +70,34 @@ describe("relay daily game", () => {
     expect(run.phase).toBe("in_progress");
   });
 
+  it("init shuffles the word bank so the authored chain order is not the display order", () => {
+    // Authors build the chain forwards and append decoys, so an unshuffled bank
+    // spelled the answer down the first rows of the grid.
+    const chainFirstRaw = {
+      startWord: "CAT",
+      endWord: "DOG",
+      wordBank: [
+        "TIGER", "ROBIN", "NOVEL", "LOTUS", "SNAKE",
+        "TOAD", "ROSE", "RADIO", "NOBLE", "NORTH",
+        "LEMON", "SPOON", "JELLY", "DOG",
+      ],
+      sourceRefs: [],
+    };
+    const validated = relay.validatePack(chainFirstRaw, "2026-07-24");
+    expect(validated.ok).toBe(true);
+    if (!validated.ok) return;
+
+    const run = createDailyTestRun(relay, {
+      puzzleDate: "2026-07-24",
+      pack: validated.pack,
+    });
+    const pub = run.state.publicState as RelayPublicState;
+    const authored = (validated.pack.payload as { wordBank: string[] }).wordBank;
+
+    expect([...pub.wordBank].sort()).toEqual([...authored].sort());
+    expect(pub.wordBank).not.toEqual(authored);
+  });
+
   it("add_word validation checks non-bank word, used word, and non-linking word", () => {
     const validated = relay.validatePack(samplePackRaw, "2026-07-24");
     if (!validated.ok) return;
