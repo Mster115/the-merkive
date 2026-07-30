@@ -121,7 +121,9 @@ export function Play({
 
   return (
     // DailyPlayShell owns the page column — see DESIGN.md §7a.
-    <div className="w-full space-y-5 text-[var(--mb-text)]">
+    // Tighter rhythm on a phone: at space-y-5 the header, chain and bank
+    // alone overran the viewport before a single word was tapped.
+    <div className="w-full space-y-3 sm:space-y-5 text-[var(--mb-text)]">
       {/* Screen Reader ARIA Live Region */}
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {ariaMessage}
@@ -130,7 +132,7 @@ export function Play({
       {isSolved && <ConfettiBurst />}
 
       {/* Header Info */}
-      <Card className="flex items-center justify-between gap-3 p-4">
+      <Card className="flex items-center justify-between gap-3 p-3 sm:p-4">
         <div className="min-w-0">
           <div className="text-xs uppercase tracking-wider font-extrabold opacity-75">
             {t("daily.relay.target") || "Target"}
@@ -169,7 +171,7 @@ export function Play({
       )}
 
       {/* Chain Container */}
-      <Panel className="p-4 space-y-3">
+      <Panel className="p-3 sm:p-4 space-y-2 sm:space-y-3">
         <div className="text-xs font-extrabold uppercase tracking-wider opacity-75">
           {t("daily.relay.chainHeader") || "Current Chain"}
         </div>
@@ -207,7 +209,7 @@ export function Play({
       </Panel>
 
       {/* Word Bank */}
-      <Panel className="p-4 space-y-3">
+      <Panel className="p-3 sm:p-4 space-y-2 sm:space-y-3">
         <div className="flex items-center justify-between">
           <div className="text-xs font-extrabold uppercase tracking-wider opacity-75">
             {t("daily.relay.bankHeader") || "Word Bank"}
@@ -218,7 +220,11 @@ export function Play({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        {/* Three across on a phone, not two. A real 12–18 word bank at two
+            columns runs to nine rows, which pushed Undo and Submit permanently
+            below the fold. Bank words are 3–8 letters, so they fit a third of
+            375px with the tighter padding below. */}
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 sm:gap-2">
           {wordBank.map((w) => {
             const isUsed = usedWords.includes(w);
             const links = w.charAt(0).toUpperCase() === currentLastChar;
@@ -230,8 +236,18 @@ export function Play({
                 type="button"
                 disabled={!isPlayable}
                 title={!isUsed && !links ? `Needs to start with ${currentLastChar}` : undefined}
+                // `title` never reaches a touch player, and the split-span
+                // letters left these tiles with no name in the a11y tree at
+                // all. Say the word and why it is dead out loud.
+                aria-label={
+                  isUsed
+                    ? `${w} — already used`
+                    : !links
+                    ? `${w} — needs to start with ${currentLastChar}`
+                    : w
+                }
                 onClick={() => handleAddWord(w)}
-                className={`flex items-center justify-center px-3 py-2 rounded-md border-2 font-black uppercase text-sm transition-all min-h-[44px] select-none ${
+                className={`flex items-center justify-center px-1.5 sm:px-3 py-2 rounded-md border-2 font-black uppercase text-xs sm:text-sm transition-all min-h-[44px] select-none ${
                   isUsed
                     ? "bg-[var(--mb-surface-3)] text-[var(--mb-text-dim)] line-through decoration-2 decoration-[var(--mb-danger)] cursor-not-allowed border-[var(--mb-outline)]"
                     : isPlayable
@@ -249,42 +265,56 @@ export function Play({
         </div>
       </Panel>
 
-      {/* Action Controls */}
-      <div className="space-y-2">
-        <div className="grid grid-cols-2 gap-2">
+      {/* Give up sits above the action bar and stays a plain ghost control.
+          As a full-width red bar it was the loudest thing on the screen and
+          the easiest to hit by accident while reaching for Submit. */}
+      {!isOver && (
+        <div className="flex justify-center">
           <Button
             variant="ghost"
-            size="md"
-            block
-            disabled={isOver || chain.length <= 1}
-            onClick={handleRemoveLast}
-          >
-            {t("daily.relay.undo") || "Undo"}
-          </Button>
-
-          <Button
-            variant="primary"
-            size="md"
-            block
-            disabled={isOver || !targetReached}
-            onClick={handleSubmit}
-          >
-            {t("daily.relay.submit") || "Submit Chain"}
-          </Button>
-        </div>
-
-        {!isOver && (
-          <Button
-            variant="danger"
-            size="md"
-            block
+            size="sm"
             onClick={handleGiveUp}
-            className="min-h-[44px]"
+            className="min-h-[44px] text-xs text-[var(--mb-text-dim)] hover:text-[var(--mb-danger)]"
           >
             {t("daily.relay.giveUp") || "Give Up"}
           </Button>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Action Controls — pinned to the bottom of the viewport on a phone.
+          The bank is the tall element on this screen, and Undo in particular
+          is used constantly mid-chain; leaving it below the bank meant a
+          scroll after every tap. Reverts to normal flow from sm up, where the
+          whole board already fits. */}
+      {/* Dropped entirely once the puzzle is over: two permanently disabled
+          buttons pinned over the result banner and share card is the last
+          thing a finished player needs. */}
+      {!isOver && (
+        <div className="sticky bottom-0 z-10 -mx-4 border-t-2 border-black bg-[var(--mb-bg)] px-4 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0">
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="ghost"
+              size="md"
+              block
+              disabled={chain.length <= 1}
+              onClick={handleRemoveLast}
+            >
+              {t("daily.relay.undo") || "Undo"}
+            </Button>
+
+            <Button
+              variant="primary"
+              size="md"
+              block
+              disabled={!targetReached}
+              onClick={handleSubmit}
+              className="whitespace-nowrap"
+            >
+              {t("daily.relay.submit") || "Submit Chain"}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Over Banner */}
       {isOver && (

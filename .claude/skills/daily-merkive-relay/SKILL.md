@@ -51,6 +51,12 @@ types. **The bank is the puzzle.**
 - **A–Z only.** The normalizer upper-cases but does **not** strip punctuation, so
   a hyphenated entry like `WELL-FED` becomes a bank word nothing can ever match.
 
+- **Interleave the chain with the decoys** in the submitted `wordBank` array.
+  Building forwards makes it natural to list the intended chain first and append
+  the decoys, which reads as the answer written down the top of the bank. The
+  runtime shuffles the bank per attempt, so this no longer reaches players — but
+  a chain-ordered array still makes the pack unreviewable at a glance.
+
 ### Decoys — the actual craft
 
 - Words that *do* chain from the current position but dead-end (nothing in the

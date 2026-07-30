@@ -385,13 +385,17 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
                   : t("daily.nexus.worthNothing", { attempts: String(attempts) })}
               </p>
 
-              <div className="flex flex-wrap justify-end gap-2">
+              {/* Two equal columns rather than a wrapping row: these are the
+                  same kind of give-up action, and at phone width `flex-wrap`
+                  broke them onto separate stacked lines that read as a
+                  hierarchy they don't have. */}
+              <div className="grid grid-cols-2 gap-2">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleSkip}
                   disabled={isSubmitting}
-                  className="text-xs text-[var(--mb-text-dim)] min-h-[44px]"
+                  className="w-full text-xs text-[var(--mb-text-dim)] min-h-[44px]"
                 >
                   {t("daily.nexus.skipCell")}
                 </Button>
@@ -400,7 +404,7 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
                   size="sm"
                   onClick={handleReveal}
                   disabled={isSubmitting}
-                  className="text-xs text-[var(--mb-text-dim)] hover:text-[var(--mb-danger)] min-h-[44px]"
+                  className="w-full text-xs text-[var(--mb-text-dim)] hover:text-[var(--mb-danger)] min-h-[44px]"
                 >
                   {t("daily.nexus.revealCell")}
                 </Button>
