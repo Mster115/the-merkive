@@ -24,3 +24,5 @@ market-research/
 
 # Local ledger written by the daily-content MCP server
 scripts/mcp/.daily-ledger.json
+.agents/
+TEST_READY.md

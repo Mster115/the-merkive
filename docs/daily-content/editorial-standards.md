@@ -120,9 +120,12 @@ does not.
 
 ## 5. Difficulty and feel
 
-- **Nexus**: aim for a median solver getting 5–7 of 9. Include at least two
-  cells most people will get and at most two genuinely hard ones. One guess per
-  cell means near-misses are punished — reward recall, not spelling.
+- **Nexus**: aim for a median solver getting 6–7 of 9, with a deliberate mix of
+  **3 approachable / 4 medium / at most 2 hard** — the tiers, and the reasoning
+  behind them, are in the [fill skill](../../.claude/skills/daily-merkive-nexus/SKILL.md).
+  Guesses are unlimited and simply decay in value, and a player can take hints
+  that cost the same as a wrong guess; neither is a reason to write harder cells.
+  Reward recall, not spelling — put the variants in `acceptableAnswers`.
 - **Nutshell**: everyday vocabulary. Wordplay in clues is welcome; obscurity is
   not. A 5×5 mini should take ~2 minutes.
 - **Relay**: the intended chain should be findable in ~3 minutes; decoys should

@@ -180,6 +180,135 @@ describe("daily-content preflight", () => {
     expect(run("Which third film in the trilogy won Best Picture?")).toEqual([]);
   });
 
+  it("catches a Nexus question that identifies its own answer", () => {
+    // Reported live on 2026-07-31: "Which 2024 Summer Games became the first in
+    // Olympic history to field an equal number of male and female athletes?"
+    // There is exactly one 2024 Summer Games, so the question names the thing it
+    // is asking for and the player is left guessing which label the key uses.
+    // The same grid asked "…competing as B-Girl Ami…" for an answer of Ami
+    // Yuasa. Player's words: "I would never have guessed that's what they were
+    // looking for."
+    const filler = Array.from({ length: 7 }, (_, i) => ({
+      row: Math.floor((i + 2) / 3),
+      col: (i + 2) % 3,
+      question: "Fourth planet?",
+      answer: "Mars",
+      acceptableAnswers: [],
+    }));
+    const run = (cells: unknown[]) =>
+      preflight({
+        gameId: "nexus",
+        puzzleDate: "2026-07-31",
+        sourceRefs: [{ url: "https://example.gov/x", title: "X" }],
+        payload: { rowLabels: ["a", "b", "c"], colLabels: ["d", "e", "f"], cells },
+      }).problems.filter((p: string) => p.includes("its own answer"));
+
+    const broken = run([
+      {
+        row: 0,
+        col: 0,
+        question:
+          "Which 2024 Summer Games became the first in Olympic history to field an equal number of male and female athletes?",
+        answer: "Paris 2024",
+        acceptableAnswers: [],
+      },
+      {
+        row: 0,
+        col: 1,
+        question:
+          "Which Japanese breaker, competing as B-Girl Ami, won the first-ever Olympic gold medal in breaking?",
+        answer: "Ami Yuasa",
+        acceptableAnswers: [],
+      },
+      ...filler,
+    ]);
+    expect(broken).toHaveLength(2);
+    expect(broken.join(" ")).toContain('"2024"');
+    expect(broken.join(" ")).toContain('"ami"');
+
+    // Asking for something the sentence does not already contain is clean.
+    expect(
+      run([
+        {
+          row: 0,
+          col: 0,
+          question:
+            "Which host city staged the first Olympics with equal numbers of male and female athletes?",
+          answer: "Paris",
+          acceptableAnswers: [],
+        },
+        {
+          row: 0,
+          col: 1,
+          question: "Which Japanese athlete won the first Olympic gold awarded in breaking?",
+          answer: "Ami Yuasa",
+          acceptableAnswers: [],
+        },
+        ...filler,
+      ])
+    ).toEqual([]);
+  });
+
+  it("matches whole words only, so an answer buried in a longer word is not a leak", () => {
+    // "Ami" inside "dynamic" is not the answer showing through, and a check
+    // that fired there would train the pipeline to ignore it.
+    const { problems } = preflight({
+      gameId: "nexus",
+      puzzleDate: "2026-07-31",
+      sourceRefs: [{ url: "https://example.gov/x", title: "X" }],
+      payload: {
+        rowLabels: ["a", "b", "c"],
+        colLabels: ["d", "e", "f"],
+        cells: [
+          {
+            row: 0,
+            col: 0,
+            question: "Which dynamic duo headlined the ceremony?",
+            answer: "Ami Yuasa",
+            acceptableAnswers: [],
+          },
+          ...Array.from({ length: 8 }, (_, i) => ({
+            row: Math.floor((i + 1) / 3),
+            col: (i + 1) % 3,
+            question: "Fourth planet?",
+            answer: "Mars",
+            acceptableAnswers: [],
+          })),
+        ],
+      },
+    });
+    expect(problems.filter((p: string) => p.includes("its own answer"))).toEqual([]);
+  });
+
+  it("warns when an edition-style answer could be written several ways", () => {
+    const { warnings } = preflight({
+      gameId: "nexus",
+      puzzleDate: "2026-07-31",
+      sourceRefs: [{ url: "https://example.gov/x", title: "X" }],
+      payload: {
+        rowLabels: ["a", "b", "c"],
+        colLabels: ["d", "e", "f"],
+        cells: [
+          {
+            row: 0,
+            col: 0,
+            question: "Which host city staged the Games where breaking debuted?",
+            answer: "Paris 2024",
+            acceptableAnswers: ["Paris"],
+          },
+          ...Array.from({ length: 8 }, (_, i) => ({
+            row: Math.floor((i + 1) / 3),
+            col: (i + 1) % 3,
+            question: "Fourth planet?",
+            answer: "Mars",
+            acceptableAnswers: ["Mars"],
+          })),
+        ],
+      },
+    });
+    expect(warnings.join(" ")).toContain("several ways");
+  });
+
   it("does not flag a Nexus answer that no franchise name could stand in for", () => {
     const cells = [
       { row: 0, col: 0, question: "Which physicist was born in Ulm?", answer: "Albert Einstein", acceptableAnswers: [] },

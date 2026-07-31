@@ -73,7 +73,31 @@ sourcing bar to reach nine.
   Geography is the easiest axis to reach for and it goes stale fastest — the same
   grid above used it for all three columns, so the whole puzzle collapsed to
   "sport, by continent".
-- Aim for a median solver getting **5–7 of 9**.
+## Difficulty — calibrate it deliberately
+
+Players tell us Nexus is the most interesting of the daily games and, by a wide
+margin, the hardest. Left uncalibrated a grid drifts hard, because a cell that was
+interesting enough to research is usually a cell most people cannot answer.
+
+Assign every cell a tier before you submit, and hit this mix:
+
+| Tier | Count | Test |
+|---|---|---|
+| Approachable | **3** | A generally-informed solver answers it with no lookup and no hesitation |
+| Medium | **4** | They know the domain, or get there by reasoning from the two categories |
+| Hard | **at most 2** | Genuinely specialist, or a fact you had to dig for |
+
+- A median solver should get **6–7 of 9**. If your tiers don't add up, the grid is
+  too hard — swap a hard cell for a pooled candidate, not the other way round.
+- **The approachable three are not filler.** They are what makes the grid feel
+  solvable enough to keep going, and they still have to satisfy both categories
+  and clear the same sourcing bar.
+- Players can take **hints** — the answer's shape, then its initials, then every
+  other letter — each costing a point step. That is a safety net for the two hard
+  cells. It is **not** a licence to raise the floor: a grid that assumes hints is
+  a grid that reads as unfair to anyone who refuses them.
+- If you cannot find three approachable cells that fit your categories, the
+  categories are too narrow. Change the axis rather than shipping a nine-hard grid.
 
 ## Question writing
 
@@ -83,6 +107,29 @@ sourcing bar to reach nine.
   an answer. "Which film features Frodo and Sam?" has no correct single answer;
   "Which 2003 film…" does. The grader will never accept the broader franchise
   name, so an under-specified question marks a player wrong for being right.
+- **THE QUESTION MUST NOT IDENTIFY ITS OWN ANSWER.** If the question names the
+  thing it is asking for, there is no fact left to recall — the player is reduced
+  to guessing which wording your key happens to use, which feels like a trick.
+  Reported live: *"Which **2024 Summer Games** became the first in Olympic history
+  to field an equal number of male and female athletes?"* There is exactly one
+  2024 Summer Games; the question hands it over and then asks the player to
+  produce a label. The same grid asked *"Which Japanese breaker, competing as
+  **B-Girl Ami**, won the first Olympic gold in breaking?"* for an answer of Ami
+  Yuasa. The player's words: **"I would never have guessed that's what they were
+  looking for."**
+  - Test: cover the answer and read the question. If it still picks out exactly
+    one thing in the world, rewrite it — ask for something the sentence does not
+    already contain. *"Which host city staged the first Olympics with equal
+    numbers of male and female athletes?"* asks for a fact; the original asked
+    for a spelling.
+  - `daily_check` now rejects a question that reuses any distinctive word of its
+    own answer, but it cannot catch the paraphrased version. That one is on you.
+- **SAY WHAT SHAPE THE ANSWER TAKES, or accept every shape.** An answer with more
+  than one natural form — an Olympics ("Paris 2024" / "Paris" / "the 2024 Summer
+  Olympics"), a war, a treaty, an award ceremony — must either be pinned by the
+  question ("which host **city**") or list every reasonable form in
+  `acceptableAnswers`. Marking a player wrong over the format of an answer they
+  knew is the fastest way to lose them.
 - **NO QUESTION MAY CONTAIN ANOTHER CELL'S ANSWER.** All nine questions are
   visible from the first render, so one wording hands a different cell over for
   free. **Check all pairs** before submitting. This is easy to miss: "the element
@@ -92,6 +139,32 @@ sourcing bar to reach nine.
   and alternative names. Case, spacing, punctuation, accents, a leading
   "a/an/the", numerals-vs-words, and full-name-vs-surname are **already handled
   by the grader** — do not pad the list with those.
+
+## Hints
+
+Each cell takes an optional `hint`: one short nudge, **≤120 characters**, that is
+the first rung of that cell's hint ladder. After it come three computed rungs the
+game generates for free — the answer's shape, its initials, then every other
+letter — so a hint you write is the only rung that can carry meaning.
+
+**Write one for every medium and hard cell.** The approachable three do not need
+one. A grid with no hints at all is flagged by `daily_check`.
+
+A hint has to earn its cost, because the player pays a scoring step to read it:
+
+- **Narrow the field, never name the answer.** `validatePack` rejects a hint that
+  contains its own answer or any `acceptableAnswers` entry, and a hint that gets
+  there by an obvious synonym is just as bad — it charges the player for what they
+  already had. For an answer of *Marie Curie*: "The only person to win in two
+  different sciences" ✅. "A Polish-French physicist named Curie" ❌.
+- **Give a second route in, not a smaller version of the question.** The good hint
+  approaches from a different direction — a date, a rival, a consequence, a place.
+  Restating the question in fewer words helps nobody.
+- **Never leak another cell's answer**, same rule as questions — check hints
+  against all nine answers, not just their own.
+- Hints are held server-side until bought, so they do not leak from the first
+  render the way questions do. They still ship in the pack, so they carry the same
+  accuracy bar as everything else: a wrong hint is a wrong fact.
 
 ## The fact-check bar
 
@@ -121,3 +194,8 @@ typo costs you the run rather than quietly drafting.
 Per [run-procedure.md](../_daily-shared/run-procedure.md), plus **per-cell**
 fact-check verdicts with both source URLs, and which cells were browser-verified
 rather than fetched.
+
+Also report the **difficulty tier of each cell** and the resulting 3/4/2 tally.
+This is a self-check in your report only — tiers are not part of the pack payload
+and must not be added to it. If the tally is off, fix the grid before submitting
+and report the corrected one; do not submit a grid and note that it skews hard.

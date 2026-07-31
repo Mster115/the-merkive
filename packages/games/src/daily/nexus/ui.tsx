@@ -1,7 +1,7 @@
 import * as React from "react";
 import type { DailyPlayProps } from "../types";
 import type { NexusPublicState, NexusCellPublic } from "./types";
-import { pointsForAttempt } from "./types";
+import { effectiveAttemptIndex, NEXUS_MAX_HINTS, pointsForAttempt } from "./types";
 import { Button, Card, Panel, Pill, CheckIcon, CloseIcon, cn, EyeIcon, InfoIcon, QuestionIcon } from "@merky/ui";
 
 export const NexusPlay: React.FC<DailyPlayProps> = ({
@@ -71,7 +71,13 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
   const isGameOver = phase === "solved" || phase === "failed";
 
   const attempts = selectedCell?.attempts ?? 0;
-  const nextValue = pointsForAttempt(attempts);
+  const hintsTaken = selectedCell?.hints ?? 0;
+  // Per-cell, because a cell shipping an authored nudge has one rung more than
+  // one that only has the computed masks.
+  const hintsLeft = (selectedCell?.hintsAvailable ?? NEXUS_MAX_HINTS) - hintsTaken;
+  // Off the *effective* index, not the guess count — after a hint the "worth"
+  // line would otherwise promise a point the cell can no longer pay.
+  const nextValue = pointsForAttempt(effectiveAttemptIndex(selectedCell ?? {}));
 
   const handleAnswer = async () => {
     if (!selectedCoords || !guessText.trim()) return;
@@ -104,6 +110,23 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
     setErrorCode(null);
     setIsSubmitting(true);
     const res = await act("skip_cell", {
+      row: selectedCoords.row,
+      col: selectedCoords.col,
+    });
+    setIsSubmitting(false);
+    if (!res.ok) {
+      setErrorMsg(res.error);
+      setErrorCode(res.code);
+    }
+  };
+
+  const handleHint = async () => {
+    if (!selectedCoords) return;
+    setErrorMsg(null);
+    setErrorCode(null);
+    setMissMsg(null);
+    setIsSubmitting(true);
+    const res = await act("hint_cell", {
       row: selectedCoords.row,
       col: selectedCoords.col,
     });
@@ -254,8 +277,12 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
                 if (cell?.status === "correct") {
                   cellBg = "bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)]";
                   StatusBadge = CheckIcon;
-                } else if (cell?.status === "unanswered" && (cell?.attempts ?? 0) > 0) {
-                  // Missed at least once but still open — worth less, not lost.
+                } else if (
+                  cell?.status === "unanswered" &&
+                  effectiveAttemptIndex(cell) > 0
+                ) {
+                  // Missed at least once, or hinted, but still open — worth
+                  // less, not lost. Both cost the same, so both tint the same.
                   cellBg = "bg-[var(--mb-warn)] text-[var(--mb-on-gold)]";
                   StatusBadge = QuestionIcon;
                 } else if (cell?.status === "incorrect") {
@@ -283,7 +310,15 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
                     <span className="text-[11px] sm:text-xs lg:text-sm font-bold leading-tight line-clamp-2 lg:line-clamp-3 w-full text-center break-words">
                       {cell?.question}
                     </span>
-                    <span className="self-end">
+                    {/* Which squares you leaned on, at a glance — otherwise a
+                        hinted cell and a clean one look identical from the
+                        grid and only the panel remembers. */}
+                    <span className="self-end flex items-center gap-1">
+                      {(cell?.hints ?? 0) > 0 && (
+                        <span aria-hidden className="text-[10px] leading-none">
+                          💡
+                        </span>
+                      )}
                       <StatusBadge className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
                     </span>
                   </button>
@@ -344,6 +379,39 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
             </div>
           )}
 
+          {/* The hint ladder's current rung. Sits above the input rather than
+              below the buttons so it is in view while the player is typing,
+              and is announced because the mask *is* the feedback — nothing
+              else on screen changes when a hint is taken. */}
+          {(selectedCell.hintMask || selectedCell.hintText) &&
+            selectedCell.status === "unanswered" && (
+            <div
+              role="status"
+              aria-live="polite"
+              className="p-2 bg-[var(--mb-surface-2)] border-2 border-black rounded space-y-1"
+            >
+              <span className="text-[0.65rem] uppercase font-black tracking-wide text-[var(--mb-gold)]">
+                {t("daily.nexus.hintLabel")}
+              </span>
+              {/* Both rungs stay on screen once bought — the nudge is still
+                  the useful part after the mask arrives, and hiding it would
+                  make the player pay a step to lose information. */}
+              {selectedCell.hintText && (
+                <p className="text-sm font-semibold leading-snug">
+                  {selectedCell.hintText}
+                </p>
+              )}
+              {selectedCell.hintMask && (
+                <p className="font-mono font-bold text-base tracking-[0.25em] break-words">
+                  {selectedCell.hintMask}
+                </p>
+              )}
+              <p className="text-[0.65rem] font-bold text-[var(--mb-text-dim)]">
+                {t("daily.nexus.hintCost", { remaining: String(hintsLeft) })}
+              </p>
+            </div>
+          )}
+
           {/* Answer input stays available for as long as the cell is open. */}
           {selectedCell.status === "unanswered" && !isGameOver && (
             <div className="space-y-2 pt-1">
@@ -380,17 +448,39 @@ export const NexusPlay: React.FC<DailyPlayProps> = ({
               {/* What the *next* correct answer is worth, rather than lives
                   remaining — that is the actual decision in front of the
                   player. Guessing stays open even at zero, so someone chasing
-                  a complete grid is never locked out of a square. */}
+                  a complete grid is never locked out of a square. The
+                  hint-taken-but-never-guessed case gets its own wording: the
+                  guess-count phrasings all read as "0 tried" there. */}
               <p className="text-xs font-bold text-[var(--mb-text-dim)]">
-                {attempts === 0
+                {attempts === 0 && hintsTaken === 0
                   ? t("daily.nexus.worthFull")
+                  : nextValue > 0 && attempts === 0
+                  ? t("daily.nexus.worthAfterHint", { points: String(nextValue) })
                   : nextValue > 0
                   ? t("daily.nexus.worthNext", {
                       points: String(nextValue),
                       attempts: String(attempts),
                     })
+                  : attempts === 0
+                  ? t("daily.nexus.worthNothingHinted")
                   : t("daily.nexus.worthNothing", { attempts: String(attempts) })}
               </p>
+
+              {/* The hint sits on its own row above the give-up pair, and in
+                  gold rather than as a third ghost: it is the one action here
+                  that keeps the square winnable, and dropping it into that
+                  grid filed it under "ways to stop trying". */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleHint}
+                disabled={isSubmitting || hintsLeft <= 0}
+                className="w-full text-xs font-black text-[var(--mb-gold)] border-2 border-black min-h-[44px]"
+              >
+                {hintsLeft > 0
+                  ? t("daily.nexus.hintButton")
+                  : t("daily.nexus.hintsExhausted")}
+              </Button>
 
               {/* Two equal columns rather than a wrapping row: these are the
                   same kind of give-up action, and at phone width `flex-wrap`
