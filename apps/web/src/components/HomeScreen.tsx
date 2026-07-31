@@ -343,7 +343,10 @@ export function HomeScreen() {
             )}
 
             {/* Coming Soon Vault Content Packs Header */}
-            <div className="flex items-center justify-between gap-3 mt-2">
+            {/* Wraps because the title is `shrink-0`: on a 320px screen the two
+                labels are wider than the row, and without this the pill is
+                pushed past the viewport edge and the whole page scrolls. */}
+            <div className="flex flex-wrap items-center justify-between gap-3 mt-2">
               <span className="shrink-0 bg-[var(--mb-surface-2)] text-[var(--mb-violet)] border-2 border-black shadow-[2px_2px_0_0_#000] px-3 py-1 text-xs sm:text-sm font-black uppercase tracking-wider -rotate-1">
                 {t("home.games.vault_title")}
               </span>
