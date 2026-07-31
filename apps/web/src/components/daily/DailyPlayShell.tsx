@@ -32,6 +32,7 @@ export function DailyPlayShell({ gameId, explicitDate }: DailyPlayShellProps) {
   const [shareText, setShareText] = React.useState<string | null>(null);
   const [now, setNow] = React.useState(() => Date.now());
   const [howToOpen, setHowToOpen] = React.useState(false);
+  const howToDismissedRef = React.useRef(false);
 
   React.useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 500);
@@ -68,7 +69,11 @@ export function DailyPlayShell({ gameId, explicitDate }: DailyPlayShellProps) {
       // Auto-open on a device's first visit to this game. `howToSeen` rides
       // along on the puzzle response so there is no second round-trip and no
       // flash of the board for a returning player.
-      if (!data.howToSeen) setHowToOpen(true);
+      //
+      // The ref guards a race: a player quick enough to dismiss the modal
+      // before this response lands would otherwise have it reopen on top of
+      // them, because `howToSeen` was captured server-side before the POST.
+      if (!data.howToSeen && !howToDismissedRef.current) setHowToOpen(true);
     } catch {
       setError(t("error.internal"));
     } finally {
@@ -81,6 +86,7 @@ export function DailyPlayShell({ gameId, explicitDate }: DailyPlayShellProps) {
   }, [loadPuzzle]);
 
   const closeHowTo = React.useCallback(() => {
+    howToDismissedRef.current = true;
     setHowToOpen(false);
     // Fire-and-forget: this is a preference, not puzzle state. If it fails the
     // worst outcome is the modal greeting the player once more.

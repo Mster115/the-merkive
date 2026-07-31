@@ -493,9 +493,214 @@ export function preflight(pack) {
     if (locations.length > 0 && locations.length < 8) {
       warnings.push(`waypoint locations has only ${locations.length} entries; aim for at least 8`);
     }
+
+    // Structural validity is not quality: a bank of real places with real
+    // coordinates can still be trivial or a coin flip. Only run this once the
+    // coordinates above have checked out, since garbage in makes the analysis
+    // meaningless rather than wrong.
+    if (problems.length === 0 && locations.length >= 2) {
+      const targetId = payload.target?.id ?? payload.target?.name ?? payload.targetLocationId;
+      const analysis = analyzeWaypointBank(
+        locations,
+        targetId,
+        typeof payload.maxGuesses === "number" ? payload.maxGuesses : 5
+      );
+      if (analysis.ok) {
+        problems.push(...analysis.problems);
+        warnings.push(...analysis.warnings);
+      }
+    }
   }
 
   return { problems, warnings };
+}
+
+// --- waypoint discriminability ---------------------------------------------
+
+/**
+ * Waypoint has no "is it solvable" question — the target is always in the bank,
+ * so a player could name it blind. What can go wrong is quality, and there are
+ * exactly two failure modes worth a solver:
+ *
+ *   - **Trivial.** The feedback from almost any opening guess isolates the
+ *     target outright, so the puzzle is over on guess two.
+ *   - **A coin flip.** Two candidates sit so close together that no guess in
+ *     the bank tells them apart, and a player who reasons perfectly still has
+ *     to pick one at random.
+ *
+ * Both are invisible to `validatePack`, which only checks that coordinates are
+ * numerically plausible. This models a player who knows where every candidate
+ * is (the names are public, so they do) and reads the feedback the way the UI
+ * shows it: an 8-point arrow and a distance they compare approximately.
+ */
+
+const WP_EARTH_RADIUS_KM = 6371;
+const wpRad = (d) => (d * Math.PI) / 180;
+
+export function wpDistanceKm(a, b) {
+  const dLat = wpRad(b.lat - a.lat);
+  const dLng = wpRad(b.lng - a.lng);
+  const s =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(wpRad(a.lat)) * Math.cos(wpRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  const c = Math.min(1, Math.max(0, s));
+  return WP_EARTH_RADIUS_KM * 2 * Math.atan2(Math.sqrt(c), Math.sqrt(1 - c));
+}
+
+export function wpBearingDeg(a, b) {
+  const dLng = wpRad(b.lng - a.lng);
+  const y = Math.sin(dLng) * Math.cos(wpRad(b.lat));
+  const x =
+    Math.cos(wpRad(a.lat)) * Math.sin(wpRad(b.lat)) -
+    Math.sin(wpRad(a.lat)) * Math.cos(wpRad(b.lat)) * Math.cos(dLng);
+  return (((Math.atan2(y, x) * 180) / Math.PI) + 360) % 360;
+}
+
+/** The 8-point sector a bearing falls in — what the needle actually conveys. */
+const wpSector = (deg) => Math.floor((((deg + 22.5) % 360) + 360) % 360 / 45);
+
+/**
+ * Can a player tell these two candidates apart from this vantage point?
+ *
+ * Everything here turns on how precisely you assume the player reads, so there
+ * are deliberately two answers, and they measure different things:
+ *
+ *   - **PRECISE** (2%, floor 75km) is a solver with a mapping tool. If even
+ *     *this* reader cannot split two candidates, no one can, and a puzzle that
+ *     comes down to that pair is unfair. Used for the coin-flip check.
+ *   - **COARSE** (15%, floor 500km) is a person eyeballing "about nine thousand
+ *     kilometres, pointing north-east". Used to judge how the puzzle actually
+ *     plays, because grading difficulty against the precise reader declares
+ *     every globe-spanning bank trivial — the first version of this analyser
+ *     did exactly that, and its "100% of openings resolve" verdict was an
+ *     artefact of the model, not a fact about the puzzle.
+ */
+const WP_PRECISE = { rel: 0.02, floor: 75 };
+const WP_COARSE = { rel: 0.15, floor: 500 };
+
+function wpSeparates(from, a, b, tolerance) {
+  const da = wpDistanceKm(from, a);
+  const db = wpDistanceKm(from, b);
+  const tol = Math.max(tolerance.floor, tolerance.rel * Math.max(da, db));
+  if (Math.abs(da - db) > tol) return true;
+  return wpSector(wpBearingDeg(from, a)) !== wpSector(wpBearingDeg(from, b));
+}
+
+/**
+ * Analyse a bank against its target.
+ *
+ * Returns `parGuesses` — how many guesses a player who reasons optimally needs,
+ * worst case — plus the candidates that can never be told apart from the target
+ * and how often a single opening guess gives the whole thing away.
+ */
+export function analyzeWaypointBank(locations, targetId, maxGuesses = 5) {
+  const pts = locations
+    .map((l) => {
+      const coords = Array.isArray(l?.coordinates) && l.coordinates.length === 2
+        ? { lat: l.coordinates[0], lng: l.coordinates[1] }
+        : typeof l?.latitude === "number" && typeof l?.longitude === "number"
+          ? { lat: l.latitude, lng: l.longitude }
+          : null;
+      return coords ? { id: l.id ?? l.name, name: l.name, ...coords } : null;
+    })
+    .filter(Boolean);
+
+  const target = pts.find((p) => p.id === targetId) ?? pts[0];
+  if (!target || pts.length < 2) {
+    return { ok: false, reason: "not enough located candidates to analyse" };
+  }
+
+  // Candidates no guess in the bank can separate from the target. Guessing one
+  // of the pair is itself a guess that separates them (you would be told you
+  // were right), so a pair is only truly ambiguous if nothing *else* splits it.
+  const ambiguousWith = pts
+    .filter((p) => p.id !== target.id)
+    .filter(
+      (p) =>
+        !pts.some(
+          (g) => g.id !== p.id && g.id !== target.id && wpSeparates(g, p, target, WP_PRECISE)
+        )
+    )
+    .map((p) => p.name);
+
+  // How often does one opening guess leave the target alone, for a player
+  // reading roughly? This is the trivially-easy signal.
+  let resolvingOpeners = 0;
+  for (const g of pts) {
+    if (g.id === target.id) continue;
+    const survivors = pts.filter(
+      (c) => c.id !== g.id && (c.id === target.id || !wpSeparates(g, c, target, WP_COARSE))
+    );
+    if (survivors.length === 1) resolvingOpeners += 1;
+  }
+  const openers = pts.length - 1;
+  const firstGuessResolveRate = openers > 0 ? resolvingOpeners / openers : 0;
+
+  // Optimal play: probe with whichever candidate leaves the fewest survivors,
+  // until only the target remains, then spend one guess naming it. A probe that
+  // happens to be the target wins on the spot.
+  let remaining = pts.slice();
+  let guesses = 0;
+  const line = [];
+  while (remaining.length > 1 && guesses <= pts.length) {
+    let best = null;
+    for (const g of remaining) {
+      if (g.id === target.id) continue;
+      // The guess always leaves the running: you are either told you were
+      // right, or told you were not. Forgetting this let the analyser "probe"
+      // the same location twice and report an inflated par.
+      const survivors = remaining.filter(
+        (c) => c.id !== g.id && (c.id === target.id || !wpSeparates(g, c, target, WP_COARSE))
+      );
+      if (!best || survivors.length < best.survivors.length) best = { g, survivors };
+    }
+    if (!best) break;
+    guesses += 1;
+    line.push(`${best.g.name} → ${best.survivors.length} left`);
+    if (best.survivors.length === remaining.length) break; // no progress possible
+    remaining = best.survivors;
+  }
+  const parGuesses = guesses + 1; // the guess that names the target
+
+  const problems = [];
+  const warnings = [];
+
+  if (ambiguousWith.length > 0) {
+    problems.push(
+      `waypoint target "${target.name}" cannot be told apart from ${ambiguousWith
+        .map((n) => `"${n}"`)
+        .join(", ")} by any guess in the bank — the puzzle ends on a coin flip`
+    );
+  }
+  if (parGuesses > maxGuesses) {
+    problems.push(
+      `waypoint needs ${parGuesses} guesses under optimal play but allows only ${maxGuesses}`
+    );
+  }
+  if (firstGuessResolveRate >= 0.6) {
+    warnings.push(
+      `waypoint is close to trivial — ${Math.round(firstGuessResolveRate * 100)}% of opening guesses isolate the target outright; add candidates nearer it`
+    );
+  }
+  const sameRegion = locations.filter(
+    (l) => (l.region ?? "") === (locations.find((x) => (x.id ?? x.name) === targetId)?.region ?? "")
+  ).length;
+  if (sameRegion <= 1) {
+    warnings.push(
+      "waypoint target is the only candidate in its region, so the first bearing gives it away"
+    );
+  }
+
+  return {
+    ok: true,
+    target: target.name,
+    parGuesses,
+    firstGuessResolveRate: Number(firstGuessResolveRate.toFixed(2)),
+    ambiguousWith,
+    line,
+    problems,
+    warnings,
+  };
 }
 
 /** BFS: the route a player will actually find. */
