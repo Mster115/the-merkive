@@ -4,7 +4,6 @@ import { waypoint } from "../index";
 import {
   haversineDistance,
   calculateBearing,
-  bearingToArrow,
   distanceToProximityEmoji,
 } from "../logic";
 import type {
@@ -82,17 +81,6 @@ describe("Waypoint Daily Game Engine", () => {
       expect(calculateBearing(0, 0, 0, -10)).toBe(270); // Due West
     });
 
-    it("maps bearing angles to exact cardinal arrows", () => {
-      expect(bearingToArrow(0, true)).toBe("🎯");
-      expect(bearingToArrow(0)).toBe("↑");
-      expect(bearingToArrow(45)).toBe("↗️");
-      expect(bearingToArrow(90)).toBe("→");
-      expect(bearingToArrow(135)).toBe("↘️");
-      expect(bearingToArrow(180)).toBe("↓");
-      expect(bearingToArrow(225)).toBe("↙️");
-      expect(bearingToArrow(270)).toBe("←");
-      expect(bearingToArrow(315)).toBe("↖️");
-    });
 
     it("maps distance to proximity indicators", () => {
       expect(distanceToProximityEmoji(0, true)).toBe("🟩");

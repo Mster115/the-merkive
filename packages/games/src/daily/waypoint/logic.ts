@@ -108,10 +108,6 @@ export function bearingToCardinalArrow(
   return "↖️";
 }
 
-export function bearingToArrow(bearingDeg: number, isMatch?: boolean): string {
-  if (isMatch) return "🎯";
-  return bearingToCardinalArrow(bearingDeg, 100);
-}
 
 export function distanceToProximityEmoji(
   distanceKm: number,

@@ -85,12 +85,47 @@ global audience.
 **Coordinate precision.** Use at least 4 decimal places (≈11m accuracy).
 Rounded coordinates produce misleading distance feedback.
 
+## The discriminability analyser
+
+`preflight` (and therefore `daily_check`) runs `analyzeWaypointBank` over every
+waypoint pack. Waypoint has no solvability question — the target is always in
+the bank — so the analyser grades *shape* instead:
+
+| Field | Meaning |
+| --- | --- |
+| `firstGuessResolveRate` | Share of opening guesses that isolate the target outright. **The difficulty dial — aim 0.1–0.4.** |
+| `parGuesses` | Guesses under optimal play. Expect 2 on a good bank; a floor, not a score. |
+| `ambiguousWith` | Candidates no guess can separate from the target. **Non-empty is a blocker.** |
+| `line` | The optimal probe sequence, for eyeballing. |
+
+It models two readers deliberately. The **coin-flip check** assumes someone with
+a mapping tool: if even they cannot split two candidates, the puzzle can end on
+a coin toss and that is a hard failure. The **difficulty grading** assumes a
+person eyeballing "about nine thousand kilometres, north-east" — grading against
+the precise reader instead declares every globe-spanning bank trivial, which the
+first version of the analyser did.
+
+It takes your coordinates as true. A bank with Sydney in the northern hemisphere
+analyses perfectly and plays as nonsense.
+
+**Bank-item reuse warnings are expected.** There is a finite supply of
+world-famous landmarks, so successive puzzles will share candidates. The
+fingerprint covers target *plus* bank, so the puzzle itself still never repeats;
+treat the warning as a nudge to rotate the target's region, not as a defect.
+
 ## Verification
 
 Waypoint packs need **source citations** (`sourceRefs`) — each location should
 be verifiable. The validator checks structural validity (coordinates in range,
 target exists, locations non-empty) but does not verify that names match real
 places. Fact-checking is the author's responsibility.
+
+Two failure modes seen in practice, both caught only by double-sourcing:
+
+- **Replica name collisions.** "Parthenon" resolves to Athens on Wikipedia and
+  to the full-scale replica in Nashville on OpenStreetMap.
+- **Extended features.** "Great Wall of China" returns points ~400 km apart,
+  because it is a wall, not a place. Prefer point landmarks.
 
 Before submitting, verify yourself:
 

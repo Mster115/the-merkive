@@ -41,18 +41,26 @@ km and an 8-point compass arrow pointing from that guess toward the secret
 target. Five guesses. The bank is the puzzle: the player triangulates by
 elimination.
 
-There is no solver to check your work. `daily_check` does not cover Waypoint,
-and `validatePack` only checks structure — that names are non-empty and
-coordinates fall in range. **It cannot tell you a coordinate is wrong, only that
-it is numerically plausible.** Everything below is on you.
+`daily_check` **does** analyse Waypoint, but only for puzzle *shape* — see
+[what the analyser can and cannot tell you](#what-daily_check-checks). It knows
+nothing about whether a coordinate is correct, only whether the bank makes an
+interesting puzzle assuming the coordinates are true. **Verifying the
+coordinates themselves is entirely on you.**
 
 ## Building a bank
 
 - **12–16 locations.** Under 8 is trivial and the validator warns; over 20 turns
   a 3-minute puzzle into scrolling a dropdown on a phone.
-- **Spread across at least 3–4 continents.** A bank of fifteen European capitals
-  produces distance deltas too small to differentiate — the vector feedback stops
-  being information.
+- **Spread across at least 3–4 continents** so the feedback carries information
+  at all. A bank of fifteen European capitals produces distance deltas too small
+  to differentiate.
+- **But spread alone makes the puzzle trivial**, and this is the mistake to
+  watch for. Thirteen famous landmarks scattered evenly over the globe are all
+  so far apart that a single distance-and-bearing reading pins the target
+  outright — one probe, then name it. **Put three or four candidates within a
+  few thousand kilometres of the target**, so the first reading narrows the
+  field to a cluster and the player has to work inside it. The far-flung
+  entries orient; the near ones are the actual puzzle.
 - **Well-known targets only.** A player who has never heard of the target cannot
   recognise it in the dropdown, and the puzzle becomes a coin flip. Famous
   landmarks, major cities, unmistakable natural features.
@@ -76,6 +84,31 @@ The bank's shape is what makes a day easy or interesting:
 - **The hard ones: similar latitude, very different longitude** (or the reverse).
   These are what stop a player reading the answer straight off a single bearing.
 
+## What `daily_check` checks
+
+Run it before every submit. For Waypoint it reports:
+
+- **`firstGuessResolveRate` is the difficulty dial** — the share of opening
+  guesses that isolate the target outright. **Aim for 0.1–0.4.** Above 0.6 the
+  analyser calls the bank trivial; at 0 the puzzle may be a slog.
+- **`parGuesses`** — guesses needed under optimal play. Expect **2** on almost
+  any well-built bank, because a player who knows to probe next to the target
+  gets there in one step. It is a floor, not a difficulty score: do not tune
+  against it, and do not read par 2 as "too easy". A bank with par 2 and a
+  resolve rate of 0.08 is a good puzzle — the optimal line exists, but few
+  players find it first try.
+- **A coin flip is a blocker.** If two candidates cannot be told apart by *any*
+  guess in the bank — measured against a reader with a mapping tool, not a
+  casual one — the puzzle can end on a guess between two indistinguishable
+  places. Replace one of them.
+- **Trivial warnings** when most opening guesses isolate the target outright, or
+  when the target is the only candidate in its region so the first bearing gives
+  it away.
+
+What it cannot do: it takes your coordinates as true. A bank with Sydney in the
+northern hemisphere analyses perfectly and plays as nonsense. It also says
+nothing about whether the target is *recognisable*, which stays a judgement call.
+
 ## Verify before you submit
 
 For **every** location, not just the target:
@@ -90,10 +123,10 @@ For **every** location, not just the target:
    and is the single most common way this puzzle breaks; the coordinates still
    validate.
 
-Then walk the puzzle once as a player: from a plausible opening guess, does the
-distance-and-bearing feedback actually narrow the bank inside five guesses? If
-two candidates sit within a few km of each other on the same bearing from
-everything else, the puzzle has no honest solution — replace one.
+Then run `daily_check` and read `parGuesses` before you walk the puzzle
+yourself. The analyser catches the coin flip and the trivial bank; your own
+walkthrough catches the things it cannot see — an unrecognisable target, a
+coordinate that validates but is wrong.
 
 ## The fact-check bar
 
@@ -126,5 +159,5 @@ morning is solving a different puzzle than the one intended.
 
 Per [run-procedure.md](../_daily-shared/run-procedure.md), plus the target you
 chose and why it is recognisable, the bank size and its continental spread,
-confirmation that every coordinate was double-sourced, and the result of the
-walk-through — the opening guess you tried and how the bank narrowed from it.
+confirmation that every coordinate was double-sourced, and `daily_check`'s
+`firstGuessResolveRate` for the bank you submitted.

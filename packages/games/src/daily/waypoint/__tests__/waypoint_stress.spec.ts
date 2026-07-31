@@ -4,7 +4,6 @@ import { waypoint } from "../index";
 import {
   haversineDistance,
   calculateBearing,
-  bearingToArrow,
   bearingToCardinalArrow,
   distanceToProximityEmoji,
   init,

@@ -6,6 +6,8 @@ import {
   preflight,
   queueRisk,
   currentPuzzleDate,
+  analyzeWaypointBank,
+  wpDistanceKm,
 } from "../../../../../../scripts/daily-content.mjs";
 
 /**
@@ -366,5 +368,114 @@ describe("daily-content preflight", () => {
       },
     });
     expect(problems).toEqual([]);
+  });
+});
+
+/**
+ * Waypoint is the one daily game with no solvability question — the target is
+ * always in the bank, so a player could name it blind. What the analyser exists
+ * to catch is quality, and the two ways quality fails are opposite: a bank so
+ * spread out that one reading pins the answer, and a bank containing two places
+ * so close together that nothing can tell them apart.
+ */
+describe("waypoint bank discriminability", () => {
+  const GLOBAL_BANK = [
+    { id: "christ_the_redeemer", name: "Christ the Redeemer", region: "South America", latitude: -22.9519, longitude: -43.2106 },
+    { id: "machu_picchu", name: "Machu Picchu", region: "South America", latitude: -13.1633, longitude: -72.5456 },
+    { id: "iguazu_falls", name: "Iguazu Falls", region: "South America", latitude: -25.6867, longitude: -54.4447 },
+    { id: "eiffel_tower", name: "Eiffel Tower", region: "Europe", latitude: 48.8582, longitude: 2.2945 },
+    { id: "colosseum", name: "Colosseum", region: "Europe", latitude: 41.8903, longitude: 12.4922 },
+    { id: "great_pyramid_of_giza", name: "Great Pyramid of Giza", region: "Africa", latitude: 29.9792, longitude: 31.1342 },
+    { id: "table_mountain", name: "Table Mountain", region: "Africa", latitude: -33.9622, longitude: 18.4099 },
+    { id: "sydney_opera_house", name: "Sydney Opera House", region: "Oceania", latitude: -33.8568, longitude: 151.2151 },
+    { id: "taj_mahal", name: "Taj Mahal", region: "Asia", latitude: 27.175, longitude: 78.0419 },
+    { id: "tokyo_tower", name: "Tokyo Tower", region: "Asia", latitude: 35.6586, longitude: 139.7456 },
+    { id: "statue_of_liberty", name: "Statue of Liberty", region: "North America", latitude: 40.6892, longitude: -74.0444 },
+    { id: "golden_gate_bridge", name: "Golden Gate Bridge", region: "North America", latitude: 37.8197, longitude: -122.4786 },
+    { id: "chichen_itza", name: "Chichen Itza", region: "North America", latitude: 20.6831, longitude: -88.5686 },
+  ];
+
+  it("computes real geodesic distances", () => {
+    // San Francisco to Tokyo is ~8,270 km by great circle.
+    const km = wpDistanceKm({ lat: 37.8197, lng: -122.4786 }, { lat: 35.6586, lng: 139.7456 });
+    expect(Math.round(km)).toBeGreaterThan(8200);
+    expect(Math.round(km)).toBeLessThan(8350);
+  });
+
+  it("accepts a bank with genuine spread and near neighbours", () => {
+    const r = analyzeWaypointBank(GLOBAL_BANK, "christ_the_redeemer", 5);
+    expect(r.ok).toBe(true);
+    expect(r.problems ?? []).toEqual([]);
+    expect(r.parGuesses).toBeLessThanOrEqual(5);
+  });
+
+  it("rejects a bank where two candidates are a coin flip", () => {
+    // Sugarloaf sits ~6 km from Christ the Redeemer: no third point in the
+    // bank is close enough to resolve that pair by distance or bearing.
+    const bank = [
+      ...GLOBAL_BANK,
+      { id: "sugarloaf", name: "Sugarloaf Mountain", region: "South America", latitude: -22.9492, longitude: -43.1545 },
+    ];
+    const r = analyzeWaypointBank(bank, "christ_the_redeemer", 5);
+    expect(r.ambiguousWith).toContain("Sugarloaf Mountain");
+    expect((r.problems ?? []).join("\n")).toContain("coin flip");
+  });
+
+  it("warns when the target is isolated from a tight cluster", () => {
+    const bank = [
+      { id: "t", name: "Tokyo Tower", region: "Asia", latitude: 35.6586, longitude: 139.7456 },
+      { id: "a", name: "Eiffel Tower", region: "Europe", latitude: 48.8582, longitude: 2.2945 },
+      { id: "b", name: "Colosseum", region: "Europe", latitude: 41.8903, longitude: 12.4922 },
+      { id: "c", name: "Brandenburg Gate", region: "Europe", latitude: 52.5163, longitude: 13.3777 },
+      { id: "d", name: "Big Ben", region: "Europe", latitude: 51.5007, longitude: -0.1246 },
+    ];
+    const r = analyzeWaypointBank(bank, "t", 5);
+    expect(r.firstGuessResolveRate).toBe(1);
+    expect((r.warnings ?? []).join("\n")).toContain("trivial");
+    expect((r.warnings ?? []).join("\n")).toContain("only candidate in its region");
+  });
+
+  it("counts a probe as eliminating itself", () => {
+    // Guessing a location always resolves that location: you are told you were
+    // right, or told you were not. An earlier version of the analyser only
+    // filtered by distance/bearing separation, so a candidate sitting within
+    // the tolerance floor of the target "survived" its own probe — the search
+    // then re-probed it and reported a par one guess too high.
+    const bank = [
+      { id: "giza", name: "Great Pyramid of Giza", region: "Africa", latitude: 29.9792, longitude: 31.1342 },
+      { id: "luxor", name: "Luxor Temple", region: "Africa", latitude: 25.7, longitude: 32.6392 },
+      { id: "abu_simbel", name: "Abu Simbel", region: "Africa", latitude: 22.3369, longitude: 31.6256 },
+      { id: "tokyo", name: "Tokyo Tower", region: "Asia", latitude: 35.6586, longitude: 139.7456 },
+      { id: "sydney", name: "Sydney Opera House", region: "Oceania", latitude: -33.8568, longitude: 151.2151 },
+    ];
+    const r = analyzeWaypointBank(bank, "giza", 5);
+    // No location may appear twice in the optimal line.
+    const probed = (r.line ?? []).map((step: string) => step.split(" \u2192 ")[0]);
+    expect(new Set(probed).size).toBe(probed.length);
+  });
+
+  it("flags a bank that cannot be solved inside its own guess limit", () => {
+    const bank = [
+      ...GLOBAL_BANK,
+      { id: "sugarloaf", name: "Sugarloaf Mountain", region: "South America", latitude: -22.9492, longitude: -43.1545 },
+    ];
+    const r = analyzeWaypointBank(bank, "christ_the_redeemer", 1);
+    expect((r.problems ?? []).join("\n")).toContain("allows only 1");
+  });
+
+  it("runs as part of preflight, so daily_check sees it", () => {
+    const { problems } = preflight({
+      gameId: "waypoint",
+      puzzleDate: "2026-08-01",
+      payload: {
+        target: GLOBAL_BANK[0],
+        locations: [
+          ...GLOBAL_BANK,
+          { id: "sugarloaf", name: "Sugarloaf Mountain", region: "South America", latitude: -22.9492, longitude: -43.1545 },
+        ],
+        maxGuesses: 5,
+      },
+    });
+    expect(problems.join("\n")).toContain("coin flip");
   });
 });
