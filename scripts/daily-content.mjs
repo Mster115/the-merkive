@@ -44,7 +44,7 @@ import process from "node:process";
 import { requireSecret, resolveSecret, SETUP_HINT, KEYCHAIN_SERVICE } from "./secret.mjs";
 
 const BASE_URL = (process.env.MERKY_BASE_URL ?? "https://the-merkive.vercel.app").replace(/\/$/, "");
-const GAMES = ["nexus", "nutshell", "relay"];
+const GAMES = ["nexus", "nutshell", "relay", "waypoint"];
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 // --- date helpers -----------------------------------------------------------
@@ -463,6 +463,37 @@ export function preflight(pack) {
     }
   }
 
+
+  if (pack.gameId === "waypoint") {
+    const target = payload.target || { id: payload.targetLocationId };
+    const locations = Array.isArray(payload.locations) ? payload.locations : (Array.isArray(payload.availableLocations) ? payload.availableLocations : []);
+
+    if (locations.length === 0) problems.push("waypoint payload needs a non-empty locations array");
+
+    for (const loc of locations) {
+      if (!String(loc?.name ?? "").trim()) problems.push("each location must have a non-empty name");
+
+      const hasCoordsArray = Array.isArray(loc?.coordinates) && loc.coordinates.length === 2;
+      const hasLatLon = typeof loc?.latitude === "number" && typeof loc?.longitude === "number";
+
+      if (!hasCoordsArray && !hasLatLon) {
+        problems.push(`location ${loc?.name || loc?.id} must have latitude/longitude or a coordinates array`);
+      } else {
+        const lat = hasCoordsArray ? loc.coordinates[0] : loc.latitude;
+        const lon = hasCoordsArray ? loc.coordinates[1] : loc.longitude;
+        if (lat < -90 || lat > 90) problems.push(`location ${loc?.name || loc?.id} has invalid latitude ${lat}`);
+        if (lon < -180 || lon > 180) problems.push(`location ${loc?.name || loc?.id} has invalid longitude ${lon}`);
+      }
+    }
+
+    if (!payload.target && !payload.targetLocationId) {
+      problems.push("waypoint needs a target object or targetLocationId");
+    }
+
+    if (locations.length > 0 && locations.length < 8) {
+      warnings.push(`waypoint locations has only ${locations.length} entries; aim for at least 8`);
+    }
+  }
 
   return { problems, warnings };
 }

@@ -266,6 +266,17 @@ export function RelayIcon({ className = "w-6 h-6" }: { className?: string }) {
   );
 }
 
+export function WaypointIcon({ className = "w-6 h-6" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" fill="var(--mb-surface)" stroke="currentColor" strokeWidth="2" />
+      <circle cx="12" cy="12" r="5" fill="none" stroke="var(--mb-accent)" strokeWidth="1.5" strokeDasharray="2 2" />
+      <circle cx="12" cy="12" r="2" fill="var(--mb-gold)" stroke="currentColor" strokeWidth="1" />
+      <path d="M12 3v3M12 18v3M3 12h3M18 12h3" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
 export function MerkadeIcon({ className = "w-6 h-6" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -282,6 +293,47 @@ export function CheckIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
       <path d="M4.5 12.5l5 5 10-11" />
+    </svg>
+  );
+}
+
+/**
+ * A compass needle pointing along `bearingDeg` (0 = north, clockwise).
+ * Waypoint renders one of these per guess in place of a directional glyph —
+ * it rotates continuously, so it carries the exact bearing rather than
+ * snapping to one of eight arrows.
+ */
+export function BearingArrowIcon({
+  bearingDeg = 0,
+  className = "w-5 h-5",
+}: {
+  bearingDeg?: number;
+  className?: string;
+}) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ transform: `rotate(${bearingDeg}deg)` }}
+    >
+      <path d="M12 3.5v17" />
+      <path d="M6.5 9L12 3.5 17.5 9" />
+    </svg>
+  );
+}
+
+/** Concentric bullseye — the target has been hit. */
+export function TargetIcon({ className = "w-5 h-5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9.5" />
+      <circle cx="12" cy="12" r="5.5" />
+      <circle cx="12" cy="12" r="1.75" fill="currentColor" stroke="none" />
     </svg>
   );
 }
@@ -363,6 +415,8 @@ export function GameIcon({ gameId, className }: { gameId: string; className?: st
       return <NutshellIcon className={className} />;
     case "relay":
       return <RelayIcon className={className} />;
+    case "waypoint":
+      return <WaypointIcon className={className} />;
     default:
       return <PuzzleIcon className={className} />;
   }

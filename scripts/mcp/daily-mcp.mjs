@@ -48,7 +48,7 @@ import { requireSecret } from "../secret.mjs";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const BASE_URL = (process.env.MERKY_BASE_URL ?? "https://the-merkive.vercel.app").replace(/\/$/, "");
 const LEDGER_PATH = process.env.MERKY_LEDGER ?? join(HERE, ".daily-ledger.json");
-const GAMES = ["nexus", "nutshell", "relay"];
+const GAMES = ["nexus", "nutshell", "relay", "waypoint"];
 
 // --- word list + solver, loaded from the game package -----------------------
 
@@ -594,6 +594,13 @@ function puzzleItems(gameId, payload) {
   if (gameId === "relay") {
     const pair = `${norm(p.startWord)}->${norm(p.endWord)}`;
     return pair === "->" ? [] : [pair];
+  }
+  if (gameId === "waypoint") {
+    const target = p.target;
+    const locs = p.locations ?? p.availableLocations ?? [];
+    const names = Array.isArray(locs) ? locs.map((l) => norm(l?.name)).filter(Boolean).sort() : [];
+    const targetName = norm(target?.name);
+    return targetName ? [targetName, ...names] : names;
   }
   return [];
 }

@@ -1,6 +1,6 @@
 # The daily fill — how it runs
 
-Three scheduled tasks keep the daily queues topped up, one per game. They run
+Four scheduled tasks keep the daily queues topped up, one per game. They run
 locally on the operator's Mac, in this repo's folder, through the
 [`merkive-daily` MCP server](mcp-server.md).
 
@@ -14,6 +14,7 @@ copy of them**:
 | [`.claude/skills/daily-merkive-nexus/`](../../.claude/skills/daily-merkive-nexus/SKILL.md) | Nexus |
 | [`.claude/skills/daily-merkive-nutshell/`](../../.claude/skills/daily-merkive-nutshell/SKILL.md) | Nutshell |
 | [`.claude/skills/daily-merkive-relay/`](../../.claude/skills/daily-merkive-relay/SKILL.md) | Relay |
+| [`.claude/skills/daily-merkive-waypoint/`](../../.claude/skills/daily-merkive-waypoint/SKILL.md) | Waypoint |
 | [`.claude/skills/_daily-shared/`](../../.claude/skills/_daily-shared/) | Shared references — see below |
 
 The shared references load only when a run needs them:
@@ -37,7 +38,7 @@ no re-pasting step, and no second copy that can drift.
 > never made it back to the repo. Splitting per game and pointing the tasks at
 > version-controlled skills removes the copy that caused it.
 
-## Why three tasks and not one
+## Why one task per game and not one for all
 
 The games have very different costs and needs, and one task meant one model and
 one failure domain for all three:
@@ -48,6 +49,9 @@ one failure domain for all three:
   is seed selection and clue writing.
 - **Relay** is closed-vocabulary wordplay verified by a solver. Cheapest by far,
   and needs no research budget.
+- **Waypoint** has no solver at all. Its cost is a coordinate-verification pass
+  over the whole bank — durable facts, so no topicality budget, but nothing in
+  the pipeline catches a wrong latitude.
 
 Splitting also means a Nexus run that burns out on verification no longer
 consumes the run before Nutshell is reached.

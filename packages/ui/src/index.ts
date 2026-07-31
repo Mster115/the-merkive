@@ -39,6 +39,8 @@ export {
   GameIcon,
   RankBadge,
   CheckIcon,
+  BearingArrowIcon,
+  TargetIcon,
   EyeIcon,
   QuestionIcon,
   SearchIcon,

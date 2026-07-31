@@ -73,6 +73,21 @@ export function puzzleItems(gameId: string, payload: unknown): string[] {
     return pair === "->" ? [] : [pair];
   }
 
+  if (gameId === "waypoint") {
+    // Target first, then the bank sorted. The same target over a reshuffled
+    // bank is the same puzzle; the same bank pointed at a different target is
+    // not, which is why the target is not merged into the sort.
+    const locs = p.locations ?? p.availableLocations ?? [];
+    const names = Array.isArray(locs)
+      ? locs
+          .map((l) => norm((l as { name?: unknown }).name))
+          .filter(Boolean)
+          .sort()
+      : [];
+    const targetName = norm((p.target as { name?: unknown } | undefined)?.name);
+    return targetName ? [targetName, ...names] : names;
+  }
+
   return [];
 }
 
