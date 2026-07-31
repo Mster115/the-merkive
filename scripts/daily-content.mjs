@@ -259,22 +259,106 @@ export function preflight(pack) {
           `cell ${key} lists no acceptableAnswers — retries cost points, so a player who says it another way still loses`
         );
       }
+      // A hint costs the player a scoring step, so one that names its own
+      // answer charges them for something they already had. validatePack
+      // rejects this outright; flag it here while it is still cheap to fix.
+      if (c?.hint !== undefined && c?.hint !== null && String(c.hint).trim() !== "") {
+        const hint = String(c.hint).trim();
+        if (hint.length > 120) {
+          problems.push(`cell ${key} hint is longer than 120 characters`);
+        }
+        const answer = String(c?.answer ?? "").trim().toLowerCase();
+        if (answer.length >= 3 && hint.toLowerCase().includes(answer)) {
+          problems.push(`cell ${key} hint contains the answer it is hinting at — "${c.answer}"`);
+        }
+      }
+    }
+
+    const hinted = cells.filter(
+      (c) => c?.hint !== undefined && c?.hint !== null && String(c.hint).trim() !== ""
+    ).length;
+    if (hinted === 0) {
+      warnings.push(
+        "no cell ships an authored hint — players report Nexus as the hardest daily game, so the harder cells should carry one"
+      );
     }
 
     // Questions are broadcast in publicState from the first render, so a
     // question containing another cell's answer hands that cell away for free.
     // Easy to do by accident: "named after the Titans" gives away TITAN, and
     // "when a volcano's magma reservoir collapses" gives away MAGMA.
+    // Hints are held server-side until bought, so they leak later than a
+    // question does rather than never — same check, same reason.
     for (const q of cells) {
-      const text = String(q?.question ?? "").toLowerCase();
-      for (const a of cells) {
-        if (a === q) continue;
-        const answer = String(a?.answer ?? "").trim().toLowerCase();
-        if (answer.length >= 4 && text.includes(answer)) {
-          problems.push(
-            `cell (${q.row},${q.col}) question contains the answer to cell (${a.row},${a.col}) — "${a.answer}"`
-          );
+      for (const [field, text] of [
+        ["question", String(q?.question ?? "").toLowerCase()],
+        ["hint", String(q?.hint ?? "").toLowerCase()],
+      ]) {
+        if (!text) continue;
+        for (const a of cells) {
+          if (a === q) continue;
+          const answer = String(a?.answer ?? "").trim().toLowerCase();
+          if (answer.length >= 4 && text.includes(answer)) {
+            problems.push(
+              `cell (${q.row},${q.col}) ${field} contains the answer to cell (${a.row},${a.col}) — "${a.answer}"`
+            );
+          }
         }
+      }
+    }
+
+    // A question must not identify its own answer. Reported live on
+    // 2026-07-31: "Which 2024 Summer Games became the first in Olympic history
+    // to field an equal number of male and female athletes?" — there is exactly
+    // one 2024 Summer Games, so nothing is left to recall and the player is
+    // reduced to guessing which label the key happens to use. The same grid
+    // asked "Which Japanese breaker, competing as B-Girl Ami, won…" for an
+    // answer of Ami Yuasa. The player's words: "I would never have guessed
+    // that's what they were looking for."
+    const SELF_LEAK_STOPWORDS = new Set([
+      "the", "a", "an", "of", "and", "or", "in", "on", "at", "to", "for", "by",
+      "with", "from", "de", "la", "le", "el", "von", "van", "der", "den", "st",
+      "mount", "lake", "new", "north", "south", "east", "west", "city", "united",
+      "national", "international", "world", "great", "grand", "royal",
+    ]);
+    for (const c of cells) {
+      const question = String(c?.question ?? "").toLowerCase();
+      const answer = String(c?.answer ?? "").trim();
+      if (!question || !answer) continue;
+
+      const tokens = answer
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}]+/gu, " ")
+        .split(/\s+/)
+        .filter((t) => t.length >= 3 && !SELF_LEAK_STOPWORDS.has(t));
+
+      for (const token of tokens) {
+        // Whole-word only: "art" must not fire on "Bartholomew", and a year in
+        // the answer ("Paris 2024") only counts if the question says it too.
+        if (new RegExp(`\\b${token}\\b`, "u").test(question)) {
+          problems.push(
+            `cell (${c.row},${c.col}) question contains "${token}" from its own answer "${answer}" — ` +
+              `the question identifies what it is asking for, leaving the player to guess the wording rather than the fact`
+          );
+          break;
+        }
+      }
+    }
+
+    // Event and edition names have several equally natural surface forms —
+    // "Paris 2024", "Paris", "the 2024 Summer Olympics" — and the grader only
+    // knows the ones the pack lists. A player who knows the fact and picks a
+    // different form is marked wrong for the format, not the knowledge.
+    for (const c of cells) {
+      const answer = String(c?.answer ?? "").trim();
+      const variants = Array.isArray(c?.acceptableAnswers) ? c.acceptableAnswers.length : 0;
+      const looksLikeAnEdition =
+        /\b(1[89]|20)\d{2}\b/.test(answer) && answer.split(/\s+/).filter(Boolean).length >= 2;
+      if (looksLikeAnEdition && variants < 2) {
+        warnings.push(
+          `cell (${c.row},${c.col}) answers "${answer}", which a player could reasonably write several ways — ` +
+            `list the bare name and the other common forms in acceptableAnswers`
+        );
       }
     }
 
@@ -378,6 +462,7 @@ export function preflight(pack) {
       }
     }
   }
+
 
   return { problems, warnings };
 }

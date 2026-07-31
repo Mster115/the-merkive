@@ -11,7 +11,14 @@ Code: `packages/games/src/daily/nexus/` (`utils.ts` holds `validatePack`).
 - **Unlimited guesses, decaying value.** A wrong guess leaves the cell open and
   worth less: 1 point first try, then ½, then ¼, then nothing. A player can also
   give up on a cell, which closes it as `incorrect` without showing the answer.
-- A cell can instead be `revealed`, which shows the answer and scores nothing.
+- **Hints.** A player can spend hints on a cell, each costing one step on that
+  same ladder: the authored `hint` if the cell ships one, then the answer's shape
+  (`▢▢▢▢▢▢▢▢▢`), then its initials, then every other letter. A hinted cell
+  answered correctly is still `correct`, so a hard cell is no longer a dead end —
+  but a grid written on the assumption that hints will be used reads as unfair to
+  a player who refuses them. See the difficulty tiers in the fill skill.
+- A cell can instead be `revealed`, which shows the answer, scores nothing, and
+  leaves the grid unsolvable — that is the give-up path, distinct from a hint.
 - All 9 cells must be resolved before submitting. Score is fractional out of 9;
   a full 9 correct is `solved`, anything less is `failed`.
 
@@ -79,6 +86,25 @@ than rejects because the heuristic cannot read the question — clear it either 
 pinning the question down, or by satisfying yourself that the series name is not
 an answer a reasonable player would give.
 
+### The opposite failure: a question that answers itself
+
+Pinning a question down too far turns it into a spelling test. Reported live on
+2026-07-31: *"Which 2024 Summer Games became the first in Olympic history to
+field an equal number of male and female athletes?"* — there is exactly one 2024
+Summer Games, so the question names its own answer and the player is left
+guessing whether the key says "Paris", "Paris 2024" or "the 2024 Summer
+Olympics". Feedback: *"I would never have guessed that's what they were looking
+for."*
+
+The test: cover the answer and read the question. If it already picks out exactly
+one thing, ask for something the sentence does not contain — *"Which host city
+staged the first Olympics with equal numbers of male and female athletes?"*
+
+`daily_check` **rejects** a question that reuses a distinctive word of its own
+answer, and warns when an edition-style answer ("Paris 2024") carries fewer than
+two `acceptableAnswers`. Neither catches a paraphrase, so the editorial rule in
+the fill skill is the real guard.
+
 ## Payload schema
 
 `validatePack` enforces every rule below and rejects with a specific message.
@@ -99,7 +125,9 @@ an answer a reasonable player would give.
         "col": 0,                         // 0 | 1 | 2
         "question": "…",                  // non-empty
         "answer": "…",                    // non-empty, canonical display form
-        "acceptableAnswers": ["…"]        // optional; non-string entries dropped
+        "acceptableAnswers": ["…"],       // optional; non-string entries dropped
+        "hint": "…"                       // optional nudge, ≤120 chars, must not
+                                          // contain the answer (see below)
       }
       // … 8 more
     ]
@@ -117,6 +145,12 @@ Validator specifics worth knowing:
 - Strings are trimmed. Cells are sorted by row then col, so submission order
   doesn't matter.
 - `acceptableAnswers` defaults to `[]` if absent or not an array.
+- **`hint` is optional and is the first rung of that cell's hint ladder**, ahead
+  of the computed masks — a cell with one has 4 rungs, a cell without has 3.
+  Rejected if it is not a string, exceeds 120 characters, or contains its own
+  answer (or any `acceptableAnswers` entry) as a whole word after normalization.
+  That last rule matters: a player spends a scoring step to see the hint, so one
+  that names the answer charges them for what they already had.
 - The validator does **not** check that the answer actually fits the two
   category labels, that the answer is unique, or that anything is true. That is
   entirely editorial — it is the reason this game carries the fact-check burden.

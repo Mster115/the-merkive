@@ -2,10 +2,17 @@ import { describe, it, expect } from "vitest";
 import { createDailyTestRun, act, actErr, ctxOf } from "../../testing";
 import { nexus } from "../index";
 import { getDailyGame } from "../../index";
-import { validatePack, normalizeAnswer, wordsToNumber, isOneEditAway } from "../utils";
+import {
+  buildHintMask,
+  NEXUS_MAX_HINT_LENGTH,
+  validatePack,
+  normalizeAnswer,
+  wordsToNumber,
+  isOneEditAway,
+} from "../utils";
 import type { DailyContentPack } from "../../types";
 import type { NexusPublicState, NexusPayload, NexusSecretState } from "../types";
-import { NEXUS_MAX_LOGGED_MISSES } from "../types";
+import { NEXUS_MAX_HINTS, NEXUS_MAX_LOGGED_MISSES } from "../types";
 
 const samplePayload: NexusPayload = {
   rowLabels: ["Geography", "Science", "History"],
@@ -680,6 +687,334 @@ describe("nexus answer grading — what counts as the same answer", () => {
   it("does not let an extra word carry a guess past a short key", () => {
     // "Rome" survives; "the city Rom" must not become a match by containment.
     expect(grade("Rome", "Rom City")).toBe("wrong");
+  });
+});
+
+/**
+ * From player feedback: Nexus is the most interesting of the daily games and by
+ * far the hardest, and a stuck square had nothing between "keep guessing" and
+ * "reveal it and forfeit the grid". The hint ladder is that missing rung, and
+ * the thing that makes it a rung rather than a second reveal is that a hinted
+ * square still counts as solved.
+ */
+describe("nexus hint ladder", () => {
+  const runFresh = () =>
+    createDailyTestRun(nexus, { puzzleDate: "2026-07-24", pack: samplePack });
+  const pubOf = (run: ReturnType<typeof runFresh>) =>
+    run.state.publicState as NexusPublicState;
+  const cellAt = (run: ReturnType<typeof runFresh>, row: number, col: number) =>
+    pubOf(run).cells.find((c) => c.row === row && c.col === col);
+
+  it("costs exactly what a wrong guess costs", () => {
+    const run = runFresh();
+    act(run, "hint_cell", { row: 0, col: 1 });
+    act(run, "answer_cell", { row: 0, col: 1, guess: "Stockholm" });
+
+    const cell = cellAt(run, 0, 1);
+    expect(cell?.status).toBe("correct");
+    expect(cell?.points).toBe(0.5);
+    expect(pubOf(run).score).toBe(0.5);
+  });
+
+  it("compounds with misses down the one ladder", () => {
+    const run = runFresh();
+    act(run, "hint_cell", { row: 0, col: 1 });
+    act(run, "answer_cell", { row: 0, col: 1, guess: "Gothenburg" });
+    act(run, "answer_cell", { row: 0, col: 1, guess: "Stockholm" });
+
+    expect(cellAt(run, 0, 1)?.points).toBe(0.25);
+    expect(pubOf(run).score).toBe(0.25);
+  });
+
+  it("climbs the rungs: shape, then initials, then every other letter", () => {
+    const run = runFresh();
+
+    act(run, "hint_cell", { row: 0, col: 1 });
+    expect(cellAt(run, 0, 1)?.hintMask).toBe("▢▢▢▢▢▢▢▢▢");
+
+    act(run, "hint_cell", { row: 0, col: 1 });
+    expect(cellAt(run, 0, 1)?.hintMask).toBe("S▢▢▢▢▢▢▢▢");
+
+    act(run, "hint_cell", { row: 0, col: 1 });
+    expect(cellAt(run, 0, 1)?.hintMask).toBe("S▢o▢k▢o▢m");
+    expect(cellAt(run, 0, 1)?.hints).toBe(NEXUS_MAX_HINTS);
+  });
+
+  it("leaves the square answerable at the bottom of the ladder", () => {
+    const run = runFresh();
+    for (let i = 0; i < NEXUS_MAX_HINTS; i++) {
+      act(run, "hint_cell", { row: 0, col: 1 });
+    }
+
+    act(run, "answer_cell", { row: 0, col: 1, guess: "Stockholm" });
+    expect(cellAt(run, 0, 1)?.status).toBe("correct");
+    expect(pubOf(run).score).toBe(0);
+  });
+
+  it("refuses a fourth hint rather than handing the answer over", () => {
+    const run = runFresh();
+    for (let i = 0; i < NEXUS_MAX_HINTS; i++) {
+      act(run, "hint_cell", { row: 0, col: 1 });
+    }
+    const before = JSON.stringify(run.state.publicState);
+
+    expect(actErr(run, "hint_cell", { row: 0, col: 1 }).code).toBe("no_hints_left");
+    expect(JSON.stringify(run.state.publicState)).toBe(before);
+  });
+
+  it("refuses a hint on a cell that is already settled", () => {
+    const run = runFresh();
+    act(run, "answer_cell", { row: 0, col: 0, guess: "Paris" });
+    expect(actErr(run, "hint_cell", { row: 0, col: 0 }).code).toBe("cell_locked");
+
+    act(run, "skip_cell", { row: 0, col: 1 });
+    expect(actErr(run, "hint_cell", { row: 0, col: 1 }).code).toBe("cell_locked");
+  });
+
+  it("still reaches `solved` when every square was hinted", () => {
+    // The whole point of the ladder. `reveal_cell` forfeits the grid; a hint
+    // must not, or it is just a slower reveal and the feedback goes unanswered.
+    const run = runFresh();
+    for (const spec of samplePayload.cells) {
+      act(run, "hint_cell", { row: spec.row, col: spec.col });
+      act(run, "answer_cell", {
+        row: spec.row,
+        col: spec.col,
+        guess: spec.answer,
+      });
+    }
+    act(run, "submit");
+
+    expect(run.state.phase).toBe("solved");
+    expect(pubOf(run).score).toBe(4.5);
+    expect(nexus.summarize(ctxOf(run), run.state).status).toBe("solved");
+  });
+
+  it("shades the share grid by what the square cost, and counts the hints", () => {
+    const run = runFresh();
+    act(run, "answer_cell", { row: 0, col: 0, guess: "Paris" }); // clean
+    act(run, "hint_cell", { row: 0, col: 1 });
+    act(run, "answer_cell", { row: 0, col: 1, guess: "Stockholm" }); // hinted
+    act(run, "hint_cell", { row: 0, col: 2 });
+    act(run, "hint_cell", { row: 0, col: 2 });
+    act(run, "answer_cell", { row: 0, col: 2, guess: "Tokyo" }); // twice-hinted
+
+    const summary = nexus.summarize(ctxOf(run), run.state);
+    const firstRow = summary.shareText
+      .split("\n")
+      .find((line) => /[🟩🟨🟧🟦🟥⬜]|👁/u.test(line));
+    expect(firstRow).toBe("🟩🟨🟧");
+    expect(summary.stats.extra?.hintsUsed).toBe(3);
+  });
+
+  it("never leaks the answer through publicState or the share text", () => {
+    const run = runFresh();
+    // Two rungs on every cell — the most a player can see without answering.
+    for (const spec of samplePayload.cells) {
+      act(run, "hint_cell", { row: spec.row, col: spec.col });
+      act(run, "hint_cell", { row: spec.row, col: spec.col });
+    }
+
+    // Scoped to the masks and the share text rather than the whole of
+    // publicState: the questions are broadcast by design, and this fixture has
+    // one whose text contains its own answer ("London physics lab").
+    const masks = JSON.stringify(pubOf(run).cells.map((c) => c.hintMask));
+    const { shareText } = nexus.summarize(ctxOf(run), run.state);
+    for (const spec of samplePayload.cells) {
+      expect(masks).not.toContain(spec.answer);
+      expect(shareText).not.toContain(spec.answer);
+    }
+    expect(JSON.stringify(pubOf(run).cells.map((c) => c.answer))).not.toContain(
+      "Stockholm"
+    );
+  });
+
+  it("tolerates an attempt saved before hints existed", () => {
+    const run = runFresh();
+    const pub = pubOf(run);
+    run.state = {
+      ...run.state,
+      publicState: {
+        ...pub,
+        cells: pub.cells.map(({ attempts: _a, hints: _h, ...rest }) => rest),
+      },
+    };
+
+    act(run, "answer_cell", { row: 0, col: 0, guess: "Paris" });
+    expect(pubOf(run).score).toBe(1);
+
+    act(run, "hint_cell", { row: 0, col: 1 });
+    expect(cellAt(run, 0, 1)?.hints).toBe(1);
+  });
+});
+
+/**
+ * The authored nudge is rung 0 of the same ladder: prose the content pipeline
+ * writes, ahead of the computed masks. A cell without one is unchanged.
+ */
+describe("nexus authored hint", () => {
+  /** The sample pack with an authored nudge on cell (0,1), answer "Stockholm". */
+  const packWithHint = (hint: string): DailyContentPack => {
+    const p = JSON.parse(JSON.stringify(samplePack)) as DailyContentPack;
+    const payload = p.payload as NexusPayload;
+    const cell = payload.cells.find((c) => c.row === 0 && c.col === 1)!;
+    cell.hint = hint;
+    return p;
+  };
+
+  const runWith = (hint: string) =>
+    createDailyTestRun(nexus, { puzzleDate: "2026-07-24", pack: packWithHint(hint) });
+  const cellAt = (run: ReturnType<typeof runWith>, row: number, col: number) =>
+    (run.state.publicState as NexusPublicState).cells.find(
+      (c) => c.row === row && c.col === col
+    );
+
+  const NUDGE = "The city that hands out most of the science prizes";
+
+  it("publishes the rung count up front without publishing the nudge", () => {
+    const run = runWith(NUDGE);
+    // The player has to know how many rungs a square has before spending one,
+    // but the text itself stays behind the paywall.
+    expect(cellAt(run, 0, 1)?.hintsAvailable).toBe(NEXUS_MAX_HINTS + 1);
+    expect(cellAt(run, 0, 0)?.hintsAvailable).toBe(NEXUS_MAX_HINTS);
+    expect(JSON.stringify(run.state.publicState)).not.toContain(NUDGE);
+  });
+
+  it("takes the first rung, pushing the masks back one", () => {
+    const run = runWith(NUDGE);
+
+    act(run, "hint_cell", { row: 0, col: 1 });
+    expect(cellAt(run, 0, 1)?.hintText).toBe(NUDGE);
+    expect(cellAt(run, 0, 1)?.hintMask).toBeUndefined();
+
+    act(run, "hint_cell", { row: 0, col: 1 });
+    expect(cellAt(run, 0, 1)?.hintMask).toBe("▢▢▢▢▢▢▢▢▢");
+    // The nudge stays on the cell — paying a step must never lose information.
+    expect(cellAt(run, 0, 1)?.hintText).toBe(NUDGE);
+
+    act(run, "hint_cell", { row: 0, col: 1 });
+    expect(cellAt(run, 0, 1)?.hintMask).toBe("S▢▢▢▢▢▢▢▢");
+
+    act(run, "hint_cell", { row: 0, col: 1 });
+    expect(cellAt(run, 0, 1)?.hintMask).toBe("S▢o▢k▢o▢m");
+  });
+
+  it("costs a step like any other rung, and still scores as correct", () => {
+    const run = runWith(NUDGE);
+    act(run, "hint_cell", { row: 0, col: 1 });
+    act(run, "answer_cell", { row: 0, col: 1, guess: "Stockholm" });
+
+    expect(cellAt(run, 0, 1)?.status).toBe("correct");
+    expect(cellAt(run, 0, 1)?.points).toBe(0.5);
+  });
+
+  it("caps one rung higher than a cell without a nudge", () => {
+    const run = runWith(NUDGE);
+    for (let i = 0; i < NEXUS_MAX_HINTS + 1; i++) {
+      act(run, "hint_cell", { row: 0, col: 1 });
+    }
+    expect(actErr(run, "hint_cell", { row: 0, col: 1 }).code).toBe("no_hints_left");
+
+    // The neighbouring cell ships no nudge and still stops at three.
+    for (let i = 0; i < NEXUS_MAX_HINTS; i++) {
+      act(run, "hint_cell", { row: 0, col: 0 });
+    }
+    expect(actErr(run, "hint_cell", { row: 0, col: 0 }).code).toBe("no_hints_left");
+  });
+
+  it("reads the cap off the pack, so an attempt saved before nudges still gets one", () => {
+    const run = runWith(NUDGE);
+    const pub = run.state.publicState as NexusPublicState;
+    run.state = {
+      ...run.state,
+      publicState: {
+        ...pub,
+        cells: pub.cells.map(({ hintsAvailable: _h, ...rest }) => rest),
+      },
+    };
+
+    for (let i = 0; i < NEXUS_MAX_HINTS + 1; i++) {
+      act(run, "hint_cell", { row: 0, col: 1 });
+    }
+    expect(cellAt(run, 0, 1)?.hints).toBe(NEXUS_MAX_HINTS + 1);
+    expect(cellAt(run, 0, 1)?.hintText).toBe(NUDGE);
+  });
+
+  it("keeps the field through validatePack, which rebuilds the payload", () => {
+    const res = validatePack(packWithHint(NUDGE), "2026-07-24");
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    const cells = (res.pack.payload as NexusPayload).cells;
+    expect(cells.find((c) => c.row === 0 && c.col === 1)?.hint).toBe(NUDGE);
+    // Absent everywhere else rather than defaulted to an empty string.
+    expect(cells.find((c) => c.row === 0 && c.col === 0)?.hint).toBeUndefined();
+  });
+
+  it("rejects a nudge that names the answer it is hinting at", () => {
+    // The player pays a scoring step for this. Handing back the answer they
+    // were already owed is worse than shipping no hint at all.
+    const bad = validatePack(packWithHint("Stockholm hosts the ceremony"), "2026-07-24");
+    expect(bad.ok).toBe(false);
+    if (!bad.ok) expect(bad.error).toContain("contains the answer");
+
+    // Normalization applies, so case and punctuation cannot sneak it past.
+    expect(validatePack(packWithHint("it is STOCKHOLM!"), "2026-07-24").ok).toBe(false);
+  });
+
+  it("rejects a nudge that is not a string or runs long", () => {
+    const longHint = "x".repeat(NEXUS_MAX_HINT_LENGTH + 1);
+    expect(validatePack(packWithHint(longHint), "2026-07-24").ok).toBe(false);
+
+    const wrongType = JSON.parse(JSON.stringify(samplePack)) as DailyContentPack;
+    (wrongType.payload as NexusPayload).cells[1]!.hint = 42 as unknown as string;
+    expect(validatePack(wrongType, "2026-07-24").ok).toBe(false);
+  });
+
+  it("treats a blank nudge as no nudge rather than an empty rung", () => {
+    const res = validatePack(packWithHint("   "), "2026-07-24");
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    const cells = (res.pack.payload as NexusPayload).cells;
+    expect(cells.find((c) => c.row === 0 && c.col === 1)?.hint).toBeUndefined();
+  });
+});
+
+describe("buildHintMask", () => {
+  it("hides everything but the shape at the first rung", () => {
+    expect(buildHintMask("Albert Einstein", 1)).toBe("▢▢▢▢▢▢ ▢▢▢▢▢▢▢▢");
+  });
+
+  it("opens the first letter of each word at the second", () => {
+    expect(buildHintMask("Albert Einstein", 2)).toBe("A▢▢▢▢▢ E▢▢▢▢▢▢▢");
+  });
+
+  it("keeps punctuation and spacing visible as structure", () => {
+    expect(buildHintMask("Wall-E", 2)).toBe("W▢▢▢-E");
+    expect(buildHintMask("O'Brien", 2)).toBe("O'B▢▢▢▢");
+    expect(buildHintMask("Rock & Roll", 2)).toBe("R▢▢▢ & R▢▢▢");
+  });
+
+  it("masks digits too, so a date is not handed over as 'shape'", () => {
+    expect(buildHintMask("Apollo 11", 1)).toBe("▢▢▢▢▢▢ ▢▢");
+    expect(buildHintMask("Apollo 11", 2)).toBe("A▢▢▢▢▢ 1▢");
+  });
+
+  it("drops an editorial parenthetical the grader ignores anyway", () => {
+    expect(buildHintMask("Mercury (planet)", 1)).toBe("▢▢▢▢▢▢▢");
+  });
+
+  it("keeps accents on the letters it shows", () => {
+    expect(buildHintMask("Beyoncé", 3)).toBe("B▢y▢n▢é");
+  });
+
+  it("is deterministic — the same answer and rung give the same mask", () => {
+    expect(buildHintMask("Stockholm", 3)).toBe(buildHintMask("Stockholm", 3));
+  });
+
+  it("survives a degenerate answer instead of throwing", () => {
+    expect(buildHintMask("", 2)).toBe("");
+    expect(buildHintMask("(note)", 1)).toBe("");
+    expect(buildHintMask("Rome", 0)).toBe("▢▢▢▢");
   });
 });
 

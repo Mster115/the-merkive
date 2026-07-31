@@ -269,6 +269,65 @@ export function matchesAnswer(normGuess: string, normKey: string): boolean {
   );
 }
 
+/** The blank. A box rather than an underscore: underscores run together at
+ *  small sizes, so "▢▢▢" reads as three letters and "___" reads as one rule. */
+const HINT_MASK_CHAR = "▢";
+
+/** A nudge, not a paragraph — it has to fit the answer panel on a phone. */
+export const NEXUS_MAX_HINT_LENGTH = 120;
+
+/**
+ * A hint rung, rendered as a mask of the answer rather than as prose — `reduce`
+ * has no translator, so anything it writes into `publicState` has to be
+ * language-neutral. The mask carries the shape (word count, letter counts,
+ * punctuation) and progressively more of the letters:
+ *
+ * - 1 → `▢▢▢▢▢▢▢ ▢▢▢▢▢▢▢`  the shape alone
+ * - 2 → `C▢▢▢▢▢▢ C▢▢▢▢▢▢`  first letter of each word
+ * - 3 → `C▢a▢l▢s C▢a▢l▢n`  plus every other letter still hidden
+ *
+ * Which letters rung 3 shows is fixed by position, not sampled: the ladder has
+ * to produce the same mask every time it is derived, on the server or in a
+ * replay, and `Math.random` is banned in game logic anyway. On a very short
+ * answer rung 3 can amount to the whole word — acceptable, because a cell three
+ * hints deep is already worth nothing.
+ */
+export function buildHintMask(answer: string, level: number): string {
+  if (typeof answer !== "string") return "";
+
+  // Parentheticals are editorial notes on the answer, not part of it —
+  // `normalizeAnswer` drops them when grading, so a mask that kept them would
+  // be asking the player to type something that never counted.
+  const display = answer
+    .replace(/\([^()]*\)/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+  if (display === "") return "";
+
+  // Digits mask alongside letters: an unmasked "1969" hands over most of the
+  // answer at the rung that is only supposed to show its shape.
+  const isMaskable = (ch: string) => /[\p{L}\p{N}]/u.test(ch);
+
+  let letterIndex = 0;
+  let atWordStart = true;
+
+  return [...display]
+    .map((ch) => {
+      if (!isMaskable(ch)) {
+        atWordStart = true;
+        return ch;
+      }
+      const wordStart = atWordStart;
+      atWordStart = false;
+      const position = letterIndex++;
+
+      if (level >= 2 && wordStart) return ch;
+      if (level >= 3 && position % 2 === 0) return ch;
+      return HINT_MASK_CHAR;
+    })
+    .join("");
+}
+
 export function generatePrompt(puzzleDate: string): string {
   return (
     `Generate a 3x3 trivia intersection matrix puzzle for date ${puzzleDate}. ` +
@@ -276,7 +335,17 @@ export function generatePrompt(puzzleDate: string): string {
     `Provide exactly 9 verifiable Q&A pairs, one for each (row, col) intersection (row 0-2, col 0-2) ` +
     `where the answer satisfies both row and column categories. Favor recent or current-event ` +
     `freshness where the category allows, using original question phrasing with source citations. ` +
-    `Each cell must include row, col, question, canonical answer, and acceptableAnswers list.`
+    `Each cell must include row, col, question, canonical answer, and acceptableAnswers list. ` +
+    `Each cell may also include an optional "hint": one short nudge (max ${NEXUS_MAX_HINT_LENGTH} chars) that ` +
+    `narrows the answer without naming it — a player spends a scoring step to see it, so it must ` +
+    `earn that. A hint containing its own answer is rejected. Prefer hints on the harder cells. ` +
+    // Players report Nexus as far harder than the other daily games, so the
+    // mix is stated here as well as in the docs: the skill is told to trust
+    // this brief over any document, and a brief that said nothing about
+    // difficulty let every grid drift toward the hard end.
+    `Calibrate difficulty across the nine cells: 3 approachable (a generally-informed solver ` +
+    `gets it with no lookup), 4 medium, and at most 2 genuinely hard. Players can take hints, ` +
+    `which cost points — that is a safety net for the 2 hard cells, not a licence to raise the floor.`
   );
 }
 
@@ -359,12 +428,41 @@ export function validatePack(
           .map((a) => a.trim())
       : [];
 
+    // The authored nudge is optional, but a bad one is worse than none: a hint
+    // that contains the answer sells the player a step on the scoring ladder
+    // for something they already had, and there is no way to take it back.
+    let hint: string | undefined;
+    if (c.hint !== undefined && c.hint !== null && String(c.hint).trim() !== "") {
+      if (typeof c.hint !== "string") {
+        return { ok: false, error: `Cell (${row}, ${col}) hint must be a string` };
+      }
+      hint = c.hint.trim();
+      if (hint.length > NEXUS_MAX_HINT_LENGTH) {
+        return {
+          ok: false,
+          error: `Cell (${row}, ${col}) hint exceeds ${NEXUS_MAX_HINT_LENGTH} characters`,
+        };
+      }
+      const normHint = normalizeAnswer(hint);
+      const givesItAway = [c.answer, ...acceptable].some((ref) => {
+        const normRef = normalizeAnswer(String(ref));
+        return normRef !== "" && ` ${normHint} `.includes(` ${normRef} `);
+      });
+      if (givesItAway) {
+        return {
+          ok: false,
+          error: `Cell (${row}, ${col}) hint contains the answer it is hinting at`,
+        };
+      }
+    }
+
     cleanedCells.push({
       row,
       col,
       question: c.question.trim(),
       answer: c.answer.trim(),
       acceptableAnswers: acceptable,
+      ...(hint ? { hint } : {}),
     });
   }
 
