@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { createDailyTestRun, act, actErr, ctxOf } from "../testing";
-import { waypoint, haversineDistance, calculateBearing, bearingToCardinalArrow } from "../waypoint";
+import { waypoint, haversineDistance, calculateBearing, bearingToOctant } from "../waypoint";
 import { getDailyGame } from "../index";
 import type { WaypointPublicState, WaypointSecretState, WaypointLocation } from "../waypoint/types";
 
@@ -139,7 +139,8 @@ describe("Waypoint Daily Game Suite", () => {
       expect(guess.locationName).toBe("London");
       expect(guess.distanceKm).toBeGreaterThan(300);
       expect(guess.distanceKm).toBeLessThan(400);
-      expect(guess.cardinalArrow).toBe("↘️"); // London to Paris is SE (approx 155°)
+      // London to Paris is ~155°, which quantizes to the SE sector (octant 3).
+      expect(guess.octant).toBe(3);
     });
 
     it("give_up action transitions game to gave_up/failed phase and reveals secret target", () => {
@@ -179,7 +180,7 @@ describe("Waypoint Daily Game Suite", () => {
 
       // Share text formatting
       expect(summary.shareText).toContain("Waypoint #2026-07-30 2/5");
-      expect(summary.shareText).toContain("↘️ 🟩"); // London guess (344 km is < 500km -> green)
+      expect(summary.shareText).toContain("↘️ 🟨"); // London guess (344 km -> second band)
       expect(summary.shareText).toContain("🎯 🟩"); // Paris guess
       expect(summary.shareText.toUpperCase()).not.toContain("PARIS");
       expect(summary.shareText.toUpperCase()).not.toContain("LONDON");
@@ -204,7 +205,8 @@ describe("Waypoint Daily Game Suite", () => {
       expect(run.phase).toBe("solved");
       expect(pub.solved).toBe(true);
       expect(pub.guesses[0]?.distanceKm).toBe(0);
-      expect(pub.guesses[0]?.cardinalArrow).toBe("🎯");
+      // A hit has no direction to report.
+      expect(pub.guesses[0]?.octant).toBeUndefined();
       expect(pub.targetLocationName).toBe("Paris");
     });
 
@@ -217,8 +219,9 @@ describe("Waypoint Daily Game Suite", () => {
       expect(bearing).toBeGreaterThanOrEqual(0);
       expect(bearing).toBeLessThan(360);
 
-      const arrow = bearingToCardinalArrow(bearing, dist);
-      expect(arrow).not.toBe("🎯");
+      const octant = bearingToOctant(bearing);
+      expect(octant).toBeGreaterThanOrEqual(0);
+      expect(octant).toBeLessThanOrEqual(7);
     });
 
     it("rejects invalid action payloads with appropriate error codes without throwing", () => {

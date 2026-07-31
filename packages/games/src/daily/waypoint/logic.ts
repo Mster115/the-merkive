@@ -13,6 +13,7 @@ import type {
   WaypointGuess,
   WaypointLocation,
   WaypointLocationPublic,
+  WaypointOctant,
   WaypointPublicState,
   WaypointSecretState,
 } from "./types";
@@ -88,35 +89,48 @@ export function calculateBearing(
 }
 
 /**
- * Maps compass bearing + distance to a cardinal directional arrow.
+ * Quantize a compass bearing to one of eight 45-degree sectors, 0 = N.
+ *
+ * This is the only form of direction the client is ever given. See the note on
+ * `WaypointOctant` for why the exact angle must not escape `reduce`.
  */
-export function bearingToCardinalArrow(
-  bearingDeg: number,
-  distanceKm: number
-): WaypointGuess["cardinalArrow"] {
-  if (distanceKm === 0) return "🎯";
-
+export function bearingToOctant(bearingDeg: number): WaypointOctant {
   const b = ((bearingDeg % 360) + 360) % 360;
+  return (Math.floor(((b + 22.5) % 360) / 45) as WaypointOctant);
+}
 
-  if (b >= 337.5 || b < 22.5) return "↑";
-  if (b >= 22.5 && b < 67.5) return "↗️";
-  if (b >= 67.5 && b < 112.5) return "→";
-  if (b >= 112.5 && b < 157.5) return "↘️";
-  if (b >= 157.5 && b < 202.5) return "↓";
-  if (b >= 202.5 && b < 247.5) return "↙️";
-  if (b >= 247.5 && b < 292.5) return "←";
-  return "↖️";
+/** Share-grid glyph for an octant. */
+const OCTANT_ARROWS = ["⬆️", "↗️", "➡️", "↘️", "⬇️", "↙️", "⬅️", "↖️"] as const;
+
+/**
+ * Share-text arrow for a guess.
+ *
+ * Every glyph here is emoji-presentation (U+FE0F). An earlier version mixed
+ * bare `↑`/`→` with emoji `↗️`/`↘️`, so the cardinals rendered text-sized and
+ * the diagonals emoji-sized and the shared grid did not line up in columns.
+ */
+export function octantToArrow(octant?: WaypointOctant): string {
+  if (octant === undefined) return "🎯";
+  return OCTANT_ARROWS[octant] ?? "🎯";
 }
 
 
+/**
+ * Proximity band for the share grid.
+ *
+ * The old thresholds (500 / 2000 / 5000) put almost every guess in the top
+ * band on a planet 20,000km across, so a shared grid was mostly black squares
+ * with no shape to read. These spread the range so the grid tells a story.
+ */
 export function distanceToProximityEmoji(
   distanceKm: number,
   isMatch?: boolean
 ): string {
   if (isMatch || distanceKm === 0) return "🟩";
-  if (distanceKm < 500) return "🟩";
-  if (distanceKm < 2000) return "🟨";
-  if (distanceKm < 5000) return "🟧";
+  if (distanceKm < 200) return "🟩";
+  if (distanceKm < 1000) return "🟨";
+  if (distanceKm < 3000) return "🟧";
+  if (distanceKm < 8000) return "🟥";
   return "⬛";
 }
 
@@ -201,6 +215,21 @@ export function init(
 // reduce
 // ---------------------------------------------------------------------------
 
+/**
+ * The fields that become public the moment an attempt ends. Kept in one place
+ * so the win, loss and give-up paths cannot drift apart on what they reveal.
+ */
+function revealTarget(sec: WaypointSecretState): Partial<WaypointPublicState> {
+  return {
+    targetLocationName: sec.targetLocationName,
+    targetRegion: sec.targetRegion,
+    targetCoordinates: [
+      sec.targetCoordinates.latitude,
+      sec.targetCoordinates.longitude,
+    ],
+  };
+}
+
 export function reduce(
   ctx: DailyContext,
   state: DailyStateIn,
@@ -227,7 +256,7 @@ export function reduce(
       phase: "failed",
       status: "failed",
       solved: false,
-      targetLocationName: sec.targetLocationName,
+      ...revealTarget(sec),
     };
     return {
       publicState: updatedPub,
@@ -304,17 +333,14 @@ export function reduce(
     const isExactMatch = exactDistKm < 0.1;
     const isCorrect = isIdMatch || isExactMatch;
 
-    const cardinalArrow = isCorrect
-      ? "🎯" as const
-      : bearingToCardinalArrow(bearingDeg, distanceKm);
-
+    // Quantize before the value can reach publicState. `bearingDeg` stays a
+    // local: it is never written onto the guess.
     const newGuess: WaypointGuess = {
       locationId: guessId,
       locationName: guessName,
       distanceKm,
-      bearingDeg,
-      cardinalArrow,
-      directionArrow: cardinalArrow,
+      octant: isCorrect ? undefined : bearingToOctant(bearingDeg),
+      coordinates: [guessCoords[0], guessCoords[1]],
       isCorrect: !!isCorrect,
     };
 
@@ -324,20 +350,17 @@ export function reduce(
     let newStatus: DailyStatus = "in_progress";
     let solved = false;
     let attemptOver = false;
-    let targetLocationName = pub.targetLocationName;
 
     if (isCorrect) {
       newPhase = "solved";
       newStatus = "solved";
       solved = true;
       attemptOver = true;
-      targetLocationName = sec.targetLocationName;
     } else if (newGuesses.length >= pub.maxGuesses) {
       newPhase = "failed";
       newStatus = "failed";
       solved = false;
       attemptOver = true;
-      targetLocationName = sec.targetLocationName;
     }
 
     const updatedPub: WaypointPublicState = {
@@ -346,7 +369,9 @@ export function reduce(
       phase: newPhase,
       status: newStatus,
       solved,
-      targetLocationName,
+      // The target's name and position are revealed together, and only once
+      // the attempt is over — they drive the endgame reveal map.
+      ...(attemptOver ? revealTarget(sec) : {}),
     };
 
     return {
@@ -390,8 +415,7 @@ export function summarize(ctx: DailyContext, state: DailyStateIn): DailySummary 
 
   const emojiLines = pub.guesses.map((g) => {
     const colorEmoji = distanceToProximityEmoji(g.distanceKm, g.isCorrect);
-    const arrow = g.cardinalArrow ?? g.directionArrow ?? "🎯";
-    return `${arrow} ${colorEmoji}`;
+    return `${octantToArrow(g.octant)} ${colorEmoji}`;
   });
 
   const shareText = [`${header} ${attemptsStr}`, ...emojiLines].join("\n").trim();

@@ -197,6 +197,8 @@ export const en: Record<string, string> = {
   "daily.share.title": "Share Results",
   "daily.share.copy": "Copy Results",
   "daily.share.copied": "Copied!",
+  "daily.share.share": "Share",
+  "daily.share.shareTitle": "The Merkive",
   "daily.share.playCta": "Play",
   "daily.back.home": "Back to Home",
   "daily.back.hub": "Back to Daily Games",

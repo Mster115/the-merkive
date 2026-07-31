@@ -4,6 +4,7 @@ import { waypoint } from "../index";
 import {
   haversineDistance,
   calculateBearing,
+  bearingToOctant,
   distanceToProximityEmoji,
 } from "../logic";
 import type {
@@ -84,10 +85,44 @@ describe("Waypoint Daily Game Engine", () => {
 
     it("maps distance to proximity indicators", () => {
       expect(distanceToProximityEmoji(0, true)).toBe("🟩");
-      expect(distanceToProximityEmoji(300)).toBe("🟩");
-      expect(distanceToProximityEmoji(1200)).toBe("🟨");
-      expect(distanceToProximityEmoji(3500)).toBe("🟧");
-      expect(distanceToProximityEmoji(8000)).toBe("⬛");
+      expect(distanceToProximityEmoji(150)).toBe("🟩");
+      expect(distanceToProximityEmoji(300)).toBe("🟨");
+      expect(distanceToProximityEmoji(1200)).toBe("🟧");
+      expect(distanceToProximityEmoji(3500)).toBe("🟥");
+      expect(distanceToProximityEmoji(9000)).toBe("⬛");
+    });
+
+    it("quantizes bearings to eight sectors, including across the wrap", () => {
+      // Sector boundaries sit at 22.5 + 45n.
+      expect(bearingToOctant(0)).toBe(0);
+      expect(bearingToOctant(22.4)).toBe(0);
+      expect(bearingToOctant(22.5)).toBe(1);
+      expect(bearingToOctant(90)).toBe(2);
+      expect(bearingToOctant(180)).toBe(4);
+      expect(bearingToOctant(337.5)).toBe(0); // wraps back to North
+      expect(bearingToOctant(359.9)).toBe(0);
+      // Out-of-range and negative inputs normalize rather than throw.
+      expect(bearingToOctant(-90)).toBe(6);
+      expect(bearingToOctant(450)).toBe(2);
+    });
+
+    it("never lets a bearing finer than a sector reach the caller", () => {
+      // Two bearings inside the same sector must be indistinguishable. If this
+      // fails, the direct-geodesic solve is back and one guess wins the game.
+      for (let base = 0; base < 360; base += 45) {
+        const a = bearingToOctant(base - 22.5 + 1);
+        const b = bearingToOctant(base + 22.5 - 1);
+        expect(a).toBe(b);
+      }
+    });
+
+    it("spreads the bands so a shared grid is not all one colour", () => {
+      // A globe-spanning bank produced almost nothing but the top band under
+      // the old 500/2000/5000 thresholds, so shared grids had no shape.
+      const sampled = [50, 400, 900, 2000, 4000, 7000, 12000, 19000].map((km) =>
+        distanceToProximityEmoji(km)
+      );
+      expect(new Set(sampled).size).toBeGreaterThanOrEqual(4);
     });
   });
 
@@ -154,10 +189,13 @@ describe("Waypoint Daily Game Engine", () => {
       expect(pub.guesses[0]!.locationId).toBe("eiffel_tower");
       expect(pub.guesses[0]!.isCorrect).toBe(false);
       expect(pub.guesses[0]!.distanceKm).toBeGreaterThan(9000);
-      expect(pub.guesses[0]!.directionArrow).toBeTruthy();
+      expect(pub.guesses[0]!.octant).toBeGreaterThanOrEqual(0);
 
-      // Guess should NOT contain raw coordinates.
-      expect((pub.guesses[0] as unknown as Record<string, unknown>).coordinates).toBeUndefined();
+      // The guessed landmark's own position is public so the map can plot it;
+      // the exact bearing is not, and neither is the target.
+      expect(pub.guesses[0]!.coordinates).toBeDefined();
+      expect((pub.guesses[0] as unknown as Record<string, unknown>).bearingDeg).toBeUndefined();
+      expect(pub.targetCoordinates).toBeUndefined();
     });
 
     it("rejects raw coordinate input", () => {

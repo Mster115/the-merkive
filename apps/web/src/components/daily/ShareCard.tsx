@@ -20,6 +20,14 @@ export function ShareCard({ shareText, gameId }: ShareCardProps) {
     setOrigin(window.location.origin);
   }, []);
 
+  // Whether this device can hand the result to another app. Resolved in an
+  // effect rather than during render: `navigator` does not exist on the server,
+  // and branching on it during the first client render is a hydration mismatch.
+  const [canShare, setCanShare] = React.useState(false);
+  React.useEffect(() => {
+    setCanShare(typeof navigator !== "undefined" && typeof navigator.share === "function");
+  }, []);
+
   const playUrl = origin ? `${origin}/daily/${gameId}` : `/daily/${gameId}`;
   const fullText = `${shareText}\n\n${t("daily.share.playCta")}: ${playUrl}`;
 
@@ -33,22 +41,52 @@ export function ShareCard({ shareText, gameId }: ShareCardProps) {
     }
   }
 
+  async function handleShare() {
+    try {
+      // The link is already the last line of `fullText`, so it is deliberately
+      // not passed as `url` too — targets that render both would show it twice.
+      await navigator.share({ title: t("daily.share.shareTitle"), text: fullText });
+    } catch (err) {
+      // Dismissing the share sheet rejects with AbortError. That is the user
+      // saying no, not a failure, so it must not fall back to anything.
+      if ((err as Error)?.name === "AbortError") return;
+      await handleCopy();
+    }
+  }
+
   return (
-    <Card raised className="flex flex-col gap-3 bg-[var(--mb-surface-2)] p-4 rotate-1 border-3 border-black shadow-[4px_4px_0_0_#000]">
+    <Card
+      raised
+      className="flex flex-col gap-3 bg-[var(--mb-surface-2)] p-4 border-3 border-black shadow-[4px_4px_0_0_#000] sm:rotate-1"
+    >
       <h3 className="text-sm font-black uppercase text-[var(--mb-violet)] tracking-wider">
         {t("daily.share.title")}
       </h3>
-      <pre className="whitespace-pre-wrap font-mono text-sm bg-black text-[var(--mb-accent-2)] p-3 rounded border-2 border-black">
+      {/* The play link is one long unbroken token, so it needs `anywhere` to
+          wrap at all — `break-words` alone leaves it running off a phone. */}
+      <pre className="whitespace-pre-wrap [overflow-wrap:anywhere] font-mono text-sm bg-black text-[var(--mb-accent-2)] p-3 rounded border-2 border-black">
         {fullText}
       </pre>
-      <Button
-        variant="primary"
-        size="md"
-        onClick={() => void handleCopy()}
-        className="w-full font-black uppercase tracking-wider"
-      >
-        {copied ? t("daily.share.copied") : t("daily.share.copy")}
-      </Button>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        {canShare && (
+          <Button
+            variant="primary"
+            size="md"
+            onClick={() => void handleShare()}
+            className="w-full font-black uppercase tracking-wider"
+          >
+            {t("daily.share.share")}
+          </Button>
+        )}
+        <Button
+          variant={canShare ? "secondary" : "primary"}
+          size="md"
+          onClick={() => void handleCopy()}
+          className="w-full font-black uppercase tracking-wider"
+        >
+          {copied ? t("daily.share.copied") : t("daily.share.copy")}
+        </Button>
+      </div>
     </Card>
   );
 }
