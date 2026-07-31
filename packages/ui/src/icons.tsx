@@ -303,11 +303,19 @@ export function CheckIcon({ className = "w-5 h-5" }: { className?: string }) {
  * it rotates continuously, so it carries the exact bearing rather than
  * snapping to one of eight arrows.
  */
+/**
+ * Direction arrow, snapped to one of eight compass sectors.
+ *
+ * Takes an octant rather than an angle on purpose. This previously rotated by
+ * a raw `bearingDeg`, which meant the rendered pixels encoded the exact
+ * bearing — enough, with the distance, to solve Waypoint in a single guess.
+ */
 export function BearingArrowIcon({
-  bearingDeg = 0,
+  octant = 0,
   className = "w-5 h-5",
 }: {
-  bearingDeg?: number;
+  /** 0 = N, increasing clockwise through 7 = NW. */
+  octant?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
   className?: string;
 }) {
   return (
@@ -319,7 +327,7 @@ export function BearingArrowIcon({
       strokeWidth="2.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      style={{ transform: `rotate(${bearingDeg}deg)` }}
+      style={{ transform: `rotate(${(((octant % 8) + 8) % 8) * 45}deg)` }}
     >
       <path d="M12 3.5v17" />
       <path d="M6.5 9L12 3.5 17.5 9" />

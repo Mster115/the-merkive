@@ -66,15 +66,23 @@ prepends it. The bank is shuffled server-side at `init()` time using `ctx.rng`.
 ## Designing a good puzzle
 
 **Bank size.** Target **12–16 locations** for a satisfying puzzle. Fewer than 8
-makes it trivial; more than 20 overwhelms the dropdown on mobile.
+makes it trivial; more than 20 is a wall of cards to scroll on a phone.
 
 **Geographic diversity.** Spread candidates across at least 3–4 continents so
-vector feedback is meaningful. A bank of 15 European capitals produces tiny
+the feedback is meaningful. A bank of 15 European capitals produces tiny
 distance deltas that don't differentiate.
 
+**But spread alone makes it trivial.** Famous landmarks scattered evenly over
+the globe are so far apart that one reading pins the target — measured at 92%
+of opening guesses even with distance rounded to the nearest 1,000 km.
+Coarsening feedback does not fix this; only bank composition does.
+
 **Decoy strategy.** Include locations that are:
-- In the same region as the target (forces precision over broad direction)
-- On the opposite side of the globe (early guess → big vector, helps orient)
+- **In the same region as the target, 300–2,000 km out** — three or four of
+  these are what make the puzzle. They force precision once the broad direction
+  is known, and they let a near pair be split by *something*, which is what
+  keeps it off the coin-flip blocker. Never place two within ~75 km.
+- On the opposite side of the globe (early guess → big reading, helps orient)
 - At similar latitudes but different longitudes (or vice versa) — these are
   the hardest to distinguish and make the puzzle interesting.
 
@@ -93,7 +101,7 @@ the bank — so the analyser grades *shape* instead:
 
 | Field | Meaning |
 | --- | --- |
-| `firstGuessResolveRate` | Share of opening guesses that isolate the target outright. **The difficulty dial — aim 0.1–0.4.** |
+| `firstGuessResolveRate` | Share of opening guesses that isolate the target outright. **The difficulty dial — aim 0.1–0.2.** |
 | `parGuesses` | Guesses under optimal play. Expect 2 on a good bank; a floor, not a score. |
 | `ambiguousWith` | Candidates no guess can separate from the target. **Non-empty is a blocker.** |
 | `line` | The optimal probe sequence, for eyeballing. |
@@ -104,6 +112,14 @@ a coin toss and that is a hard failure. The **difficulty grading** assumes a
 person eyeballing "about nine thousand kilometres, north-east" — grading against
 the precise reader instead declares every globe-spanning bank trivial, which the
 first version of the analyser did.
+
+**The map narrowed that gap.** Since the game plots distance rings, the real
+player reads closer to the precise model than the coarse one: a bank grading
+0.17 resolves on the first guess about 0.75 of the time for someone reading the
+rings carefully. Grading against the precise reader is still wrong — it would
+reject every buildable bank, because closing the gap requires the near pairs the
+coin-flip blocker exists to catch. Instead, treat `firstGuessResolveRate` as a
+floor on difficulty and aim at the low end of the band.
 
 It takes your coordinates as true. A bank with Sydney in the northern hemisphere
 analyses perfectly and plays as nonsense.

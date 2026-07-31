@@ -198,7 +198,7 @@ describe("Waypoint Adversarial Suite", () => {
       expect(Object.keys(sec.locationCoordinates).length).toBeGreaterThanOrEqual(3);
     });
 
-    it("guesses return distance/bearing but no raw coordinates", () => {
+    it("guesses report a quantized sector, never an exact bearing", () => {
       const run = createDailyTestRun(waypoint, {
         puzzleDate: "2026-07-30",
         pack: samplePack,
@@ -208,13 +208,41 @@ describe("Waypoint Adversarial Suite", () => {
       const pub = run.state.publicState as WaypointPublicState;
       const guess = pub.guesses[0]!;
 
-      // Has vector feedback.
       expect(guess.distanceKm).toBeGreaterThan(0);
-      expect(guess.bearingDeg).toBeGreaterThanOrEqual(0);
-      expect(guess.cardinalArrow).toBeTruthy();
+      expect(guess.octant).toBeGreaterThanOrEqual(0);
+      expect(guess.octant).toBeLessThanOrEqual(7);
 
-      // Does NOT expose coordinates.
-      expect((guess as unknown as Record<string, unknown>).coordinates).toBeUndefined();
+      // The precise angle must not survive into publicState. Distance plus an
+      // exact bearing from a known landmark solves for the target outright.
+      expect((guess as unknown as Record<string, unknown>).bearingDeg).toBeUndefined();
+    });
+
+    it("a guess exposes only the coordinates of the landmark just guessed", () => {
+      const run = createDailyTestRun(waypoint, {
+        puzzleDate: "2026-07-30",
+        pack: samplePack,
+      });
+
+      act(run, "guess_location", { locationId: "eiffel_tower" });
+      const pub = run.state.publicState as WaypointPublicState;
+      const sec = run.state.secretState as WaypointSecretState;
+
+      // The guessed landmark's own position is public: the player chose a
+      // named place, so its location is a fact they already hold. The map
+      // needs it to plot the pin.
+      expect(pub.guesses[0]!.coordinates).toEqual(
+        sec.locationCoordinates["eiffel_tower"]
+      );
+
+      // Nothing else leaks. No unguessed candidate's position may appear
+      // anywhere in publicState, and the target stays hidden mid-play.
+      const serialized = JSON.stringify(pub);
+      for (const [id, coords] of Object.entries(sec.locationCoordinates)) {
+        if (id === "eiffel_tower") continue;
+        expect(serialized).not.toContain(String(coords[0]));
+        expect(serialized).not.toContain(String(coords[1]));
+      }
+      expect(pub.targetCoordinates).toBeUndefined();
     });
   });
 
@@ -242,7 +270,7 @@ describe("Waypoint Adversarial Suite", () => {
       const pub = run.state.publicState as WaypointPublicState;
       const lastGuess = pub.guesses[0]!;
       expect(lastGuess.isCorrect).toBe(true);
-      expect(lastGuess.cardinalArrow).toBe("🎯");
+      expect(lastGuess.octant).toBeUndefined();
     });
   });
 

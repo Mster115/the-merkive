@@ -18,7 +18,29 @@ Authoring Requirements:
 4. Guess Limit:
    - Set maxGuesses (default is 5).
 5. Source References:
-   - Include valid citations in sourceRefs.`;
+   - Include valid citations in sourceRefs.
+
+Bank shape — this is what decides whether the puzzle is any good:
+   A bank of famous landmarks scattered evenly over the globe is a ONE-GUESS
+   puzzle. Their distances from any origin are all so different that a single
+   reading identifies the target outright, no matter how coarse the feedback:
+   measured over a 13-landmark global bank, one opening guess isolated the
+   target 92% of the time even with distance rounded to the nearest 1,000km.
+   Coarsening feedback does not fix this. Only bank composition does.
+
+   So: cluster the bank. Give the target several NEIGHBOURS at roughly
+   300-2,000km — near enough that one distance-and-sector reading cannot
+   separate them, far enough that they are not the same city. Regrouping the
+   same 13 landmarks into regional clusters took the one-guess resolve rate
+   from 66% to 44%; adding a proper near-cluster around the target takes it to
+   about 0.14, which is the band the analyser wants.
+
+   Do NOT place two candidates within ~75km of each other. Nothing else in the
+   bank can tell such a pair apart, and the puzzle ends on a coin flip —
+   \`analyzeWaypointBank\` rejects this outright.
+
+   Run \`analyzeWaypointBank\` before submitting and aim for
+   firstGuessResolveRate between 0.1 and 0.4 with no problems reported.`;
 }
 
 export function getLocationCoords(loc: Partial<WaypointLocation>): [number, number] | null {

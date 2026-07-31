@@ -1,6 +1,6 @@
 ---
 name: daily-merkive-waypoint
-description: Fills The Merkive's daily Waypoint puzzle — a vector geography game where the player triangulates a secret landmark from distance and compass-bearing feedback across a bank of real locations. Verifies every coordinate before it goes in, and queues packs through the merkive-daily MCP tools. Use when running the scheduled Waypoint content fill, when the Waypoint queue needs topping up, or when asked to draft or queue Waypoint puzzles.
+description: Fills The Merkive's daily Waypoint puzzle — a geography game where the player finds a hidden landmark from distance and 8-point direction feedback across a bank of real locations, plotted on a world map. Verifies every coordinate before it goes in, and queues packs through the merkive-daily MCP tools. Use when running the scheduled Waypoint content fill, when the Waypoint queue needs topping up, or when asked to draft or queue Waypoint puzzles.
 ---
 
 # Daily fill — Waypoint
@@ -35,11 +35,16 @@ the full spec, and `daily_brief` for the live payload schema. Trust
 
 ## The mechanic
 
-The player sees a **shuffled bank of landmark names** — name, region, country,
-and *no coordinates*. They pick one; the server returns the geodesic distance in
-km and an 8-point compass arrow pointing from that guess toward the secret
-target. Five guesses. The bank is the puzzle: the player triangulates by
+The player sees a **shuffled bank of landmark cards** — name, region, country,
+and *no coordinates*. They tap one and press Guess; the server returns the
+geodesic distance in km and an 8-point compass direction from that guess toward
+the secret target. Five guesses. The bank is the puzzle: the player narrows by
 elimination.
+
+Since 2026-07-31 the game also draws a **world map**, plotting each guessed
+landmark and a true distance ring around it. Rings from two guesses cross at the
+target. This is the single most important thing to know when judging a bank —
+see [the map changes what "difficulty" means](#the-map-raises-the-reader).
 
 `daily_check` **does** analyse Waypoint, but only for puzzle *shape* — see
 [what the analyser can and cannot tell you](#what-daily_check-checks). It knows
@@ -50,19 +55,29 @@ coordinates themselves is entirely on you.**
 ## Building a bank
 
 - **12–16 locations.** Under 8 is trivial and the validator warns; over 20 turns
-  a 3-minute puzzle into scrolling a dropdown on a phone.
+  a 3-minute puzzle into scrolling a wall of cards on a phone. The bank renders
+  as a two-column grid, so an odd count leaves a ragged last row — harmless, but
+  even counts look better.
 - **Spread across at least 3–4 continents** so the feedback carries information
   at all. A bank of fifteen European capitals produces distance deltas too small
   to differentiate.
 - **But spread alone makes the puzzle trivial**, and this is the mistake to
   watch for. Thirteen famous landmarks scattered evenly over the globe are all
-  so far apart that a single distance-and-bearing reading pins the target
-  outright — one probe, then name it. **Put three or four candidates within a
-  few thousand kilometres of the target**, so the first reading narrows the
-  field to a cluster and the player has to work inside it. The far-flung
-  entries orient; the near ones are the actual puzzle.
+  so far apart that a single distance-and-direction reading pins the target
+  outright — one probe, then name it. Measured: such a bank gives the answer
+  away on the opening guess **92%** of the time even with the distance rounded
+  to the nearest 1,000 km. Coarsening the feedback does not fix it. **Only bank
+  composition does.**
+- **So cluster it: three or four candidates 300–2,000 km from the target.**
+  Near enough that one reading cannot separate them, far enough apart to be
+  distinct places. Regrouping the same thirteen landmarks into regional clusters
+  took the one-guess resolve rate from 0.66 to 0.44; a proper near-cluster
+  reaches about 0.14. The far-flung entries orient; the near ones are the puzzle.
+- **Never place two candidates within ~75 km of each other.** Nothing else in
+  the bank can tell such a pair apart, so the puzzle can end on a coin flip, and
+  `daily_check` rejects it outright.
 - **Well-known targets only.** A player who has never heard of the target cannot
-  recognise it in the dropdown, and the puzzle becomes a coin flip. Famous
+  pick it out of the bank, and the puzzle becomes a coin flip. Famous
   landmarks, major cities, unmistakable natural features.
 - **Coordinates to at least 4 decimal places.** Rounded coordinates skew the
   distances the whole puzzle is read from.
@@ -79,8 +94,10 @@ The bank's shape is what makes a day easy or interesting:
 
 - **One or two far-side-of-the-globe entries.** A player's opening guess wants a
   big vector to orient from.
-- **Two or three in the target's own region.** These force precision once the
-  broad direction is known — without them the puzzle ends on guess two.
+- **Two or three in the target's own region, 300–2,000 km out.** These force
+  precision once the broad direction is known — without them the puzzle ends on
+  guess two. They are also what keeps a near pair from being a coin flip: a
+  same-region entry can split a pair that no distant guess can.
 - **The hard ones: similar latitude, very different longitude** (or the reverse).
   These are what stop a player reading the answer straight off a single bearing.
 
@@ -89,7 +106,9 @@ The bank's shape is what makes a day easy or interesting:
 Run it before every submit. For Waypoint it reports:
 
 - **`firstGuessResolveRate` is the difficulty dial** — the share of opening
-  guesses that isolate the target outright. **Aim for 0.1–0.4.** Above 0.6 the
+  guesses that isolate the target outright. **Aim for 0.1–0.2** — the wider
+  0.1–0.4 band predates the map, and see
+  [the map raises the reader](#the-map-raises-the-reader). Above 0.6 the
   analyser calls the bank trivial; at 0 the puzzle may be a slog.
 - **`parGuesses`** — guesses needed under optimal play. Expect **2** on almost
   any well-built bank, because a player who knows to probe next to the target
@@ -108,6 +127,37 @@ Run it before every submit. For Waypoint it reports:
 What it cannot do: it takes your coordinates as true. A bank with Sydney in the
 northern hemisphere analyses perfectly and plays as nonsense. It also says
 nothing about whether the target is *recognisable*, which stays a judgement call.
+
+### The map raises the reader
+
+The analyser grades difficulty against a **coarse reader** — someone eyeballing
+"about nine thousand kilometres, north-east". It also models a **precise
+reader**, someone with a mapping tool, but only for the coin-flip blocker.
+
+The map moved the real player toward the precise end, because the rings do the
+geometry for them. Measured on the same banks:
+
+| bank | `firstGuessResolveRate` (coarse) | precise reader |
+| --- | --- | --- |
+| globally spread | 0.92 | 1.00 |
+| clustered per the guidance above | 0.17 | 0.75 |
+| tightest cluster with no coin flips | 0.09 | 0.55 |
+
+**Read `firstGuessResolveRate` as a floor on difficulty, not a guarantee.** A
+bank at 0.17 is genuinely harder than one at 0.92, and that ordering still
+holds — but a determined player reading the rings carefully will beat it more
+often than the number suggests.
+
+Two things follow, and neither is "retune the analyser": grading against the
+precise reader would reject essentially every buildable bank, since the gap
+cannot be closed without creating the coin-flip pairs the blocker exists to
+catch.
+
+1. **Aim at the low end of the band — 0.1–0.2, not 0.4.** The headroom the
+   coarse model implies is not really there.
+2. **Recognisability carries more of the difficulty now.** A target the player
+   can locate on a map but would not have named unprompted is where the puzzle
+   still has teeth. This is a judgement call the analyser cannot make.
 
 ## Verify before you submit
 
