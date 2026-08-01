@@ -5,6 +5,7 @@ import type { ControllerProps, GameModule, SeatIndex } from "@merky/game-sdk";
 import { getGame } from "@merky/games";
 import { Button, Card, CloseIcon, CrownIcon, Modal, PlayerChip, Pill, ScoreBoard, TimerBar } from "@merky/ui";
 import { useT } from "@/i18n";
+import { useGameEventFx } from "./useGameEventFx";
 import { useRoom, type UseRoomResult } from "@/client/useRoom";
 import { api } from "@/client/api";
 import { getPrefs, setPrefs } from "@/client/session";
@@ -362,6 +363,9 @@ function GameChrome({
   const isHost = you !== null && snap.room.hostSeat === you;
   const [confirmEnd, setConfirmEnd] = React.useState(false);
   const match = snap.match!;
+  // A Controller is in someone's hand and often muted, so the shell answers
+  // events with haptics rather than sound. The Stage does the audio.
+  useGameEventFx(room.events, "controller");
   const paused = snap.room.seats.length > 0 && snap.room.seats.every((s) => !s.connected || s.abandoned);
 
   return (
@@ -439,6 +443,7 @@ function SeatedGame({ room }: { room: UseRoomResult }) {
     act: room.act,
     t,
     now: room.now,
+    events: room.events,
   };
   return (
     <GameChrome room={room} game={game}>
@@ -456,7 +461,7 @@ function SpectatorGame({ room }: { room: UseRoomResult }) {
   const Stage = game.ui.Stage;
   return (
     <GameChrome room={room} game={game}>
-      <Stage room={snap.room} match={match} t={t} now={room.now} />
+      <Stage room={snap.room} match={match} t={t} now={room.now} events={room.events} />
       <div className="p-4">
         <ScoreBoard
           compact

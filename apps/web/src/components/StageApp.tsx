@@ -2,13 +2,14 @@
 import * as React from "react";
 import Image from "next/image";
 import { getGame } from "@merky/games";
-import { Card, cn, CountUp, PlayerChip, Pill, sfx, SoundToggle, TimerBar } from "@merky/ui";
+import { Card, cn, ConfettiBurst, CountUp, PlayerChip, Pill, sfx, SoundToggle, TimerBar } from "@merky/ui";
 import { useT } from "@/i18n";
 import { useRoom, type UseRoomResult } from "@/client/useRoom";
 import logoImg from "@/assets/logo-purple.png";
 
 import { PodiumCard } from "./Podium";
 import { QrCode } from "./QrCode";
+import { useGameEventFx } from "./useGameEventFx";
 import { Ticker } from "./Ticker";
 import {
   ByeScreen,
@@ -194,6 +195,8 @@ function StageGame({ room }: { room: UseRoomResult }) {
     }
   }, [phase]);
 
+  const { celebrationKey } = useGameEventFx(room.events, "stage");
+
   if (!game) return <ErrorScreen code="game_unknown" />;
   const Stage = game.ui.Stage;
   const paused =
@@ -230,8 +233,9 @@ function StageGame({ room }: { room: UseRoomResult }) {
           {t("game.paused")}
         </p>
       )}
+      {celebrationKey > 0 && <ConfettiBurst key={celebrationKey} />}
       <div key={`${match.id}:${phase}`} className="flex-1 mb-rise">
-        <Stage room={snap.room} match={match} t={t} now={room.now} />
+        <Stage room={snap.room} match={match} t={t} now={room.now} events={room.events} />
       </div>
       <footer className="px-8 py-3 bg-[var(--mb-surface)] border-t-4 border-black">
         <div className="flex items-center gap-4 overflow-x-auto">

@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import type { ActFn } from "@merky/game-sdk";
+import type { ActFn, GameEvent } from "@merky/game-sdk";
 import { TICK_ACTION, type ClientSnapshot, type RoomMessage } from "@/shared/messages";
 import { api, ApiCallError } from "./api";
 import { clearToken, getToken, setToken } from "./session";
@@ -18,7 +18,12 @@ interface State {
   connection: TransportStatus;
   serverOffset: number;
   resyncNeeded: boolean;
+  /** One-shot events from the step that produced the current match version. */
+  events: GameEvent[];
 }
+
+/** Stable identity so an unrelated re-render never re-fires an animation. */
+const NO_EVENTS: GameEvent[] = [];
 
 type Msg =
   | { t: "snapshot"; snapshot: ClientSnapshot }
@@ -36,6 +41,7 @@ const initial: State = {
   connection: "connecting",
   serverOffset: 0,
   resyncNeeded: false,
+  events: NO_EVENTS,
 };
 
 function reduce(state: State, action: Msg): State {
@@ -49,6 +55,9 @@ function reduce(state: State, action: Msg): State {
         privateVersion: action.snapshot.match?.version ?? 0,
         serverOffset: action.snapshot.serverNow - Date.now(),
         resyncNeeded: false,
+        // A snapshot is a state catch-up, not a moment — replaying the FX of
+        // whatever happened while we were away would be noise.
+        events: NO_EVENTS,
       };
     }
     case "status":
@@ -90,6 +99,7 @@ function reduce(state: State, action: Msg): State {
         const gap = sameMatch && msg.match.version > current + 1;
         return {
           ...state,
+          events: msg.events?.length ? msg.events : NO_EVENTS,
           // A new match invalidates the old private state and its version gate.
           privateVersion: sameMatch ? state.privateVersion : 0,
           snapshot: {
@@ -121,6 +131,8 @@ export interface UseRoomResult {
   connection: TransportStatus;
   /** Server-adjusted ticking clock (~2Hz). */
   now: number;
+  /** Events from the step that produced the current match version. */
+  events: GameEvent[];
   token: string | null;
   act: ActFn;
   join: (opts: {
@@ -270,7 +282,10 @@ export function useRoom(code: string, mode: "controller" | "stage"): UseRoomResu
         // are version-gated, so the realtime copy arriving afterwards is a
         // no-op rather than a conflict.
         if (result.ok && result.match) {
-          dispatch({ t: "message", msg: { kind: "match", match: result.match, events: [] } });
+          dispatch({
+            t: "message",
+            msg: { kind: "match", match: result.match, events: result.events ?? [] },
+          });
           const mySeat = snapRef.current?.you.seatIndex;
           if (mySeat != null && result.privateState !== undefined) {
             dispatch({
@@ -329,6 +344,7 @@ export function useRoom(code: string, mode: "controller" | "stage"): UseRoomResu
     snapshot: state.snapshot,
     connection: state.connection,
     now,
+    events: state.events,
     token,
     act,
     join,

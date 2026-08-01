@@ -176,12 +176,22 @@ export type Translate = (key: string, vars?: Record<string, string | number>) =>
 export type ActResult = { ok: true } | { ok: false; code: string; error: string };
 export type ActFn = (type: string, payload?: unknown) => Promise<ActResult>;
 
+/**
+ * One-shot events from the state change that produced the current
+ * `match.version` — the payload `ReduceResult.events` was always meant to
+ * deliver. The array identity is stable between versions, so drive
+ * animations from `useEffect(..., [match.version])` and treat an empty array
+ * as "nothing happened this step". Never a substitute for state: a client
+ * that reconnects mid-match never sees the events it missed.
+ */
 export interface StageProps {
   room: RoomView;
   match: MatchView;
   t: Translate;
   /** Ticking client clock (epoch ms, ~2Hz) for countdowns. */
   now: number;
+  /** See the note above this interface. */
+  events: GameEvent[];
 }
 
 export interface ControllerProps {
@@ -192,6 +202,8 @@ export interface ControllerProps {
   act: ActFn;
   t: Translate;
   now: number;
+  /** See the note above StageProps. */
+  events: GameEvent[];
 }
 
 export interface LobbyOptionsProps {

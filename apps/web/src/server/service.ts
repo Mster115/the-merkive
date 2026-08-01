@@ -1,4 +1,4 @@
-import type { ContentPack, MatchView, SeatIndex } from "@merky/game-sdk";
+import type { ContentPack, GameEvent, MatchView, SeatIndex } from "@merky/game-sdk";
 import { getGame } from "@merky/games";
 import { TICK_ACTION, type ClientSnapshot } from "@/shared/messages";
 import { errors, ServiceError } from "./errors";
@@ -36,7 +36,7 @@ declare global {
   // eslint-disable-next-line no-var
   var __mbConnCounts: Map<string, number> | undefined;
   // eslint-disable-next-line no-var
-  var __mbIdempotency: Map<string, { ok: true } | { ok: false; code: string; error: string }> | undefined;
+  var __mbIdempotency: Map<string, ActionResult> | undefined;
   // eslint-disable-next-line no-var
   var __mbRate: Map<string, { count: number; resetAt: number }> | undefined;
 }
@@ -56,10 +56,7 @@ function checkRateLimit(uid: string): void {
   if (bucket.count > RATE_LIMIT.max) throw errors.rateLimited();
 }
 
-function rememberIdempotent(
-  key: string,
-  result: { ok: true } | { ok: false; code: string; error: string }
-): void {
+function rememberIdempotent(key: string, result: ActionResult): void {
   if (idempotencyCache.size > 500) {
     const first = idempotencyCache.keys().next().value;
     if (first) idempotencyCache.delete(first);
@@ -520,7 +517,7 @@ export async function endMatch(rawCode: string, byUid: string): Promise<void> {
  * own seat's private state; never another seat's, and never secretState.
  */
 export type ActionResult =
-  | { ok: true; match?: MatchView; privateState?: unknown }
+  | { ok: true; match?: MatchView; privateState?: unknown; events?: GameEvent[] }
   | { ok: false; code: string; error: string };
 
 export async function applyAction(
@@ -585,9 +582,10 @@ export async function applyAction(
     // about it through the normal realtime fanout.
     const enriched: ActionResult = result.ok
       ? {
-          ...result,
+          ok: true,
           match: matchView(match),
           privateState: match.privateState[seat.seatIndex] ?? null,
+          events: result.events,
         }
       : result;
     if (idemKey) rememberIdempotent(idemKey, enriched);
