@@ -7,10 +7,11 @@ import { getStore } from "@/server/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-// Vercel kills the invocation at the plan cap regardless; naming it keeps the
-// cutoff predictable. The client reconnects and resyncs on close, so a cut
-// stream costs one /sync, not a stale screen.
-export const maxDuration = 60;
+// Match the project's function timeout rather than undercutting it. Every
+// stream teardown costs a reconnect plus a full /sync (~6 Redis reads), and
+// Redis commands are the binding free-tier limit — cutting at 60s spent five
+// times the resync budget of the 300s the project actually allows.
+export const maxDuration = 300;
 
 const HEARTBEAT_MS = 15_000;
 /** Log poll cadence while the room is producing messages. */
