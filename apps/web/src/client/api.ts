@@ -1,4 +1,4 @@
-import type { MatchView } from "@merky/game-sdk";
+import type { GameEvent, MatchView } from "@merky/game-sdk";
 import type { ClientSnapshot, JoinResponse } from "@/shared/messages";
 
 export class ApiCallError extends Error {
@@ -79,7 +79,7 @@ export const api = {
     body: { type: string; payload?: unknown; idempotencyKey?: string }
   ) =>
     request<
-      | { ok: true; match?: MatchView; privateState?: unknown }
+      | { ok: true; match?: MatchView; privateState?: unknown; events?: GameEvent[] }
       | { ok: false; code: string; error: string }
     >(`/api/rooms/${code}/action`, { body, token }),
 

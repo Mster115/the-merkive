@@ -88,7 +88,7 @@ suggestBotAction?(ctx, state, seat) // legal move for an abandoned awaited seat
 | `phase` | required; free-form except the final phase must be `"game_over"` |
 | `scores` | **cumulative totals** per seat (not deltas); omitted seats keep theirs; carry your own running totals in state (`_totals` pattern) — reduce never receives prior scores |
 | `timer` | `{ endsAt: ctx.now + ms, kind, durationMs }` starts; `null` clears; omit keeps. Expiry calls `onTick` (late ticks are normal — never rely on exact firing) |
-| `events` | broadcast to all clients + audit log; small payloads; drive one-shot Stage/Controller animations |
+| `events` | broadcast to all clients + audit log; small payloads; delivered to Stage/Controller as the `events` prop (see §8) to drive one-shot animations |
 | `matchOver` | set `true` exactly once, together with `phase: "game_over"`; platform finalizes and shows the podium from `scores` |
 
 **Timers must always make progress**: every timed phase needs an `onTick` that
@@ -134,16 +134,26 @@ select option labelKey) resolves, and the required plugin surface exists.
 
 ## 8. UI slots
 
-- `ui.Stage` (`StageProps`: `room`, `match`, `t`, `now`) — the TV. Read-only.
+- `ui.Stage` (`StageProps`: `room`, `match`, `t`, `now`, `events`) — the TV. Read-only.
   Huge type (10-ft test), playful animated moments, neo-brutalist per
   DESIGN.md. The shell already renders the header (game name, room code,
   timer bar) and footer scoreboard — never render your own global timer bar
   or scoreboard.
-- `ui.Controller` (`ControllerProps`: + `seat`, `privateState`, `act`) — the
+- `ui.Controller` (`ControllerProps`: + `seat`, `privateState`, `act`, `events`) — the
   phone. Min 44px touch targets, works at 360px, no hover-only affordances.
   `act(type, payload)` resolves `{ok:false, code, error}` on rejection —
   surface it inline near the control, never `alert()`.
 - `now` prop is a server-adjusted ticking clock (~2Hz) for countdown display.
+- `events` prop is the one-shot `ReduceResult.events` from the step that
+  produced the current `match.version` — the animation hook the field was
+  always for. Array identity is stable between versions, so fire from
+  `useEffect(..., [match.version])` and treat `[]` as "nothing happened this
+  step". It is **never a substitute for state**: a client that reconnects
+  mid-match never sees the events it missed, so anything that must survive a
+  refresh belongs in `publicState`. The shell already answers a shared
+  vocabulary (`game_over`/`player_won` -> confetti + win sound on the Stage,
+  haptics on the Controller; `draw`, `commit`, `pass`, `zap`, ...) — add game
+  FX on top of that rather than re-implementing it.
 - Accessibility: `aria-live="polite"` region announcing phase changes on both
   views; accessible names on every interactive element; never convey state by
   color alone.

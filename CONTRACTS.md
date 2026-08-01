@@ -57,7 +57,15 @@ modify anything outside your ownership zone.
   `matchOver: true` exactly once. The platform then finalizes the match and
   returns the room to the lobby with a podium (from `scores`).
 - `events` are broadcast to all clients and appended to the audit log; use
-  them for toast/animation cues, keep payloads small.
+  them for toast/animation cues, keep payloads small. They reach the UI as the
+  `events` prop on both slots, carrying the events of the step that produced
+  the current `match.version`. Two delivery paths that must agree: observers
+  get them on the published `match` message, while the acting client gets them
+  on its own action response — it jumps straight to the final version, so its
+  version gate would otherwise discard the realtime copy (including events
+  from system work the action cascaded into, like a due `onTick` or a bot).
+  Events are ephemeral: a client that reconnects never sees the ones it
+  missed, so anything that must survive a refresh belongs in `publicState`.
 
 ## UI slot contracts
 

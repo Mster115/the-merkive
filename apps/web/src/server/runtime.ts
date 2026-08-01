@@ -1,5 +1,6 @@
 import type {
   ContentPack,
+  GameEvent,
   GameModule,
   ReduceResult,
   SeatIndex,
@@ -33,7 +34,13 @@ async function persistAndPublish(
   room: RoomRecord,
   match: MatchRecord,
   result: ReduceResult,
-  actorSeat: SeatIndex | "system"
+  actorSeat: SeatIndex | "system",
+  /**
+   * Optional sink for the events this step publishes. The actor's own request
+   * returns them so their FX fires immediately; without it they would only
+   * ever arrive on a realtime message their version gate has already passed.
+   */
+  collect?: GameEvent[]
 ): Promise<"ok" | "conflict"> {
   const update: MatchUpdate = {
     version: match.version + 1,
@@ -49,6 +56,7 @@ async function persistAndPublish(
   };
   const outcome = await store.applyMatchUpdate(match.id, match.version, update);
   if (outcome === "conflict") return "conflict";
+  if (collect) collect.push(...update.events);
 
   match.version = update.version;
   match.phase = update.phase;
@@ -151,7 +159,8 @@ export async function advanceSystem(
   deps: RuntimeDeps,
   room: RoomRecord,
   match: MatchRecord,
-  seats: PlayerSeatRecord[]
+  seats: PlayerSeatRecord[],
+  collect?: GameEvent[]
 ): Promise<boolean> {
   const game = requireGame(match.gameId);
   let didWork = false;
@@ -167,7 +176,7 @@ export async function advanceSystem(
         phase: match.phase,
       });
       if (result) {
-        const outcome = await persistAndPublish(deps, room, match, result, "system");
+        const outcome = await persistAndPublish(deps, room, match, result, "system", collect);
         if (outcome === "conflict") break;
         didWork = true;
         continue;
@@ -220,7 +229,7 @@ export async function advanceSystem(
         { type: bot.type, seat, payload: bot.payload }
       );
       if (isReduceError(result)) continue;
-      const outcome = await persistAndPublish(deps, room, match, result, seat);
+      const outcome = await persistAndPublish(deps, room, match, result, seat, collect);
       if (outcome === "conflict") return didWork;
       didWork = true;
       botActed = true;
@@ -260,11 +269,17 @@ export async function applyPlayerAction(
   seats: PlayerSeatRecord[],
   seat: SeatIndex,
   action: { type: string; payload?: unknown }
-): Promise<{ ok: true } | { ok: false; code: string; error: string }> {
+): Promise<{ ok: true; events: GameEvent[] } | { ok: false; code: string; error: string }> {
   const game = requireGame(match.gameId);
 
+  // Everything this request emits — the player's own step plus any system
+  // work it cascades into (a due timer, a bot covering an abandoned seat).
+  // The actor jumps straight to the final version, so without collecting
+  // these their version gate would drop the intermediate FX entirely.
+  const collected: GameEvent[] = [];
+
   // Fire any due timer first so the action lands on current state.
-  await advanceSystem(deps, room, match, seats);
+  await advanceSystem(deps, room, match, seats, collected);
   if (match.over || match.status !== "active") throw errors.noActiveMatch();
 
   const result = game.reduce(
@@ -275,11 +290,11 @@ export async function applyPlayerAction(
   if (isReduceError(result)) {
     return { ok: false, code: result.code, error: result.error };
   }
-  const outcome = await persistAndPublish(deps, room, match, result, seat);
+  const outcome = await persistAndPublish(deps, room, match, result, seat, collected);
   if (outcome === "conflict") throw errors.versionConflict();
 
-  await advanceSystem(deps, room, match, seats);
-  return { ok: true };
+  await advanceSystem(deps, room, match, seats, collected);
+  return { ok: true, events: collected };
 }
 
 /** Close out a finished or aborted match and return the room to the lobby. */
