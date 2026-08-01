@@ -319,4 +319,22 @@ describe("TheMerkiveServer — realtime broadcast routing (any room, not gated t
     );
     expect(noSeat.sent).toEqual([]);
   });
+
+  it("resolves seat index dynamically from connection token when seat parameter was omitted", async () => {
+    // Populate DB with room and seats (store DO)
+    const { server: storeServer } = makeServer("store", fakeRoom.storage);
+    const r = room({ id: "room-abcd", code: "ABCD" });
+    await storeServer.onRequest(req("POST", "/parties/main/store/create-room", r));
+    await storeServer.onRequest(req("POST", "/parties/main/store/upsert-seat", seat(3, { roomId: "room-abcd", playerUid: "user-token-3" })));
+
+    // Real connection connected with ?token=user-token-3 (no seat param)
+    const connWithToken = new FakeConnection();
+    connWithToken.setState({ kind: "public", seat: null, token: "user-token-3" });
+    fakeRoom.connections.push(connWithToken);
+
+    const msg = { kind: "private", seat: 3, version: 2, privateState: { secret: 42 } };
+    await server.onRequest(req("POST", "/parties/main/ABCD/broadcast", { msg }));
+
+    expect(connWithToken.sent).toEqual([JSON.stringify(msg)]);
+  });
 });

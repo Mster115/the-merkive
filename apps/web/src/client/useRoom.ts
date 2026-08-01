@@ -87,7 +87,7 @@ function reduce(state: State, action: Msg): State {
         if (sameMatch && msg.match.version <= current) {
           return state;
         }
-        const gap = sameMatch && msg.match.version > current + 1 && snap.you.seatIndex !== null;
+        const gap = sameMatch && msg.match.version > current + 1;
         return {
           ...state,
           // A new match invalidates the old private state and its version gate.

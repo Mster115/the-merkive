@@ -77,7 +77,8 @@ export default class TheMerkiveServer implements Party.Server {
     const url = new URL(ctx.request.url);
     const kind = url.searchParams.get("kind");
     const seat = url.searchParams.get("seat");
-    conn.setState({ kind: kind || "public", seat: seat || null });
+    const token = url.searchParams.get("token");
+    conn.setState({ kind: kind || "public", seat: seat || null, token: token || null });
   }
 
   async onRequest(req: Party.Request) {
@@ -95,13 +96,23 @@ export default class TheMerkiveServer implements Party.Server {
         if (body.msg) {
           const msg = body.msg;
           if (msg.kind === "private" || msg.seat !== undefined) {
-            // msg.seat arrives as a JSON number; connection.state.seat is always
-            // a string (set from a URLSearchParams value in onConnect) — compare
-            // as strings or a private/bye message never reaches its target seat.
+            // msg.seat arrives as a JSON number; connection.state.seat or token
+            // resolves to the target seat index.
             const targetSeat = String(msg.seat);
+            const db = await this.getDb();
+            const roomId = db.roomIdByCode.get(this.room.id.toUpperCase());
+            const seats = roomId ? (db.seats.get(roomId) ?? []) : [];
+
             for (const connection of this.room.getConnections()) {
-              const state = connection.state as { seat?: string | null };
-              if (state?.seat != null && String(state.seat) === targetSeat) {
+              const state = connection.state as { seat?: string | null; token?: string | null };
+              let connSeat = state?.seat != null ? String(state.seat) : null;
+              if (connSeat == null && state?.token) {
+                const found = seats.find((s: any) => s.playerUid === state.token);
+                if (found != null) {
+                  connSeat = String(found.seatIndex);
+                }
+              }
+              if (connSeat != null && connSeat === targetSeat) {
                 connection.send(JSON.stringify(msg));
               }
             }

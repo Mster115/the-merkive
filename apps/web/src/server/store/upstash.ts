@@ -233,6 +233,20 @@ export class UpstashStore implements RoomStore {
   private subscribers = new Map<string, Set<(msg: RoomMessage) => void>>();
 
   async publish(code: string, msg: RoomMessage): Promise<void> {
+    const partyHost = process.env.PARTYKIT_HOST || process.env.NEXT_PUBLIC_PARTYKIT_HOST;
+    if (partyHost) {
+      const protocol =
+        partyHost.startsWith("localhost") || partyHost.startsWith("127.0.0.1") ? "http" : "https";
+      const url = `${protocol}://${partyHost}/parties/room/${code}`;
+      await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ msg }),
+      }).catch((err) => {
+        console.error("PartyKit relay error:", err);
+      });
+    }
+
     const key = code.toUpperCase();
     const subs = this.subscribers.get(key);
     if (subs) {
