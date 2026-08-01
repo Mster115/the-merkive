@@ -4,6 +4,7 @@ import type {
   MatchRecord,
   MatchUpdate,
   PlayerSeatRecord,
+  RoomLogSlice,
   RoomRecord,
   RoomStore,
   SpectatorRecord,
@@ -20,6 +21,7 @@ interface MemoryDb {
   eventSeq: Map<string, number>; // by matchId
   packs: CustomPackRecord[];
   subscribers: Map<string, Set<(msg: RoomMessage) => void>>; // by room code
+  log: Map<string, RoomMessage[]>; // by room code — cursored fanout, mirrors Upstash
 }
 
 function createDb(): MemoryDb {
@@ -33,6 +35,7 @@ function createDb(): MemoryDb {
     eventSeq: new Map(),
     packs: [],
     subscribers: new Map(),
+    log: new Map(),
   };
 }
 
@@ -202,12 +205,17 @@ export class MemoryStore implements RoomStore {
       }).catch((err) => {
         console.error("PartyKit relay error:", err);
       });
-      return;
     }
 
-    const subs = this.db.subscribers.get(code.toUpperCase());
-    if (!subs) return;
+    const key = code.toUpperCase();
     const frozen = clone(msg);
+
+    const entries = this.db.log.get(key) ?? [];
+    entries.push(frozen);
+    this.db.log.set(key, entries);
+
+    const subs = this.db.subscribers.get(key);
+    if (!subs) return;
     for (const fn of subs) {
       try {
         fn(frozen);
@@ -215,6 +223,13 @@ export class MemoryStore implements RoomStore {
         // subscriber errors must never break the publisher
       }
     }
+  }
+
+  async readSince(code: string, cursor: number | null): Promise<RoomLogSlice> {
+    const entries = this.db.log.get(code.toUpperCase()) ?? [];
+    if (cursor === null) return { cursor: entries.length, messages: [] };
+    if (entries.length < cursor) return { cursor: entries.length, messages: [] };
+    return { cursor: entries.length, messages: clone(entries.slice(cursor)) };
   }
 
   subscribe(code: string, fn: (msg: RoomMessage) => void): () => void {

@@ -73,6 +73,32 @@ export default class TheMerkiveServer implements Party.Server {
     }
   }
 
+  /**
+   * Seats live on the "store" DO, not on this room-code DO — every CRUD route
+   * below is gated on `this.room.id === "store"`, so a room DO's own `db` is
+   * always empty. Resolving a connection's seat therefore has to cross to the
+   * store DO; reading the local db here silently matched nothing and dropped
+   * every private message.
+   */
+  private async fetchSeats(): Promise<any[]> {
+    const store = (this.room as any).context?.parties?.room?.get?.("store");
+    if (!store) return [];
+    try {
+      const roomRes = await store.fetch(
+        `https://party/parties/room/store/get-room?code=${encodeURIComponent(this.room.id)}`
+      );
+      const roomRecord = (await roomRes.json()) as { id?: string } | null;
+      if (!roomRecord?.id) return [];
+      const seatRes = await store.fetch(
+        `https://party/parties/room/store/seats?roomId=${encodeURIComponent(roomRecord.id)}`
+      );
+      const seats = await seatRes.json();
+      return Array.isArray(seats) ? seats : [];
+    } catch {
+      return [];
+    }
+  }
+
   onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
     const url = new URL(ctx.request.url);
     const kind = url.searchParams.get("kind");
@@ -99,11 +125,16 @@ export default class TheMerkiveServer implements Party.Server {
             // msg.seat arrives as a JSON number; connection.state.seat or token
             // resolves to the target seat index.
             const targetSeat = String(msg.seat);
-            const db = await this.getDb();
-            const roomId = db.roomIdByCode.get(this.room.id.toUpperCase());
-            const seats = roomId ? (db.seats.get(roomId) ?? []) : [];
+            const connections = [...this.room.getConnections()];
+            // Only pay for the cross-DO seat lookup when a connection actually
+            // needs it — clients that sent ?seat= already know who they are.
+            const needsLookup = connections.some((c) => {
+              const s = c.state as { seat?: string | null; token?: string | null };
+              return s?.seat == null && s?.token != null;
+            });
+            const seats = needsLookup ? await this.fetchSeats() : [];
 
-            for (const connection of this.room.getConnections()) {
+            for (const connection of connections) {
               const state = connection.state as { seat?: string | null; token?: string | null };
               let connSeat = state?.seat != null ? String(state.seat) : null;
               if (connSeat == null && state?.token) {
