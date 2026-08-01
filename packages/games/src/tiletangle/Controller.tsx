@@ -1,6 +1,6 @@
 import * as React from "react";
 import type { ControllerProps } from "@merky/game-sdk";
-import { BackpackIcon, Button, buzz, cn, LightningIcon, Pill, PuzzleIcon, ToolsIcon } from "@merky/ui";
+import { BackpackIcon, Button, buzz, cn, LightningIcon, PaletteIcon, Pill, PuzzleIcon, ToolsIcon } from "@merky/ui";
 import type { TileTanglePrivateState, TileTanglePublicState } from "./logic";
 import type { Tile } from "./tiles";
 import { validateCommit, isValidMeld, meldValue } from "./tiles";
@@ -457,7 +457,10 @@ export const Controller: React.FC<ControllerProps> = ({
           <span className="text-xs font-black uppercase text-[var(--mb-text-dim)] tracking-wider [font-family:var(--mb-font-display)] flex items-center gap-1.5">
             <BackpackIcon className="w-4 h-4" /> {t("games.tiletangle.yourRack")} ({localRack.length})
           </span>
-          <div className="flex items-center gap-1.5">
+          {/* Wraps: selecting a tile adds Left/Right, and four buttons do not
+              fit beside the label on a 360px phone — they used to push the
+              whole page into horizontal scroll. */}
+          <div className="flex flex-wrap items-center gap-1.5">
             {selectedTile?.source === "rack" && (
               <>
                 <Button
@@ -482,7 +485,7 @@ export const Controller: React.FC<ControllerProps> = ({
               {t("games.tiletangle.sort789")}
             </Button>
             <Button size="sm" variant="ghost" onClick={handleSortColor}>
-              {t("games.tiletangle.sortColor")}
+              <PaletteIcon className="w-4 h-4" /> {t("games.tiletangle.sortColor")}
             </Button>
           </div>
         </div>

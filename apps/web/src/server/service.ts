@@ -1,4 +1,4 @@
-import type { ContentPack, SeatIndex } from "@merky/game-sdk";
+import type { ContentPack, MatchView, SeatIndex } from "@merky/game-sdk";
 import { getGame } from "@merky/games";
 import { TICK_ACTION, type ClientSnapshot } from "@/shared/messages";
 import { errors, ServiceError } from "./errors";
@@ -18,7 +18,7 @@ import {
   finalizeMatch,
   startMatchRuntime,
 } from "./runtime";
-import { buildSnapshot, roomView } from "./views";
+import { buildSnapshot, matchView, roomView } from "./views";
 
 const PLAYER_GRACE_MS = 60_000;
 const HOST_GRACE_MS = 45_000;
@@ -513,11 +513,21 @@ export async function endMatch(rawCode: string, byUid: string): Promise<void> {
   });
 }
 
+/**
+ * A successful action carries the resulting state back to the actor. Without
+ * it the player who tapped waits for their own realtime poll to see their own
+ * move — the single biggest source of felt input lag. Only ever the actor's
+ * own seat's private state; never another seat's, and never secretState.
+ */
+export type ActionResult =
+  | { ok: true; match?: MatchView; privateState?: unknown }
+  | { ok: false; code: string; error: string };
+
 export async function applyAction(
   rawCode: string,
   uid: string,
   action: { type: string; payload?: unknown; idempotencyKey?: string }
-): Promise<{ ok: true } | { ok: false; code: string; error: string }> {
+): Promise<ActionResult> {
   const store = getStore();
   ensureSweeper();
   checkRateLimit(uid);
@@ -570,8 +580,18 @@ export async function applyAction(
     if (match.over && match.status === "active") {
       await finalizeMatch({ store }, room, match, currentSeats, "completed");
     }
-    if (idemKey) rememberIdempotent(idemKey, result);
-    return result;
+    // Hand the actor the post-action state so their own move renders on the
+    // next frame instead of on their next poll. Everyone else still learns
+    // about it through the normal realtime fanout.
+    const enriched: ActionResult = result.ok
+      ? {
+          ...result,
+          match: matchView(match),
+          privateState: match.privateState[seat.seatIndex] ?? null,
+        }
+      : result;
+    if (idemKey) rememberIdempotent(idemKey, enriched);
+    return enriched;
   });
 }
 

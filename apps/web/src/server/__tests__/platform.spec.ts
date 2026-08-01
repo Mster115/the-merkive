@@ -217,10 +217,10 @@ describe("platform spine", () => {
     const bad = await applyAction(code, P2, { type: "add" });
     expect(bad).toMatchObject({ ok: false, code: "not_your_turn" });
 
-    expect(await applyAction(code, HOST, { type: "add" })).toEqual({ ok: true }); // host: 1
-    expect(await applyAction(code, P2, { type: "add" })).toEqual({ ok: true });
-    expect(await applyAction(code, P3, { type: "add" })).toEqual({ ok: true });
-    expect(await applyAction(code, HOST, { type: "add" })).toEqual({ ok: true }); // host: 2 → wins
+    expect(await applyAction(code, HOST, { type: "add" })).toMatchObject({ ok: true }); // host: 1
+    expect(await applyAction(code, P2, { type: "add" })).toMatchObject({ ok: true });
+    expect(await applyAction(code, P3, { type: "add" })).toMatchObject({ ok: true });
+    expect(await applyAction(code, HOST, { type: "add" })).toMatchObject({ ok: true }); // host: 2 → wins
 
     snap = await snapshotFor(code, HOST);
     expect(snap.room.status).toBe("lobby");
@@ -229,11 +229,40 @@ describe("platform spine", () => {
     expect(snap.room.lastMatch?.seats).toHaveLength(3);
   });
 
+  /**
+   * The action response carries state back so the actor renders their own move
+   * immediately instead of waiting for their next realtime poll. That makes it
+   * a state-bearing surface, so it gets the same privacy scrutiny as a
+   * published message: the actor's own seat only, and never secretState.
+   */
+  it("returns the post-action state to the actor, scoped to their own seat", async () => {
+    const code = await setupStartedRoom();
+    const before = await snapshotFor(code, HOST);
+    const res = await applyAction(code, HOST, { type: "add" });
+
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    // Fresh enough to render: strictly newer than what the actor already had.
+    expect(res.match?.version).toBeGreaterThan(before.match?.version ?? 0);
+    expect((res.match?.publicState as { totals: Record<string, number> }).totals["0"]).toBe(1);
+    // The actor's own private state, not seat 1's.
+    expect(res.privateState).toEqual({ secret: "s0" });
+    expect(JSON.stringify(res)).not.toContain("s1");
+    expect(res.match).not.toHaveProperty("secretState");
+    expect(JSON.stringify(res)).not.toContain("secretState");
+  });
+
+  it("does not hand a rejected action any state at all", async () => {
+    const code = await setupStartedRoom();
+    const res = await applyAction(code, P2, { type: "add" }); // not P2's turn
+    expect(res).toEqual({ ok: false, code: "not_your_turn", error: expect.any(String) });
+  });
+
   it("enforces idempotency keys", async () => {
     const code = await setupStartedRoom();
     const key = "same-key";
-    expect(await applyAction(code, HOST, { type: "add", idempotencyKey: key })).toEqual({ ok: true });
-    expect(await applyAction(code, HOST, { type: "add", idempotencyKey: key })).toEqual({ ok: true });
+    expect(await applyAction(code, HOST, { type: "add", idempotencyKey: key })).toMatchObject({ ok: true });
+    expect(await applyAction(code, HOST, { type: "add", idempotencyKey: key })).toMatchObject({ ok: true });
     const snap = await snapshotFor(code, HOST);
     const pub = snap.match?.publicState as { totals: Record<string, number> };
     expect(pub.totals["0"]).toBe(1); // applied once
