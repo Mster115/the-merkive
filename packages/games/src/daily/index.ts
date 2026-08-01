@@ -1,10 +1,12 @@
 import type { DailyGameModule } from "./types";
+import { detour } from "./detour";
 import { nexus } from "./nexus";
 import { nutshell } from "./nutshell";
 import { relay, relayContentWarnings } from "./relay";
 import { waypoint } from "./waypoint";
 
 export const dailyGameRegistry: Record<string, DailyGameModule> = {
+  "detour": detour,
   "nexus": nexus,
   "nutshell": nutshell,
   "relay": relay,

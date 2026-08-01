@@ -32,6 +32,7 @@ export {
   CardsIcon,
   PencilIcon,
   ZaplashIcon,
+  DetourIcon,
   EightstormIcon,
   TileTangleIcon,
   MerkissionerIcon,

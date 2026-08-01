@@ -48,7 +48,7 @@ import { requireSecret } from "../secret.mjs";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const BASE_URL = (process.env.MERKY_BASE_URL ?? "https://the-merkive.vercel.app").replace(/\/$/, "");
 const LEDGER_PATH = process.env.MERKY_LEDGER ?? join(HERE, ".daily-ledger.json");
-const GAMES = ["nexus", "nutshell", "relay", "waypoint"];
+const GAMES = ["nexus", "nutshell", "relay", "waypoint", "detour"];
 
 // --- word list + solver, loaded from the game package -----------------------
 
@@ -601,6 +601,18 @@ function puzzleItems(gameId, payload) {
     const names = Array.isArray(locs) ? locs.map((l) => norm(l?.name)).filter(Boolean).sort() : [];
     const targetName = norm(target?.name);
     return targetName ? [targetName, ...names] : names;
+  }
+  if (gameId === "detour") {
+    // Must stay in step with puzzleItems() in
+    // apps/web/src/server/daily/fingerprint.ts — the server fingerprints the
+    // submitted pack, so a divergence here just makes the local repeat check
+    // disagree with the one that actually gates the submit.
+    const cityName = norm(p.cityName);
+    const route = Array.isArray(p.route) ? p.route : [];
+    const routeIds = route.map((r) => norm(r?.poiId ?? r?.poiName)).filter(Boolean);
+    const cands = Array.isArray(p.candidatePois) ? p.candidatePois : [];
+    const candIds = cands.map((c) => norm(c?.id ?? c?.name)).filter(Boolean).sort();
+    return [cityName, ...routeIds, ...candIds].filter(Boolean);
   }
   return [];
 }
