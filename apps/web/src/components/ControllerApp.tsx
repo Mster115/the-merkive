@@ -403,7 +403,7 @@ function GameChrome({
       </div>
       <Modal open={confirmEnd} onClose={() => setConfirmEnd(false)} title={t("game.endMatch")}>
         <p className="font-bold mb-4">{t("game.endMatch.confirm")}</p>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <Button variant="ghost" block onClick={() => setConfirmEnd(false)}>
             {t("common.cancel")}
           </Button>

@@ -221,7 +221,7 @@ export function HomeScreen() {
               <h2 className="self-start rotate-1 bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)] border-2 border-black shadow-[2px_2px_0_0_#000] px-3 py-1 text-sm font-black uppercase tracking-wider">
                 {t("home.join.title")}
               </h2>
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <input
                   value={code}
                   onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4))}
@@ -230,11 +230,11 @@ export function HomeScreen() {
                   autoCapitalize="characters"
                   autoCorrect="off"
                   spellCheck={false}
-                  className="min-h-13 w-32 rounded-md bg-white text-black border-[3px] border-black px-2 text-center text-2xl font-black tracking-[0.25em] uppercase placeholder:text-neutral-300 outline-none focus:border-[var(--mb-accent-2)] shadow-[var(--mb-shadow)] [font-family:var(--mb-font-display)]"
+                  className="min-h-13 w-full sm:w-32 rounded-md bg-white text-black border-[3px] border-black px-2 text-center text-2xl font-black tracking-[0.25em] uppercase placeholder:text-neutral-300 outline-none focus:border-[var(--mb-accent-2)] shadow-[var(--mb-shadow)] [font-family:var(--mb-font-display)]"
                 />
                 <Button
                   variant="secondary"
-                  className="flex-1"
+                  className="w-full sm:flex-1"
                   disabled={!ready || code.trim().length !== 4 || busy}
                   onClick={() => void handleJoin("player")}
                 >
