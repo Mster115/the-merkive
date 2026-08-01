@@ -185,6 +185,14 @@ export async function advanceSystem(
         match.version += 1;
         match.timer = null;
         didWork = true;
+        // The version moved, so every client's gate now rejects anything
+        // older. Without this publish they keep rendering the expired timer
+        // until some unrelated update happens to arrive.
+        await deps.store.publish(room.code, {
+          kind: "match",
+          match: matchView(match),
+          events: [],
+        });
       }
       break;
     }

@@ -177,8 +177,12 @@ export function useRoom(code: string, mode: "controller" | "stage"): UseRoomResu
 
   // Realtime transport (reconnects internally; re-created when token changes
   // so the stream picks up seat-level private messages).
+  // Depend on the boolean, not the phase itself: phase moves loading -> ready
+  // on the very first snapshot, and depending on it tore the transport down
+  // and rebuilt it, dropping anything published during the gap.
+  const transportActive = state.phase !== "gone" && state.phase !== "error";
   React.useEffect(() => {
-    if (state.phase === "gone" || state.phase === "error") return;
+    if (!transportActive) return;
     const disconnect = getTransport()({
       code: upperCode,
       token,
@@ -187,7 +191,7 @@ export function useRoom(code: string, mode: "controller" | "stage"): UseRoomResu
       onStatus: (status) => dispatch({ t: "status", status }),
     });
     return disconnect;
-  }, [upperCode, token, state.phase, mode]);
+  }, [upperCode, token, transportActive, mode]);
 
   // Resync when a version gap or conflict was detected, and when the tab
   // wakes from sleep.

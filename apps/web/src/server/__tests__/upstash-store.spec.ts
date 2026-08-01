@@ -97,11 +97,27 @@ function fakeRedis(cmd: (string | number)[]): unknown {
       return h.delete(str(field)) ? 1 : 0;
     }
     case "LRANGE": {
+      const [k, start, stop] = args;
+      const l = (db.get(str(k)) as string[] | undefined) ?? [];
+      // Real Redis semantics: inclusive stop, negatives index from the end.
+      const from = Number(start) < 0 ? Math.max(l.length + Number(start), 0) : Number(start);
+      const toRaw = Number(stop) < 0 ? l.length + Number(stop) : Number(stop);
+      return l.slice(from, toRaw + 1);
+    }
+    case "LLEN": {
       const [k] = args;
       const l = db.get(str(k)) as string[] | undefined;
-      return l ?? [];
+      return l ? l.length : 0;
+    }
+    case "EXPIRE": {
+      const [k] = args;
+      return db.has(str(k)) ? 1 : 0;
     }
     case "RPUSH": {
+      if (failNextPublish) {
+        failNextPublish = false;
+        throw new Error("simulated redis log-append failure");
+      }
       const [k, value] = args;
       let l = db.get(str(k)) as string[] | undefined;
       if (!l) {
@@ -110,13 +126,6 @@ function fakeRedis(cmd: (string | number)[]): unknown {
       }
       l.push(str(value));
       return l.length;
-    }
-    case "PUBLISH": {
-      if (failNextPublish) {
-        failNextPublish = false;
-        throw new Error("simulated redis publish failure");
-      }
-      return 0;
     }
     default:
       throw new Error(`fakeRedis: unhandled command ${String(op)}`);
@@ -129,8 +138,22 @@ beforeEach(() => {
   db = new Map();
   failNextPublish = false;
   originalFetch = global.fetch;
-  global.fetch = (async (_url: string, init?: RequestInit) => {
-    const cmd = JSON.parse(String(init?.body)) as (string | number)[];
+  global.fetch = (async (url: string, init?: RequestInit) => {
+    const body = JSON.parse(String(init?.body));
+    // Upstash exposes batches at /pipeline, responding with one
+    // { result } envelope per command, in order.
+    if (String(url).endsWith("/pipeline")) {
+      const commands = body as (string | number)[][];
+      try {
+        return new Response(
+          JSON.stringify(commands.map((cmd) => ({ result: fakeRedis(cmd) }))),
+          { status: 200 }
+        );
+      } catch {
+        return new Response("simulated failure", { status: 500, statusText: "Internal Server Error" });
+      }
+    }
+    const cmd = body as (string | number)[];
     try {
       const result = fakeRedis(cmd);
       return new Response(JSON.stringify({ result }), { status: 200 });
@@ -383,7 +406,7 @@ describe("UpstashStore", () => {
     expect(packs.map((p) => p.id)).toEqual(["p1", "p2"]);
   });
 
-  it("fans a published message out to local subscribers, honors unsubscribe, and never throws even if the redis PUBLISH call fails", async () => {
+  it("fans a published message out to local subscribers, honors unsubscribe, and never throws even if the redis log append fails", async () => {
     const store = new UpstashStore("https://fake", "token");
     const received: unknown[] = [];
     const unsubscribe = store.subscribe("abcd", (msg) => received.push(msg));
@@ -397,5 +420,81 @@ describe("UpstashStore", () => {
 
     failNextPublish = true;
     await expect(store.publish("abcd", { kind: "match" } as never)).resolves.toBeUndefined();
+  });
+
+  /**
+   * The bug this guards: realtime used to ride ONLY the in-process
+   * `subscribers` map, so a client streaming from one serverless instance
+   * never saw a mutation published by another. `readSince` is the
+   * cross-instance path — a reader that never called `subscribe` must still
+   * receive everything published by a completely separate store object.
+   */
+  it("delivers messages to a reader on a different instance, which never subscribed", async () => {
+    const writer = new UpstashStore("https://fake", "token");
+    const reader = new UpstashStore("https://fake", "token"); // a separate lambda
+
+    const start = await reader.readSince("ABCD", null);
+    expect(start).toEqual({ cursor: 0, messages: [] });
+
+    await writer.publish("ABCD", { kind: "room", room: { code: "ABCD" } } as never);
+    await writer.publish("ABCD", { kind: "match", match: { version: 3 } } as never);
+
+    const first = await reader.readSince("abcd", start.cursor); // case-insensitive
+    expect(first.messages).toEqual([
+      { kind: "room", room: { code: "ABCD" } },
+      { kind: "match", match: { version: 3 } },
+    ]);
+    expect(first.cursor).toBe(2);
+
+    // Cursor advanced: nothing is redelivered.
+    const idle = await reader.readSince("ABCD", first.cursor);
+    expect(idle).toEqual({ cursor: 2, messages: [] });
+
+    // Only the new message arrives on the next poll.
+    await writer.publish("ABCD", { kind: "bye", reason: "expired" } as never);
+    const next = await reader.readSince("ABCD", idle.cursor);
+    expect(next.messages).toEqual([{ kind: "bye", reason: "expired" }]);
+    expect(next.cursor).toBe(3);
+  });
+
+  it("joining at the live head skips history rather than replaying the whole room", async () => {
+    const store = new UpstashStore("https://fake", "token");
+    await store.publish("ABCD", { kind: "room" } as never);
+    await store.publish("ABCD", { kind: "room" } as never);
+
+    // A client that just loaded already has state from /sync; replaying the
+    // backlog would re-fire every game event's FX.
+    const head = await store.readSince("ABCD", null);
+    expect(head).toEqual({ cursor: 2, messages: [] });
+  });
+
+  it("rejoins at the head when the log expired out from under a live cursor", async () => {
+    const store = new UpstashStore("https://fake", "token");
+    await store.publish("ABCD", { kind: "room" } as never);
+    await store.publish("ABCD", { kind: "room" } as never);
+    const ahead = await store.readSince("ABCD", 2);
+    expect(ahead.cursor).toBe(2);
+
+    db.delete("room:log:ABCD"); // TTL fired mid-stream
+
+    // Without the length check the cursor would sit past the end forever and
+    // the stream would go permanently silent.
+    const recovered = await store.readSince("ABCD", ahead.cursor);
+    expect(recovered).toEqual({ cursor: 0, messages: [] });
+
+    await store.publish("ABCD", { kind: "match" } as never);
+    const resumed = await store.readSince("ABCD", recovered.cursor);
+    expect(resumed.messages).toEqual([{ kind: "match" }]);
+  });
+
+  it("skips a corrupt log entry instead of wedging the cursor", async () => {
+    const store = new UpstashStore("https://fake", "token");
+    await store.publish("ABCD", { kind: "room" } as never);
+    (db.get("room:log:ABCD") as string[]).push("{not json");
+    await store.publish("ABCD", { kind: "match" } as never);
+
+    const slice = await store.readSince("ABCD", 0);
+    expect(slice.messages).toEqual([{ kind: "room" }, { kind: "match" }]);
+    expect(slice.cursor).toBe(3); // cursor still counts the bad entry
   });
 });

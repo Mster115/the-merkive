@@ -39,6 +39,12 @@ class FakeRoom {
   storage = new FakeStorage();
   broadcasts: string[] = [];
   connections: FakeConnection[] = [];
+  /**
+   * Cross-DO handle, as PartyKit exposes it. Production gives every room its
+   * OWN storage — the room-code DO cannot see the store DO's tables except
+   * through this, which is precisely what the seat lookup got wrong.
+   */
+  context?: { parties: { room: { get: (id: string) => { fetch: (url: string) => Promise<Response> } } } };
   constructor(public id: string) {}
   broadcast(msg: string) {
     this.broadcasts.push(msg);
@@ -46,6 +52,23 @@ class FakeRoom {
   getConnections() {
     return this.connections;
   }
+}
+
+/** Wire `room.context.parties.room.get("store")` to a real, separate store DO. */
+function linkStoreDo(target: FakeRoom, storeServer: TheMerkiveServer) {
+  target.context = {
+    parties: {
+      room: {
+        get: (id: string) => ({
+          fetch: async (url: string) => {
+            if (id !== "store") return new Response("Not Found", { status: 404 });
+            const path = new URL(url).pathname + new URL(url).search;
+            return (await storeServer.onRequest(req("GET", path))) as Response;
+          },
+        }),
+      },
+    },
+  };
 }
 
 function makeServer(roomId = "store", storage?: FakeStorage) {
@@ -320,21 +343,70 @@ describe("TheMerkiveServer — realtime broadcast routing (any room, not gated t
     expect(noSeat.sent).toEqual([]);
   });
 
-  it("resolves seat index dynamically from connection token when seat parameter was omitted", async () => {
-    // Populate DB with room and seats (store DO)
-    const { server: storeServer } = makeServer("store", fakeRoom.storage);
+  /**
+   * This previously passed only because the test handed the room DO the store
+   * DO's *own* FakeStorage. In production they are separate Durable Objects,
+   * so the room DO's `db` is always empty and the token -> seat lookup found
+   * nothing: every private message was silently dropped. The store DO here is
+   * deliberately backed by its own storage and reachable only via
+   * `room.context.parties`, exactly as deployed.
+   */
+  it("resolves seat index from the connection token by crossing to the store DO", async () => {
+    const { server: storeServer } = makeServer("store"); // separate storage
     const r = room({ id: "room-abcd", code: "ABCD" });
     await storeServer.onRequest(req("POST", "/parties/main/store/create-room", r));
-    await storeServer.onRequest(req("POST", "/parties/main/store/upsert-seat", seat(3, { roomId: "room-abcd", playerUid: "user-token-3" })));
+    await storeServer.onRequest(
+      req("POST", "/parties/main/store/upsert-seat", seat(3, { roomId: "room-abcd", playerUid: "user-token-3" }))
+    );
+    linkStoreDo(fakeRoom, storeServer);
 
-    // Real connection connected with ?token=user-token-3 (no seat param)
+    // Connected with ?token=user-token-3 and no seat param.
     const connWithToken = new FakeConnection();
     connWithToken.setState({ kind: "public", seat: null, token: "user-token-3" });
-    fakeRoom.connections.push(connWithToken);
+    const otherSeat = new FakeConnection();
+    otherSeat.setState({ kind: "public", seat: null, token: "user-token-9" });
+    fakeRoom.connections.push(connWithToken, otherSeat);
 
     const msg = { kind: "private", seat: 3, version: 2, privateState: { secret: 42 } };
     await server.onRequest(req("POST", "/parties/main/ABCD/broadcast", { msg }));
 
     expect(connWithToken.sent).toEqual([JSON.stringify(msg)]);
+    // An unrelated token must never receive another seat's private state.
+    expect(otherSeat.sent).toEqual([]);
+  });
+
+  it("drops a token-only private message when the store DO is unreachable, rather than leaking it", async () => {
+    const connWithToken = new FakeConnection();
+    connWithToken.setState({ kind: "public", seat: null, token: "user-token-3" });
+    fakeRoom.connections.push(connWithToken);
+    // fakeRoom.context left undefined — no cross-DO handle available.
+
+    await server.onRequest(
+      req("POST", "/parties/main/ABCD/broadcast", {
+        msg: { kind: "private", seat: 3, version: 2, privateState: { secret: 42 } },
+      })
+    );
+    expect(connWithToken.sent).toEqual([]);
+  });
+
+  it("skips the cross-DO lookup entirely when every connection already knows its seat", async () => {
+    let storeCalls = 0;
+    const { server: storeServer } = makeServer("store");
+    linkStoreDo(fakeRoom, storeServer);
+    const originalGet = fakeRoom.context!.parties.room.get;
+    fakeRoom.context!.parties.room.get = (id: string) => {
+      storeCalls += 1;
+      return originalGet(id);
+    };
+
+    const seated = new FakeConnection();
+    seated.setState({ kind: "public", seat: "3", token: "user-token-3" });
+    fakeRoom.connections.push(seated);
+
+    const msg = { kind: "private", seat: 3, version: 1, privateState: {} };
+    await server.onRequest(req("POST", "/parties/main/ABCD/broadcast", { msg }));
+
+    expect(seated.sent).toEqual([JSON.stringify(msg)]);
+    expect(storeCalls).toBe(0);
   });
 });

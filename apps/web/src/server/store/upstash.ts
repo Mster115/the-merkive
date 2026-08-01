@@ -5,10 +5,17 @@ import type {
   MatchRecord,
   MatchUpdate,
   PlayerSeatRecord,
+  RoomLogSlice,
   RoomRecord,
   RoomStore,
   SpectatorRecord,
 } from "./types";
+
+/**
+ * How long a room's realtime message log outlives its last publish. Every
+ * publish refreshes it, so this only ever reaps logs for dead rooms.
+ */
+const LOG_TTL_SECONDS = 6 * 60 * 60;
 
 export class UpstashStore implements RoomStore {
   readonly kind = "upstash" as const;
@@ -33,6 +40,24 @@ export class UpstashStore implements RoomStore {
     }
     const json = (await res.json()) as { result: T };
     return json.result;
+  }
+
+  /** Several commands, one round trip. Returns each command's result in order. */
+  private async pipeline(commands: (string | number)[][]): Promise<unknown[]> {
+    const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/pipeline`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(commands),
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      throw new Error(`Upstash error ${res.status}: ${res.statusText}`);
+    }
+    const json = (await res.json()) as { result?: unknown; error?: string }[];
+    return json.map((entry) => entry.result);
   }
 
   async createRoom(room: RoomRecord): Promise<void> {
@@ -232,6 +257,10 @@ export class UpstashStore implements RoomStore {
 
   private subscribers = new Map<string, Set<(msg: RoomMessage) => void>>();
 
+  private logKey(code: string): string {
+    return `room:log:${code.toUpperCase()}`;
+  }
+
   async publish(code: string, msg: RoomMessage): Promise<void> {
     const partyHost = process.env.PARTYKIT_HOST || process.env.NEXT_PUBLIC_PARTYKIT_HOST;
     if (partyHost) {
@@ -258,7 +287,53 @@ export class UpstashStore implements RoomStore {
         }
       }
     }
-    await this.redis(["PUBLISH", `room:${key}`, JSON.stringify(msg)]).catch(() => undefined);
+
+    // The durable log is what actually reaches the other instances. The
+    // in-process fanout above only covers clients that happen to be streaming
+    // from this very instance, which on Vercel is a small minority.
+    const logKey = this.logKey(code);
+    await this.pipeline([
+      ["RPUSH", logKey, JSON.stringify(msg)],
+      ["EXPIRE", logKey, LOG_TTL_SECONDS],
+    ]).catch(() => undefined);
+  }
+
+  async readSince(code: string, cursor: number | null): Promise<RoomLogSlice> {
+    const logKey = this.logKey(code);
+    if (cursor === null) {
+      // Join at the live head: a fresh stream gets its history from /sync.
+      const len = await this.redis<number | null>(["LLEN", logKey]).catch(() => 0);
+      return { cursor: len ?? 0, messages: [] };
+    }
+
+    // One command on the hot path. Redis commands are metered, and a room
+    // that is producing messages is polled at the fast cadence.
+    const rawSlice = await this.redis<string[] | null>([
+      "LRANGE",
+      logKey,
+      cursor,
+      -1,
+    ]).catch(() => null);
+
+    const slice = Array.isArray(rawSlice) ? rawSlice : [];
+    if (slice.length === 0) {
+      // Empty is ambiguous: either nothing new, or the log's TTL fired and
+      // our cursor now points past a truncated list, which would go silent
+      // forever. Only pay for the length check in that ambiguous case.
+      const len = await this.redis<number | null>(["LLEN", logKey]).catch(() => null);
+      if (typeof len === "number" && len < cursor) return { cursor: len, messages: [] };
+      return { cursor, messages: [] };
+    }
+
+    const messages: RoomMessage[] = [];
+    for (const raw of slice) {
+      try {
+        messages.push(JSON.parse(raw) as RoomMessage);
+      } catch {
+        // a corrupt entry must not wedge the cursor
+      }
+    }
+    return { cursor: cursor + slice.length, messages };
   }
 
   subscribe(code: string, fn: (msg: RoomMessage) => void): () => void {

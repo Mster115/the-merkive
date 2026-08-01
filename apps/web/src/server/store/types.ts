@@ -152,6 +152,22 @@ export interface RoomStore {
 
   /** Fan a message out to the room's subscribers. */
   publish(code: string, msg: RoomMessage): Promise<void>;
-  /** Memory transport only (SSE). */
+  /** Same-process fanout. Single-instance deployments and tests only. */
   subscribe?(code: string, fn: (msg: RoomMessage) => void): () => void;
+  /**
+   * Cross-instance fanout: read the room's durable message log past `cursor`.
+   * Pass `null` to start at the live head without replaying history.
+   *
+   * `subscribe` alone is not enough on a serverless host: the SSE stream and
+   * the mutation that publishes to it usually run on *different* instances,
+   * so an in-process subscriber list only ever reaches the minority of
+   * clients that happen to share the publisher's instance.
+   */
+  readSince?(code: string, cursor: number | null): Promise<RoomLogSlice>;
+}
+
+/** A window of the room's message log, plus the cursor to resume from. */
+export interface RoomLogSlice {
+  cursor: number;
+  messages: RoomMessage[];
 }
