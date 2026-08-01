@@ -306,18 +306,25 @@ export class UpstashStore implements RoomStore {
       return { cursor: len ?? 0, messages: [] };
     }
 
-    const [rawLen, rawSlice] = await this.pipeline([
-      ["LLEN", logKey],
-      ["LRANGE", logKey, cursor, -1],
-    ]).catch(() => [null, null]);
+    // One command on the hot path. Redis commands are metered, and a room
+    // that is producing messages is polled at the fast cadence.
+    const rawSlice = await this.redis<string[] | null>([
+      "LRANGE",
+      logKey,
+      cursor,
+      -1,
+    ]).catch(() => null);
 
-    const len = typeof rawLen === "number" ? rawLen : 0;
-    // The log expired out from under us (or a room was recycled), so our
-    // cursor points past the end. Rejoin at the head instead of stalling
-    // forever on a range that can never return anything again.
-    if (len < cursor) return { cursor: len, messages: [] };
+    const slice = Array.isArray(rawSlice) ? rawSlice : [];
+    if (slice.length === 0) {
+      // Empty is ambiguous: either nothing new, or the log's TTL fired and
+      // our cursor now points past a truncated list, which would go silent
+      // forever. Only pay for the length check in that ambiguous case.
+      const len = await this.redis<number | null>(["LLEN", logKey]).catch(() => null);
+      if (typeof len === "number" && len < cursor) return { cursor: len, messages: [] };
+      return { cursor, messages: [] };
+    }
 
-    const slice = Array.isArray(rawSlice) ? (rawSlice as string[]) : [];
     const messages: RoomMessage[] = [];
     for (const raw of slice) {
       try {
