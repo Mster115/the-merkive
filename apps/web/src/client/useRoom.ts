@@ -265,6 +265,25 @@ export function useRoom(code: string, mode: "controller" | "stage"): UseRoomResu
           idempotencyKey: crypto.randomUUID(),
         });
         if (!result.ok && result.code === "version_conflict") doResync();
+        // Render our own move immediately rather than waiting for the poll
+        // that would have told us about it up to a second later. Both paths
+        // are version-gated, so the realtime copy arriving afterwards is a
+        // no-op rather than a conflict.
+        if (result.ok && result.match) {
+          dispatch({ t: "message", msg: { kind: "match", match: result.match, events: [] } });
+          const mySeat = snapRef.current?.you.seatIndex;
+          if (mySeat != null && result.privateState !== undefined) {
+            dispatch({
+              t: "message",
+              msg: {
+                kind: "private",
+                seat: mySeat,
+                version: result.match.version,
+                privateState: result.privateState,
+              },
+            });
+          }
+        }
         return result.ok ? { ok: true } : result;
       } catch (err) {
         if (err instanceof ApiCallError) {

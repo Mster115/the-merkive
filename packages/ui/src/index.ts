@@ -27,6 +27,7 @@ export {
   SpeakerOffIcon,
   LightningIcon,
   ToolsIcon,
+  PaletteIcon,
   PuzzleIcon,
   BackpackIcon,
   CardsIcon,

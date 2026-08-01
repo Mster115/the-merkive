@@ -60,20 +60,26 @@ export function Button({
       }}
       className={cn(
         !disableShine && "mb-shine",
+        "inline-flex items-center justify-center gap-2 font-black uppercase tracking-wide select-none",
         // shrink-0: a Button is almost always next to something greedy (an
         // input with flex-1, a long heading). Flex children shrink by default,
         // so without this the button is squeezed below its intrinsic width and
         // its label paints outside the border — Nexus's "Submit Answer"
         // rendered as a clipped "UBMI/NSWE" on a 390px phone. Keep the width,
         // let the label wrap inside it. See DESIGN.md §7b.
-        "inline-flex shrink-0 items-center justify-center gap-2 font-black uppercase tracking-wide select-none",
+        //
+        // ...but a `block` button IS the greedy element: it asks for the full
+        // container width, so refusing to shrink makes two of them in a flex
+        // row measure double their container and paint outside it. That put
+        // the End Game modal's Confirm button off the edge of the dialog.
+        !block && "shrink-0",
         "transition-all duration-100 will-change-transform hover:brightness-105",
         "disabled:opacity-40 disabled:saturate-50 disabled:pointer-events-none",
         "focus-visible:outline-4 focus-visible:outline-[var(--mb-violet)] focus-visible:outline-offset-2",
         "[font-family:var(--mb-font-display)]",
         variants[variant],
         sizes[size],
-        block && "w-full",
+        block && "w-full min-w-0",
         className
       )}
       {...rest}

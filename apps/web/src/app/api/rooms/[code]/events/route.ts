@@ -17,9 +17,14 @@ const HEARTBEAT_MS = 15_000;
 /** Log poll cadence while the room is producing messages. */
 const POLL_ACTIVE_MS = 1_000;
 /** Backed-off cadence for an idle room, to stay cheap on metered Redis. */
-const POLL_IDLE_MS = 5_000;
-/** Consecutive empty polls before backing off to the idle cadence. */
-const IDLE_AFTER_EMPTY = 5;
+const POLL_IDLE_MS = 3_000;
+/**
+ * Consecutive empty polls before backing off. Generous on purpose: a player
+ * thinking through their turn is silence, and dropping to the idle cadence
+ * after only a few seconds meant their eventual move took that whole cadence
+ * to reach everyone else. Only a genuinely parked room should back off.
+ */
+const IDLE_AFTER_EMPTY = 20;
 
 /**
  * SSE realtime: one stream per client, filtered server-side so a connection

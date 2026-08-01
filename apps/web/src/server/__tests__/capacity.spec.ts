@@ -163,7 +163,7 @@ describe("12-seat capacity contract", () => {
     expect(snap.room.seats).toHaveLength(12);
     expect(snap.match?.phase).toBe("playing");
 
-    expect(await applyAction(code, HOST, { type: "finish" })).toEqual({ ok: true });
+    expect(await applyAction(code, HOST, { type: "finish" })).toMatchObject({ ok: true });
 
     snap = await snapshotFor(code, HOST);
     expect(snap.room.status).toBe("lobby");
