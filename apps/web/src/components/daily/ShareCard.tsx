@@ -67,7 +67,11 @@ export function ShareCard({ shareText, gameId }: ShareCardProps) {
       <pre className="whitespace-pre-wrap [overflow-wrap:anywhere] font-mono text-sm bg-black text-[var(--mb-accent-2)] p-3 rounded border-2 border-black">
         {fullText}
       </pre>
-      <div className="flex flex-col gap-2 sm:flex-row">
+      {/* Grid, not flex-row: every Button carries `shrink-0` (DESIGN.md §7b),
+          so two `w-full` buttons in a flex row each demand the full row width
+          and the second one overflows off-screen instead of sharing it. Grid
+          columns stretch to their track without a flex-shrink fight. */}
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {canShare && (
           <Button
             variant="primary"
