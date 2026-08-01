@@ -3,7 +3,14 @@ import type { RoomTransport } from "./types";
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const HEARTBEAT_INTERVAL_MS = 20_000;
 
-export const partykitTransport: RoomTransport = ({ code, token, viewerOnly, onMessage, onStatus }) => {
+export const partykitTransport: RoomTransport = ({
+  code,
+  token,
+  seatIndex,
+  viewerOnly,
+  onMessage,
+  onStatus,
+}) => {
   let stopped = false;
   let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   let ws: WebSocket | null = null;
@@ -11,7 +18,11 @@ export const partykitTransport: RoomTransport = ({ code, token, viewerOnly, onMe
 
   const partyHost = process.env.NEXT_PUBLIC_PARTYKIT_HOST || "localhost:1999";
   const protocol = partyHost.startsWith("localhost") || partyHost.startsWith("127.0.0.1") ? "ws" : "wss";
-  const query = token ? `?token=${encodeURIComponent(token)}` : "";
+  const params = new URLSearchParams();
+  if (token) params.set("token", token);
+  // A Stage has no seat and must never claim one.
+  if (!viewerOnly && seatIndex != null) params.set("seat", String(seatIndex));
+  const query = params.toString() ? `?${params.toString()}` : "";
   const wsUrl = `${protocol}://${partyHost}/parties/room/${encodeURIComponent(code)}${query}`;
 
   const postPresence = (bye = false) => {

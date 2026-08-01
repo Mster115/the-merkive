@@ -181,17 +181,21 @@ export function useRoom(code: string, mode: "controller" | "stage"): UseRoomResu
   // on the very first snapshot, and depending on it tore the transport down
   // and rebuilt it, dropping anything published during the gap.
   const transportActive = state.phase !== "gone" && state.phase !== "error";
+  const seatIndex = state.snapshot?.you.seatIndex ?? null;
   React.useEffect(() => {
     if (!transportActive) return;
     const disconnect = getTransport()({
       code: upperCode,
       token,
+      seatIndex,
       viewerOnly: mode === "stage",
       onMessage: (msg) => dispatch({ t: "message", msg }),
       onStatus: (status) => dispatch({ t: "status", status }),
     });
     return disconnect;
-  }, [upperCode, token, transportActive, mode]);
+    // seatIndex is in the deps because the socket has to re-announce the seat
+    // it claims; it only changes on join/removal, so this doesn't churn.
+  }, [upperCode, token, seatIndex, transportActive, mode]);
 
   // Resync when a version gap or conflict was detected, and when the tab
   // wakes from sleep.
