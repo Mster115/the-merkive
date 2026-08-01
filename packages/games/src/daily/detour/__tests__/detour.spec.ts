@@ -4,6 +4,8 @@ import { detour } from "../index";
 import { samplePack } from "../logic";
 import { validatePack } from "../pack";
 import type { DetourPublicState, DetourSecretState } from "../types";
+import { getCityGeography, generateProceduralGeography } from "../cityGeography";
+
 
 describe("detour daily game module", () => {
   it("initializes publicState and secretState correctly without leaking secret coordinates or target route POIs", () => {
@@ -402,3 +404,30 @@ describe("detour publishes no free answer at turn zero", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 });
+
+describe("detour city geography resolution", () => {
+  it("resolves hand-crafted geography presets for featured cities", () => {
+    const paris = getCityGeography("Paris", "PAR");
+    expect(paris.cityName).toBe("Paris");
+    expect(paris.polylines.some((p) => p.name === "Seine")).toBe(true);
+
+    const philly = getCityGeography("Philadelphia", "PHL");
+    expect(philly.cityName).toBe("Philadelphia");
+    expect(philly.polylines.some((p) => p.name === "Delaware River")).toBe(true);
+
+    const nyc = getCityGeography("New York City", "NYC");
+    expect(nyc.polylines.some((p) => p.name === "Hudson River")).toBe(true);
+  });
+
+  it("generates deterministic procedural geography for unknown cities", () => {
+    const geo1 = generateProceduralGeography("Kuala Lumpur", 3.139, 101.686);
+    expect(geo1.cityName).toBe("Kuala Lumpur");
+    expect(geo1.polylines.length).toBeGreaterThan(0);
+    expect(geo1.polylines.some((p) => p.type === "river")).toBe(true);
+
+    const geo2 = generateProceduralGeography("Kuala Lumpur", 3.139, 101.686);
+    expect(geo1).toEqual(geo2); // Deterministic output
+  });
+});
+
+

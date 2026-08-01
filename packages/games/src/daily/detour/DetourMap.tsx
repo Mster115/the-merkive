@@ -2,6 +2,7 @@
 import * as React from "react";
 import type { Translate } from "@merky/game-sdk";
 import type { DetourSubmittedHop } from "./types";
+import { getCityGeography } from "./cityGeography";
 
 interface DetourMapProps {
   t: Translate;
@@ -28,13 +29,8 @@ const VIEW_H = 600;
  * Plots the trail the player has actually walked: the start, every hop they
  * committed, and — once the puzzle is over — the destination.
  *
- * It deliberately does NOT plot the unguessed landmark bank. An earlier build
- * did, positioning those pins by hashing each landmark's name, so the map
- * disagreed with the tier-1 distance-and-direction clues and any player
- * reasoning from it was reasoning from noise. Plotting them truthfully is not
- * an option either: real coordinates for the whole bank turn every tier-1 clue
- * into an arithmetic exercise. Showing only committed hops keeps the map
- * honest and the puzzle intact.
+ * Rendered over a rough display of the city (waterways, parks, ring roads, arterials)
+ * to give realistic geographic context for city navigation.
  */
 export function DetourMap({
   t,
@@ -84,7 +80,17 @@ export function DetourMap({
     return points;
   }, [startPoi, hopsSubmitted, destinationPoi]);
 
-  const project = React.useMemo(() => {
+  // Fetch geographic features for the featured city (or procedural fallback)
+  const cityGeo = React.useMemo(() => {
+    return getCityGeography(
+      cityName,
+      undefined,
+      startPoi.coordinates[0],
+      startPoi.coordinates[1]
+    );
+  }, [cityName, startPoi.coordinates]);
+
+  const projectInfo = React.useMemo(() => {
     const lats = plotted.map((p) => p.coordinates[0]);
     const lngs = plotted.map((p) => p.coordinates[1]);
     let minLat = Math.min(...lats);
@@ -92,16 +98,15 @@ export function DetourMap({
     let minLng = Math.min(...lngs);
     let maxLng = Math.max(...lngs);
 
-    // Guard the single-point case and pad so pins never touch the frame.
-    const latSpan = Math.max(maxLat - minLat, 0.01);
-    const lngSpan = Math.max(maxLng - minLng, 0.01);
-    minLat -= latSpan * 0.25;
-    maxLat += latSpan * 0.25;
-    minLng -= lngSpan * 0.25;
-    maxLng += lngSpan * 0.25;
+    // Guard single-point case and pad frame for comfortable pin margin
+    const latSpan = Math.max(maxLat - minLat, 0.012);
+    const lngSpan = Math.max(maxLng - minLng, 0.012);
+    minLat -= latSpan * 0.35;
+    maxLat += latSpan * 0.35;
+    minLng -= lngSpan * 0.35;
+    maxLng += lngSpan * 0.35;
 
-    // Longitude degrees narrow with latitude; without this a north-south city
-    // renders stretched sideways.
+    // Longitude degrees narrow with latitude
     const lngScale = Math.max(
       Math.cos((((minLat + maxLat) / 2) * Math.PI) / 180),
       0.01
@@ -112,12 +117,23 @@ export function DetourMap({
     const offsetX = (VIEW_W - worldW * scale) / 2;
     const offsetY = (VIEW_H - worldH * scale) / 2;
 
-    return (coord: [number, number]) => ({
+    const project = (coord: [number, number]) => ({
       x: offsetX + (coord[1] - minLng) * lngScale * scale,
       y: offsetY + (maxLat - coord[0]) * scale,
     });
+
+    // 1 degree latitude ≈ 111 km
+    const pxPerKm = (1 / 111) * scale;
+    let scaleBarKm = 1;
+    if (pxPerKm * 1 < 35) scaleBarKm = 5;
+    if (pxPerKm * 5 < 35) scaleBarKm = 10;
+    if (pxPerKm * 1 > 160) scaleBarKm = 0.5;
+    const scaleBarPx = Math.min(Math.max(pxPerKm * scaleBarKm, 40), 160);
+
+    return { project, scaleBarKm, scaleBarPx };
   }, [plotted]);
 
+  const { project, scaleBarKm, scaleBarPx } = projectInfo;
   const positions = plotted.map((p) => ({ ...p, pos: project(p.coordinates) }));
   const start = positions[0]!;
   // The route line joins only the legs that actually advanced the player.
@@ -158,13 +174,101 @@ export function DetourMap({
                 fill="none"
                 stroke="var(--mb-line-dim)"
                 strokeWidth="1"
-                opacity="0.5"
+                opacity="0.3"
               />
             </pattern>
           </defs>
 
+          {/* Background surface & grid */}
           <rect width={VIEW_W} height={VIEW_H} fill="var(--mb-bg)" />
           <rect width={VIEW_W} height={VIEW_H} fill="url(#detour-grid)" />
+
+          {/* City Geography: Parks & Greenery */}
+          {cityGeo.polygons?.map((poly, idx) => {
+            const pts = poly.points
+              .map(project)
+              .map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`)
+              .join(" ");
+            return (
+              <polygon
+                key={`poly-${idx}`}
+                points={pts}
+                fill="#132a1e"
+                stroke="#0b1711"
+                strokeWidth="1.5"
+                opacity="0.55"
+              />
+            );
+          })}
+
+          {/* City Geography: Rivers, Canals & Coastlines */}
+          {cityGeo.polylines.map((poly, idx) => {
+            if (poly.type !== "river" && poly.type !== "coastline") return null;
+            const pathD = poly.points
+              .map((pt, i) => {
+                const p = project(pt);
+                return `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`;
+              })
+              .join(" ");
+
+            const width = poly.width || 12;
+            return (
+              <g key={`water-${idx}`}>
+                <path
+                  d={pathD}
+                  fill="none"
+                  stroke="#000000"
+                  strokeWidth={width + 5}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  opacity="0.4"
+                />
+                <path
+                  d={pathD}
+                  fill="none"
+                  stroke="#1a314d"
+                  strokeWidth={width}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  opacity="0.85"
+                />
+                <path
+                  d={pathD}
+                  fill="none"
+                  stroke="#2b4d75"
+                  strokeWidth={Math.max(2, width - 6)}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  opacity="0.5"
+                />
+              </g>
+            );
+          })}
+
+          {/* City Geography: Ring Roads & Major Arterials */}
+          {cityGeo.polylines.map((poly, idx) => {
+            if (poly.type !== "ring_road" && poly.type !== "arterial") return null;
+            const pathD = poly.points
+              .map((pt, i) => {
+                const p = project(pt);
+                return `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`;
+              })
+              .join(" ");
+
+            const isRing = poly.type === "ring_road";
+            return (
+              <path
+                key={`road-${idx}`}
+                d={pathD}
+                fill="none"
+                stroke="var(--mb-line-dim)"
+                strokeWidth={isRing ? "3.5" : "2"}
+                strokeDasharray={isRing ? "8 5" : "none"}
+                strokeLinecap="round"
+                opacity={isRing ? "0.45" : "0.3"}
+              />
+            );
+          })}
 
           {/* Route travelled */}
           {routePoints.slice(1).map((pt, i) => {
@@ -205,6 +309,7 @@ export function DetourMap({
             );
           })}
 
+          {/* Markers */}
           {positions.map((p) => (
             <g key={p.key} transform={`translate(${p.pos.x}, ${p.pos.y})`}>
               {p.kind === "start" && (
@@ -266,6 +371,27 @@ export function DetourMap({
               )}
             </g>
           ))}
+
+          {/* Cartographic Compass Rose (North Arrow) */}
+          <g transform={`translate(${VIEW_W - 35}, 35)`}>
+            <circle r="16" fill="var(--mb-surface-2)" stroke="#000" strokeWidth="2" />
+            <path d="M 0 -10 L 4 3 L 0 0 L -4 3 Z" fill="var(--mb-danger)" stroke="#000" strokeWidth="1" />
+            <path d="M 0 10 L 4 3 L 0 0 L -4 3 Z" fill="var(--mb-text-dim)" opacity="0.4" />
+            <text x="0" y="-12" textAnchor="middle" fill="var(--mb-text)" fontSize="8" fontWeight="900">
+              N
+            </text>
+          </g>
+
+          {/* Cartographic Scale Bar */}
+          <g transform={`translate(${VIEW_W - 140}, ${VIEW_H - 24})`}>
+            <rect x="-8" y="-16" width={scaleBarPx + 16} height="22" rx="4" fill="var(--mb-surface)" stroke="#000" strokeWidth="1.5" opacity="0.9" />
+            <line x1="0" y1="0" x2={scaleBarPx} y2="0" stroke="var(--mb-text)" strokeWidth="2.5" />
+            <line x1="0" y1="-3" x2="0" y2="3" stroke="var(--mb-text)" strokeWidth="2.5" />
+            <line x1={scaleBarPx} y1="-3" x2={scaleBarPx} y2="3" stroke="var(--mb-text)" strokeWidth="2.5" />
+            <text x={scaleBarPx / 2} y="-5" textAnchor="middle" fill="var(--mb-text-dim)" fontSize="10" fontWeight="bold">
+              {scaleBarKm >= 1 ? `${scaleBarKm} km` : `${scaleBarKm * 1000} m`}
+            </text>
+          </g>
         </svg>
       </div>
 
@@ -275,3 +401,4 @@ export function DetourMap({
     </section>
   );
 }
+

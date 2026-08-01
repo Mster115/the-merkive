@@ -254,7 +254,7 @@ export function Play({ publicState, phase, act, t }: DailyPlayProps) {
           <div
             role="radiogroup"
             aria-label={t("daily.waypoint.selectPrompt")}
-            className="grid grid-cols-2 gap-2"
+            className="grid grid-cols-2 sm:grid-cols-3 gap-2.5"
           >
             {candidates.map((loc) => {
               const used = guessedIds.has(loc.id);
@@ -267,12 +267,12 @@ export function Play({ publicState, phase, act, t }: DailyPlayProps) {
                   aria-checked={active}
                   disabled={used || isSubmitting}
                   onClick={() => setSelectedId(loc.id)}
-                  className={`min-h-14 rounded-md border-2 border-black px-2 py-2 text-left text-sm font-bold leading-tight shadow-[2px_2px_0_0_#000] transition-colors ${
+                  className={`min-h-14 rounded-md border-2 border-black px-2.5 py-2 text-left text-sm font-bold leading-tight shadow-[2px_2px_0_0_#000] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--mb-line-bright)] ${
                     used
                       ? "cursor-not-allowed bg-[var(--mb-surface-3)] text-[var(--mb-text-dim)] line-through opacity-60"
                       : active
                         ? "bg-[var(--mb-accent)] text-[var(--mb-on-accent)]"
-                        : "bg-[var(--mb-surface)] text-[var(--mb-text)]"
+                        : "bg-[var(--mb-surface)] text-[var(--mb-text)] hover:bg-[var(--mb-surface-2)]"
                   }`}
                 >
                   {loc.name}
@@ -280,27 +280,6 @@ export function Play({ publicState, phase, act, t }: DailyPlayProps) {
               );
             })}
           </div>
-
-          {/* Guaranteed-correct input path: the OS picker, always present, for
-              Voice Control, Switch Control and external keyboards. */}
-          <label className="flex flex-col gap-1">
-            <span className="sr-only">{t("daily.waypoint.selectPrompt")}</span>
-            <select
-              value={selectedId}
-              onChange={(e) => setSelectedId(e.target.value)}
-              disabled={isSubmitting}
-              className="min-h-12 w-full rounded-md border-2 border-black bg-[var(--mb-surface)] px-3 font-bold text-[var(--mb-text)] focus:outline-none focus:ring-2 focus:ring-[var(--mb-line-bright)]"
-            >
-              <option value="">{t("daily.waypoint.inputPlaceholder")}</option>
-              {candidates
-                .filter((loc) => !guessedIds.has(loc.id))
-                .map((loc) => (
-                  <option key={loc.id} value={loc.id}>
-                    {loc.name}
-                  </option>
-                ))}
-            </select>
-          </label>
 
           {errorMsg && (
             <div
