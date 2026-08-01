@@ -44,7 +44,7 @@ import process from "node:process";
 import { requireSecret, resolveSecret, SETUP_HINT, KEYCHAIN_SERVICE } from "./secret.mjs";
 
 const BASE_URL = (process.env.MERKY_BASE_URL ?? "https://the-merkive.vercel.app").replace(/\/$/, "");
-const GAMES = ["nexus", "nutshell", "relay", "waypoint"];
+const GAMES = ["nexus", "nutshell", "relay", "waypoint", "detour"];
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 // --- date helpers -----------------------------------------------------------
@@ -508,6 +508,74 @@ export function preflight(pack) {
       if (analysis.ok) {
         problems.push(...analysis.problems);
         warnings.push(...analysis.warnings);
+      }
+    }
+  }
+
+  if (pack.gameId === "detour") {
+    // Mirrors validatePack in packages/games/src/daily/detour/pack.ts. Anything
+    // that is a hard reject there must be a problem here, not a warning, or the
+    // preflight passes a pack the submit will bounce.
+    const route = Array.isArray(payload.route) ? payload.route : [];
+    if (route.length < 2) problems.push("detour route must contain at least 2 hops");
+
+    const candidates = Array.isArray(payload.candidatePois) ? payload.candidatePois : [];
+    if (candidates.length < 6) {
+      problems.push(`detour candidatePois has only ${candidates.length} entries; at least 6 are required`);
+    }
+
+    const districtCounts = new Map();
+    const seenIds = new Set();
+    for (const poi of candidates) {
+      if (!String(poi?.name ?? "").trim()) problems.push("each candidate POI must have a non-empty name");
+      const id = String(poi?.id ?? "").trim();
+      // Ids key the secret lookup, so a collision resolves a guess to the
+      // wrong landmark.
+      if (id && seenIds.has(id)) problems.push(`duplicate candidate POI id "${id}"`);
+      if (id) seenIds.add(id);
+      const d = String(poi?.district ?? "").trim();
+      if (d) districtCounts.set(d, (districtCounts.get(d) ?? 0) + 1);
+    }
+
+    // Every hop the player must find needs a decoy in its district, or the
+    // tier-4 hint — the only one that unshrouds the district — names it.
+    for (const hop of route.slice(1)) {
+      const d = String(hop?.district ?? "").trim();
+      if (d && (districtCounts.get(d) ?? 0) < 2) {
+        problems.push(
+          `detour district "${d}" holds only the target ${hop?.poiName ?? "?"}; add a decoy landmark there`
+        );
+      }
+    }
+
+    // Tiers 1-3 must not name the target; tier 4 is the location hint. The
+    // clues on route[i] describe the journey to route[i + 1], so that is the
+    // name they must avoid echoing.
+    for (let i = 0; i < route.length - 1; i++) {
+      const hop = route[i];
+      const clues = hop?.clues ?? {};
+      for (const tier of ["tier1_vector", "tier2_stranger", "tier3_category"]) {
+        if (!String(clues?.[tier] ?? "").trim()) {
+          problems.push(`detour hop ${i} is missing clues.${tier}`);
+        }
+      }
+
+      const targetName = String(route[i + 1]?.poiName ?? "").trim();
+      if (!targetName) continue;
+      const words = targetName
+        .toLowerCase()
+        .split(/[^a-z]+/)
+        .filter((w) => w.length >= 5);
+      const blob = ["tier1_vector", "tier2_stranger"]
+        .map((k) => String(clues?.[k] ?? "").toLowerCase())
+        .join(" ");
+      for (const w of words) {
+        if (blob.includes(w)) {
+          warnings.push(
+            `detour clue on hop ${i} contains "${w}" from its target "${targetName}"; check it does not give the hop away`
+          );
+          break;
+        }
       }
     }
   }

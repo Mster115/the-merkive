@@ -402,6 +402,19 @@ export function SwapIcon({ className = "w-5 h-5" }: { className?: string }) {
   );
 }
 
+export function DetourIcon({ className = "w-6 h-6" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M 4 18 C 8 18, 8 8, 14 8" stroke="currentColor" strokeWidth="2.5" />
+      <path d="M 14 8 L 20 8" stroke="currentColor" strokeWidth="2.5" strokeDasharray="3 2" />
+      <circle cx="4" cy="18" r="2.5" fill="var(--mb-accent)" stroke="currentColor" strokeWidth="2" />
+      <circle cx="20" cy="8" r="2.5" fill="var(--mb-gold)" stroke="currentColor" strokeWidth="2" />
+      <path d="M 8 18 C 10 12, 14 14, 17 12" stroke="var(--mb-pink)" strokeWidth="2" strokeDasharray="2 2" />
+      <path d="M 15 10.5 L 17.5 12 L 15.5 14" stroke="var(--mb-pink)" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
 export function GameIcon({ gameId, className }: { gameId: string; className?: string }) {
   switch (gameId) {
     case "zaplash":
@@ -417,6 +430,8 @@ export function GameIcon({ gameId, className }: { gameId: string; className?: st
     case "merkade":
       return <MerkadeIcon className={className} />;
     // Daily games.
+    case "detour":
+      return <DetourIcon className={className} />;
     case "nexus":
       return <NexusIcon className={className} />;
     case "nutshell":

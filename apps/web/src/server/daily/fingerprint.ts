@@ -88,6 +88,21 @@ export function puzzleItems(gameId: string, payload: unknown): string[] {
     return targetName ? [targetName, ...names] : names;
   }
 
+  if (gameId === "detour") {
+    // City name, then route POI IDs, then sorted candidate POI IDs
+    const cityName = norm(p.cityName);
+    const route = Array.isArray(p.route) ? p.route : [];
+    const routeIds = route
+      .map((r) => norm((r as { poiId?: unknown; poiName?: unknown }).poiId ?? (r as { poiName?: unknown }).poiName))
+      .filter(Boolean);
+    const candidatePois = Array.isArray(p.candidatePois) ? p.candidatePois : [];
+    const candIds = candidatePois
+      .map((c) => norm((c as { id?: unknown; name?: unknown }).id ?? (c as { name?: unknown }).name))
+      .filter(Boolean)
+      .sort();
+    return [cityName, ...routeIds, ...candIds].filter(Boolean);
+  }
+
   return [];
 }
 
