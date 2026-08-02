@@ -29,19 +29,18 @@ export function ChipShotPlay(props: DailyPlayProps) {
   const [pending, setPending] = React.useState<boolean>(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
   const [isAnimating, setIsAnimating] = React.useState<boolean>(false);
+  const lastShotRef = React.useRef(pub.lastShot);
 
   React.useEffect(() => {
-    if (
-      pub.lastShot &&
-      pub.lastShot.frames &&
-      pub.lastShot.frames.length > 0 &&
-      pub.phase !== "aiming"
-    ) {
+    if (pub.lastShot && pub.lastShot !== lastShotRef.current) {
+      lastShotRef.current = pub.lastShot;
       setIsAnimating(true);
-    } else {
-      setIsAnimating(false);
     }
-  }, [pub.lastShot, pub.phase]);
+  }, [pub.lastShot]);
+
+  const handleAnimationComplete = React.useCallback(() => {
+    setIsAnimating(false);
+  }, []);
 
   const handleShoot = async () => {
     buzz(10);
@@ -206,7 +205,7 @@ export function ChipShotPlay(props: DailyPlayProps) {
           aimAngle={aim / 100}
           aimPower={power / 100}
           shotFrames={pub.lastShot?.frames ?? null}
-          onAnimationComplete={() => setIsAnimating(false)}
+          onAnimationComplete={handleAnimationComplete}
         />
       </Card>
 

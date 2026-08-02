@@ -270,7 +270,12 @@ export function CourseCanvas({
     [hole, aimAngle, aimPower]
   );
 
-  const lastAnimatedFramesRef = React.useRef<Vec2[] | null>(null);
+  const onCompleteRef = React.useRef(onAnimationComplete);
+  React.useEffect(() => {
+    onCompleteRef.current = onAnimationComplete;
+  }, [onAnimationComplete]);
+
+  const animatedFramesRef = React.useRef<Vec2[] | null>(null);
 
   // Resize handling & initial draw
   React.useEffect(() => {
@@ -298,45 +303,50 @@ export function CourseCanvas({
   React.useEffect(() => {
     if (!shotFrames || shotFrames.length === 0) {
       setCurrentFrameIndex(0);
-      lastAnimatedFramesRef.current = null;
+      animatedFramesRef.current = null;
       return;
     }
 
-    if (lastAnimatedFramesRef.current === shotFrames) {
+    if (animatedFramesRef.current === shotFrames) {
       return;
     }
-
-    lastAnimatedFramesRef.current = shotFrames;
+    animatedFramesRef.current = shotFrames;
 
     if (isReducedMotion.current) {
       setCurrentFrameIndex(shotFrames.length - 1);
-      if (onAnimationComplete) {
-        onAnimationComplete();
+      if (onCompleteRef.current) {
+        onCompleteRef.current();
       }
       return;
     }
 
     let frame = 0;
-    const animate = () => {
+    let cancelled = false;
+    let animId: number | null = null;
+
+    const step = () => {
+      if (cancelled) return;
       frame++;
       if (frame < shotFrames.length) {
         setCurrentFrameIndex(frame);
-        animationRef.current = requestAnimationFrame(animate);
+        animId = requestAnimationFrame(step);
       } else {
-        if (onAnimationComplete) {
-          onAnimationComplete();
+        setCurrentFrameIndex(shotFrames.length - 1);
+        if (onCompleteRef.current) {
+          onCompleteRef.current();
         }
       }
     };
 
-    animationRef.current = requestAnimationFrame(animate);
+    animId = requestAnimationFrame(step);
 
     return () => {
-      if (animationRef.current !== null) {
-        cancelAnimationFrame(animationRef.current);
+      cancelled = true;
+      if (animId !== null) {
+        cancelAnimationFrame(animId);
       }
     };
-  }, [shotFrames, onAnimationComplete]);
+  }, [shotFrames]);
 
   return (
     <div
