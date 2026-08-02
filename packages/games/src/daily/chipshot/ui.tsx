@@ -3,7 +3,21 @@
 import * as React from "react";
 import type { DailyPlayProps } from "../types";
 import type { ChipShotPublicState } from "./types";
-import { Button, Card, Pill, buzz } from "@merky/ui";
+import {
+  Button,
+  Card,
+  Pill,
+  buzz,
+  TargetIcon,
+  LightningIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ChevronDoubleLeftIcon,
+  ChevronDoubleRightIcon,
+  GolfFlagIcon,
+  GolfBallIcon,
+  CloseIcon,
+} from "@merky/ui";
 import { CourseCanvas } from "./CourseCanvas";
 
 export function ChipShotPlay(props: DailyPlayProps) {
@@ -75,24 +89,17 @@ export function ChipShotPlay(props: DailyPlayProps) {
     setAim(Math.round(nextRad * 100));
   };
 
-  const setAimDegrees = (targetDegrees: number) => {
-    buzz(5);
-    let rad = (targetDegrees * Math.PI) / 180;
-    if (rad < 0) rad += Math.PI * 2;
-    setAim(Math.round((rad % (Math.PI * 2)) * 100));
-  };
-
   const aimRad = aim / 100;
   const aimDeg = Math.round((aimRad * 180) / Math.PI);
-  const getAimCompassSymbol = (deg: number) => {
-    if (deg >= 337.5 || deg < 22.5) return "➡️ RIGHT";
-    if (deg >= 22.5 && deg < 67.5) return "↘ DOWN-RIGHT";
-    if (deg >= 67.5 && deg < 112.5) return "⬇ DOWN";
-    if (deg >= 112.5 && deg < 157.5) return "↙ DOWN-LEFT";
-    if (deg >= 157.5 && deg < 202.5) return "⬅ LEFT";
-    if (deg >= 202.5 && deg < 247.5) return "↖ UP-LEFT";
-    if (deg >= 247.5 && deg < 292.5) return "⬆ UP";
-    return "↗ UP-RIGHT";
+  const getAimCompassName = (deg: number) => {
+    if (deg >= 337.5 || deg < 22.5) return "RIGHT";
+    if (deg >= 22.5 && deg < 67.5) return "DOWN-RIGHT";
+    if (deg >= 67.5 && deg < 112.5) return "DOWN";
+    if (deg >= 112.5 && deg < 157.5) return "DOWN-LEFT";
+    if (deg >= 157.5 && deg < 202.5) return "LEFT";
+    if (deg >= 202.5 && deg < 247.5) return "UP-LEFT";
+    if (deg >= 247.5 && deg < 292.5) return "UP";
+    return "UP-RIGHT";
   };
 
   // Power adjustment helpers (stored as percentage in [10, 100])
@@ -110,7 +117,10 @@ export function ChipShotPlay(props: DailyPlayProps) {
   let onButtonClick: (() => void) | undefined = undefined;
   let isButtonDisabled = pending || isAnimating;
 
-  if (pub.phase === "aiming") {
+  if (isAnimating) {
+    buttonText = "ROLLING...";
+    isButtonDisabled = true;
+  } else if (pub.phase === "aiming") {
     buttonText = t("daily.chipshot.shoot");
     onButtonClick = handleShoot;
   } else if (pub.phase === "scored") {
@@ -135,19 +145,23 @@ export function ChipShotPlay(props: DailyPlayProps) {
 
   let feedbackMsg: string | null = null;
   let feedbackClasses = "";
-  if (pub.phase === "penalty") {
-    feedbackMsg = t("daily.chipshot.water_hazard");
-    feedbackClasses = "bg-[var(--mb-danger)] text-[var(--mb-on-danger)]";
-  } else if (pub.phase === "scored" && pub.lastShot) {
-    if (pub.lastShot.outcome === "scored") {
-      feedbackMsg =
-        currentStrokes === 1
-          ? t("daily.chipshot.hole_in_one")
-          : t("daily.chipshot.nice_shot");
-      feedbackClasses = "bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)]";
-    } else {
-      feedbackMsg = t("daily.chipshot.max_strokes");
-      feedbackClasses = "bg-[var(--mb-gold)] text-[var(--mb-on-gold)]";
+
+  // Only reveal outcome feedback banner AFTER animation finishes
+  if (!isAnimating) {
+    if (pub.phase === "penalty") {
+      feedbackMsg = t("daily.chipshot.water_hazard");
+      feedbackClasses = "bg-[var(--mb-danger)] text-[var(--mb-on-danger)]";
+    } else if (pub.phase === "scored" && pub.lastShot) {
+      if (pub.lastShot.outcome === "scored") {
+        feedbackMsg =
+          currentStrokes === 1
+            ? t("daily.chipshot.hole_in_one")
+            : t("daily.chipshot.nice_shot");
+        feedbackClasses = "bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)]";
+      } else {
+        feedbackMsg = t("daily.chipshot.max_strokes");
+        feedbackClasses = "bg-[var(--mb-gold)] text-[var(--mb-on-gold)]";
+      }
     }
   }
 
@@ -156,7 +170,7 @@ export function ChipShotPlay(props: DailyPlayProps) {
   }
 
   return (
-    <div className="flex flex-col w-full gap-4 select-none">
+    <div className="flex flex-col w-full gap-3.5 select-none">
       {/* Accessibility live region for phase announcements */}
       <div className="sr-only" aria-live="polite">
         {t(`daily.chipshot.phase_${pub.phase}`)}
@@ -171,6 +185,32 @@ export function ChipShotPlay(props: DailyPlayProps) {
         </div>
       )}
 
+      {/* Standalone Header Info Bar */}
+      <div className="flex justify-between items-center bg-[var(--mb-surface-2)] p-3 border-[3px] border-black shadow-[var(--mb-shadow)] rounded-xl">
+        <Pill tone="neutral" className="border-2 border-black font-black uppercase text-xs">
+          {t("daily.chipshot.hole_of", { current: String(holeNumber), total: String(totalHoles) })}
+        </Pill>
+        <Pill tone="gold" className="border-2 border-black font-black uppercase text-xs">
+          {t("daily.chipshot.par", { par: String(currentPar) })}
+        </Pill>
+        <Pill tone="accent" className="border-2 border-black font-black uppercase text-xs">
+          {t("daily.chipshot.strokes", { n: String(currentStrokes) })}
+        </Pill>
+      </div>
+
+      {/* Standalone Canvas Card */}
+      <Card className="relative w-full aspect-square bg-[#131b2e] border-[3px] border-black shadow-[var(--mb-shadow-lg)] rounded-2xl overflow-hidden p-0">
+        <CourseCanvas
+          hole={currentHole}
+          ball={pub.ball}
+          aimAngle={aim / 100}
+          aimPower={power / 100}
+          shotFrames={pub.lastShot?.frames ?? null}
+          onAnimationComplete={() => setIsAnimating(false)}
+        />
+      </Card>
+
+      {/* Standalone Feedback Alert (shown post-animation only) */}
       {feedbackMsg && (
         <div
           className={`p-3.5 border-[3px] border-black rounded-xl font-black uppercase tracking-wide [font-family:var(--mb-font-display)] text-center shadow-[var(--mb-shadow)] ${feedbackClasses}`}
@@ -179,247 +219,176 @@ export function ChipShotPlay(props: DailyPlayProps) {
         </div>
       )}
 
-      <Card className="flex flex-col border-[3px] border-black shadow-[var(--mb-shadow-lg)] rounded-2xl bg-[var(--mb-surface-2)] overflow-hidden p-0 gap-0">
-        {/* Header row */}
-        <div className="flex justify-between items-center bg-[var(--mb-surface-3)] p-3.5 border-b-[3px] border-black">
-          <Pill tone="neutral" className="border-2 border-black font-black uppercase text-xs">
-            {t("daily.chipshot.hole_of", { current: String(holeNumber), total: String(totalHoles) })}
-          </Pill>
-          <Pill tone="gold" className="border-2 border-black font-black uppercase text-xs">
-            {t("daily.chipshot.par", { par: String(currentPar) })}
-          </Pill>
-          <Pill tone="accent" className="border-2 border-black font-black uppercase text-xs">
-            {t("daily.chipshot.strokes", { n: String(currentStrokes) })}
-          </Pill>
+      {/* Standalone Aim Control Plate */}
+      <Card className="p-3.5 bg-[var(--mb-surface-2)] rounded-xl border-[3px] border-black shadow-[var(--mb-shadow)] flex flex-col gap-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-black uppercase text-[var(--mb-text-dim)] tracking-wider [font-family:var(--mb-font-display)] flex items-center gap-1.5">
+            <TargetIcon className="w-4 h-4 text-[var(--mb-gold)]" />
+            {t("daily.chipshot.aim")}
+          </span>
+          <span className="text-xs font-black uppercase text-[var(--mb-gold)] tracking-wider [font-family:var(--mb-font-display)] bg-black/40 px-2.5 py-1 rounded-md border border-black">
+            {aimDeg}° ({getAimCompassName(aimDeg)})
+          </span>
         </div>
 
-        {/* Canvas area */}
-        <div className="relative w-full aspect-square bg-[#131b2e] border-b-[3px] border-black">
-          <CourseCanvas
-            hole={currentHole}
-            ball={pub.ball}
-            aimAngle={aim / 100}
-            aimPower={power / 100}
-            shotFrames={pub.lastShot?.frames ?? null}
-            onAnimationComplete={() => setIsAnimating(false)}
-          />
-        </div>
-
-        {/* Controls Panel */}
-        <div className="p-4 flex flex-col gap-4 bg-[var(--mb-surface-2)]">
-          {/* Aim Control Section */}
-          <div className="p-3 bg-[var(--mb-surface-3)] rounded-xl border-2 border-black flex flex-col gap-2.5 shadow-[2px_2px_0_0_#000]">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-black uppercase text-[var(--mb-text-dim)] tracking-wider [font-family:var(--mb-font-display)] flex items-center gap-1.5">
-                🎯 {t("daily.chipshot.aim")}
-              </span>
-              <span className="text-xs font-black uppercase text-[var(--mb-gold)] tracking-wider [font-family:var(--mb-font-display)] bg-black/40 px-2.5 py-1 rounded-md border border-black">
-                {aimDeg}° ({getAimCompassSymbol(aimDeg)})
-              </span>
-            </div>
-
-            {/* Quick Direction Presets */}
-            <div className="grid grid-cols-4 gap-1.5">
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={isButtonDisabled || pub.phase !== "aiming"}
-                onClick={() => setAimDegrees(270)}
-                className="text-[11px] font-black uppercase py-2 min-h-[40px]"
-              >
-                ⬆ UP
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={isButtonDisabled || pub.phase !== "aiming"}
-                onClick={() => setAimDegrees(90)}
-                className="text-[11px] font-black uppercase py-2 min-h-[40px]"
-              >
-                ⬇ DOWN
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={isButtonDisabled || pub.phase !== "aiming"}
-                onClick={() => setAimDegrees(180)}
-                className="text-[11px] font-black uppercase py-2 min-h-[40px]"
-              >
-                ⬅ LEFT
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={isButtonDisabled || pub.phase !== "aiming"}
-                onClick={() => setAimDegrees(0)}
-                className="text-[11px] font-black uppercase py-2 min-h-[40px]"
-              >
-                ➡️ RIGHT
-              </Button>
-            </div>
-
-            {/* Fine Nudge Steppers */}
-            <div className="grid grid-cols-4 gap-1.5">
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={isButtonDisabled || pub.phase !== "aiming"}
-                onClick={() => adjustAim(-15)}
-                className="text-[11px] font-black py-1.5 min-h-[36px]"
-              >
-                ◀◀ -15°
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={isButtonDisabled || pub.phase !== "aiming"}
-                onClick={() => adjustAim(-5)}
-                className="text-[11px] font-black py-1.5 min-h-[36px]"
-              >
-                ◀ -5°
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={isButtonDisabled || pub.phase !== "aiming"}
-                onClick={() => adjustAim(5)}
-                className="text-[11px] font-black py-1.5 min-h-[36px]"
-              >
-                +5° ▶
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={isButtonDisabled || pub.phase !== "aiming"}
-                onClick={() => adjustAim(15)}
-                className="text-[11px] font-black py-1.5 min-h-[36px]"
-              >
-                +15° ▶▶
-              </Button>
-            </div>
-          </div>
-
-          {/* Power Control Section */}
-          <div className="p-3 bg-[var(--mb-surface-3)] rounded-xl border-2 border-black flex flex-col gap-2.5 shadow-[2px_2px_0_0_#000]">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-black uppercase text-[var(--mb-text-dim)] tracking-wider [font-family:var(--mb-font-display)] flex items-center gap-1.5">
-                ⚡ {t("daily.chipshot.power")}
-              </span>
-              <span className="text-xs font-black uppercase text-[var(--mb-accent-2)] tracking-wider [font-family:var(--mb-font-display)] bg-black/40 px-2.5 py-1 rounded-md border border-black">
-                {power}% {power <= 35 ? "(SOFT)" : power <= 70 ? "(MED)" : "(MAX)"}
-              </span>
-            </div>
-
-            {/* Visual Segmented Power Bar Gauge */}
-            <div className="w-full h-4 bg-black/60 rounded-lg border-2 border-black p-0.5 flex gap-1 items-center">
-              {Array.from({ length: 10 }).map((_, i) => {
-                const segPct = (i + 1) * 10;
-                const active = power >= segPct;
-                const colorClass =
-                  i < 4
-                    ? "bg-[var(--mb-accent-2)]"
-                    : i < 7
-                    ? "bg-[var(--mb-gold)]"
-                    : "bg-[var(--mb-danger)]";
-
-                return (
-                  <div
-                    key={i}
-                    className={`flex-1 h-full rounded-xs transition-all border border-black/40 ${
-                      active ? `${colorClass} shadow-[1px_1px_0_0_#000]` : "bg-black/30 opacity-20"
-                    }`}
-                  />
-                );
-              })}
-            </div>
-
-            {/* Power Presets */}
-            <div className="grid grid-cols-4 gap-1.5">
-              <Button
-                size="sm"
-                variant={power === 25 ? "primary" : "ghost"}
-                disabled={isButtonDisabled || pub.phase !== "aiming"}
-                onClick={() => setPowerPercent(25)}
-                className="text-[11px] font-black uppercase py-2 min-h-[40px]"
-              >
-                25%
-              </Button>
-              <Button
-                size="sm"
-                variant={power === 50 ? "primary" : "ghost"}
-                disabled={isButtonDisabled || pub.phase !== "aiming"}
-                onClick={() => setPowerPercent(50)}
-                className="text-[11px] font-black uppercase py-2 min-h-[40px]"
-              >
-                50%
-              </Button>
-              <Button
-                size="sm"
-                variant={power === 75 ? "primary" : "ghost"}
-                disabled={isButtonDisabled || pub.phase !== "aiming"}
-                onClick={() => setPowerPercent(75)}
-                className="text-[11px] font-black uppercase py-2 min-h-[40px]"
-              >
-                75%
-              </Button>
-              <Button
-                size="sm"
-                variant={power === 100 ? "primary" : "ghost"}
-                disabled={isButtonDisabled || pub.phase !== "aiming"}
-                onClick={() => setPowerPercent(100)}
-                className="text-[11px] font-black uppercase py-2 min-h-[40px]"
-              >
-                100%
-              </Button>
-            </div>
-
-            {/* Power Steppers */}
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={isButtonDisabled || pub.phase !== "aiming" || power <= 10}
-                onClick={() => adjustPower(-10)}
-                className="text-[11px] font-black py-1.5 min-h-[36px]"
-              >
-                − 10% POWER
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={isButtonDisabled || pub.phase !== "aiming" || power >= 100}
-                onClick={() => adjustPower(10)}
-                className="text-[11px] font-black py-1.5 min-h-[36px]"
-              >
-                + 10% POWER
-              </Button>
-            </div>
-          </div>
-
+        {/* Streamlined Stepper Nudges */}
+        <div className="grid grid-cols-4 gap-1.5">
           <Button
-            variant="primary"
-            size="lg"
-            block
-            disabled={isButtonDisabled}
-            onClick={onButtonClick}
-            className="border-[3px] border-black shadow-[var(--mb-shadow)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all font-black uppercase active:translate-y-[4px] active:translate-x-[4px] active:shadow-none min-h-[52px] text-base [font-family:var(--mb-font-display)]"
+            size="sm"
+            variant="secondary"
+            disabled={isButtonDisabled || pub.phase !== "aiming"}
+            onClick={() => adjustAim(-15)}
+            className="text-[11px] font-black py-1.5 min-h-[38px] flex items-center justify-center gap-1"
           >
-            {buttonText}
+            <ChevronDoubleLeftIcon className="w-3.5 h-3.5" /> -15°
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={isButtonDisabled || pub.phase !== "aiming"}
+            onClick={() => adjustAim(-5)}
+            className="text-[11px] font-black py-1.5 min-h-[38px] flex items-center justify-center gap-1"
+          >
+            <ChevronLeftIcon className="w-3.5 h-3.5" /> -5°
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={isButtonDisabled || pub.phase !== "aiming"}
+            onClick={() => adjustAim(5)}
+            className="text-[11px] font-black py-1.5 min-h-[38px] flex items-center justify-center gap-1"
+          >
+            +5° <ChevronRightIcon className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={isButtonDisabled || pub.phase !== "aiming"}
+            onClick={() => adjustAim(15)}
+            className="text-[11px] font-black py-1.5 min-h-[38px] flex items-center justify-center gap-1"
+          >
+            +15° <ChevronDoubleRightIcon className="w-3.5 h-3.5" />
           </Button>
         </div>
       </Card>
 
-      {/* Score emoji row */}
+      {/* Standalone Power Control Plate */}
+      <Card className="p-3.5 bg-[var(--mb-surface-2)] rounded-xl border-[3px] border-black shadow-[var(--mb-shadow)] flex flex-col gap-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-black uppercase text-[var(--mb-text-dim)] tracking-wider [font-family:var(--mb-font-display)] flex items-center gap-1.5">
+            <LightningIcon className="w-4 h-4 text-[var(--mb-accent-2)]" />
+            {t("daily.chipshot.power")}
+          </span>
+          <span className="text-xs font-black uppercase text-[var(--mb-accent-2)] tracking-wider [font-family:var(--mb-font-display)] bg-black/40 px-2.5 py-1 rounded-md border border-black">
+            {power}% {power <= 35 ? "(SOFT)" : power <= 70 ? "(MED)" : "(MAX)"}
+          </span>
+        </div>
+
+        {/* Visual Segmented Power Bar Gauge */}
+        <div className="w-full h-4 bg-black/60 rounded-lg border-2 border-black p-0.5 flex gap-1 items-center">
+          {Array.from({ length: 10 }).map((_, i) => {
+            const segPct = (i + 1) * 10;
+            const active = power >= segPct;
+            const colorClass =
+              i < 4
+                ? "bg-[var(--mb-accent-2)]"
+                : i < 7
+                ? "bg-[var(--mb-gold)]"
+                : "bg-[var(--mb-danger)]";
+
+            return (
+              <div
+                key={i}
+                className={`flex-1 h-full rounded-xs transition-all border border-black/40 ${
+                  active ? `${colorClass} shadow-[1px_1px_0_0_#000]` : "bg-black/30 opacity-20"
+                }`}
+              />
+            );
+          })}
+        </div>
+
+        {/* Power Preset Buttons */}
+        <div className="grid grid-cols-4 gap-1.5">
+          <Button
+            size="sm"
+            variant={power === 25 ? "primary" : "ghost"}
+            disabled={isButtonDisabled || pub.phase !== "aiming"}
+            onClick={() => setPowerPercent(25)}
+            className="text-[11px] font-black uppercase py-2 min-h-[38px]"
+          >
+            25%
+          </Button>
+          <Button
+            size="sm"
+            variant={power === 50 ? "primary" : "ghost"}
+            disabled={isButtonDisabled || pub.phase !== "aiming"}
+            onClick={() => setPowerPercent(50)}
+            className="text-[11px] font-black uppercase py-2 min-h-[38px]"
+          >
+            50%
+          </Button>
+          <Button
+            size="sm"
+            variant={power === 75 ? "primary" : "ghost"}
+            disabled={isButtonDisabled || pub.phase !== "aiming"}
+            onClick={() => setPowerPercent(75)}
+            className="text-[11px] font-black uppercase py-2 min-h-[38px]"
+          >
+            75%
+          </Button>
+          <Button
+            size="sm"
+            variant={power === 100 ? "primary" : "ghost"}
+            disabled={isButtonDisabled || pub.phase !== "aiming"}
+            onClick={() => setPowerPercent(100)}
+            className="text-[11px] font-black uppercase py-2 min-h-[38px]"
+          >
+            100%
+          </Button>
+        </div>
+      </Card>
+
+      {/* Primary Action Button */}
+      <Button
+        variant="primary"
+        size="lg"
+        block
+        disabled={isButtonDisabled}
+        onClick={onButtonClick}
+        className="border-[3px] border-black shadow-[var(--mb-shadow-lg)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all font-black uppercase active:translate-y-[4px] active:translate-x-[4px] active:shadow-none min-h-[54px] text-lg [font-family:var(--mb-font-display)]"
+      >
+        {buttonText}
+      </Button>
+
+      {/* Standalone Score History Card (No Emojis!) */}
       {pub.strokes && pub.strokes.length > 0 && (
         <Card className="p-3 border-[3px] border-black shadow-[var(--mb-shadow)] rounded-xl bg-[var(--mb-surface-2)] mt-1">
           <div className="flex gap-2 justify-center flex-wrap" aria-label="Hole scores">
             {pub.strokes.map((strokeCount: number, idx: number) => {
               const par = pub.pars[idx] ?? 3;
-              const emoji = strokeCount <= par - 1 ? "⛳" : strokeCount === par ? "🏌️" : "🔴";
+              const isUnderPar = strokeCount <= par - 1;
+              const isPar = strokeCount === par;
+
               return (
-                <span key={idx} role="img" aria-label={`Hole ${idx + 1}: ${strokeCount} strokes`} className="text-2xl">
-                  {emoji}
-                </span>
+                <div
+                  key={idx}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-black shadow-[2px_2px_0_0_#000] font-black text-xs uppercase [font-family:var(--mb-font-display)] ${
+                    isUnderPar
+                      ? "bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)]"
+                      : isPar
+                      ? "bg-[var(--mb-gold)] text-[var(--mb-on-gold)]"
+                      : "bg-[var(--mb-danger)] text-[var(--mb-on-danger)]"
+                  }`}
+                >
+                  {isUnderPar ? (
+                    <GolfFlagIcon className="w-4 h-4" />
+                  ) : isPar ? (
+                    <GolfBallIcon className="w-4 h-4" />
+                  ) : (
+                    <CloseIcon className="w-4 h-4" />
+                  )}
+                  <span>H{idx + 1}: {strokeCount}</span>
+                </div>
               );
             })}
           </div>

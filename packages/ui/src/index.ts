@@ -48,6 +48,12 @@ export {
   QuestionIcon,
   SearchIcon,
   LightbulbIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ChevronDoubleLeftIcon,
+  ChevronDoubleRightIcon,
+  GolfFlagIcon,
+  GolfBallIcon,
   BackspaceIcon,
   SwapIcon,
 } from "./icons";
