@@ -103,6 +103,15 @@ export function puzzleItems(gameId: string, payload: unknown): string[] {
     return [cityName, ...routeIds, ...candIds].filter(Boolean);
   }
 
+  if (gameId === "chipshot") {
+    // The course is generated from ctx.rng, which the platform keys on
+    // puzzleDate (see packages/games/src/daily/chipshot/logic.ts) — payload.seed
+    // has no effect on the generated geometry. It exists purely as an
+    // authoring/uniqueness token, so it's what we fingerprint on here.
+    const seed = norm(p.seed);
+    return seed ? [seed] : [];
+  }
+
   return [];
 }
 

@@ -9,7 +9,7 @@ export function generatePrompt(puzzleDate: string): string {
     `Generate a Chip Shot daily golf puzzle for ${puzzleDate}.`,
     ``,
     `Provide a JSON payload with these fields:`,
-    `  seed            string   — deterministic seed, recommend "${puzzleDate}-chipshot"`,
+    `  seed            string   — uniqueness token, use "${puzzleDate}-chipshot"`,
     `  holeCount       number   — 1-9 (standard: 3)`,
     `  difficulty      1|2|3    — 1 = easy (few obstacles), 2 = medium, 3 = hard (dense)`,
     `  maxStrokesPerHole number — 3-15 (standard: 8)`,
@@ -24,8 +24,11 @@ export function generatePrompt(puzzleDate: string): string {
     ``,
     `Difficulty guidance:`,
     `  Mon/Tue → 1, Wed/Thu → 2, Fri/Sat/Sun → 3`,
-    `The seed deterministically generates the entire course layout, so`,
-    `different seeds produce different courses with no other input needed.`,
+    `The course itself is generated server-side from puzzleDate, not from this`,
+    `payload — every date's tile layout, obstacles, and tee/cup positions are`,
+    `already unique regardless of what you submit. "seed" isn't a generation`,
+    `input; it's the field the platform fingerprints to refuse a repeat`,
+    `submission, so always embed the date in it exactly as shown above.`,
   ].join("\n");
 }
 

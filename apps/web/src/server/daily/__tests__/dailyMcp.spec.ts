@@ -171,6 +171,10 @@ describe("fingerprint parity between server and MCP", () => {
       },
     },
     { gameId: "relay", payload: { startWord: "candle", endWord: "RIVER" } },
+    {
+      gameId: "chipshot",
+      payload: { seed: "2026-08-03-chipshot", holeCount: 3, difficulty: 2, maxStrokesPerHole: 8 },
+    },
   ];
 
   for (const { gameId, payload } of cases) {

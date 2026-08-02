@@ -306,14 +306,21 @@ function handleShoot(
 
   // Run deterministic physics simulation
   const shotResult = simulateShot(pub.ball.pos, angle, power, currentHole);
-  const newStrokes = pub.currentHoleStrokes + 1;
+
+  // The shot itself always costs a stroke. A water hazard adds the
+  // traditional stroke-and-distance penalty on top of that.
+  let newStrokes = pub.currentHoleStrokes + 1;
+  if (shotResult.outcome === "water") {
+    newStrokes += 1;
+  }
 
   // Determine new phase based on shot outcome
   let newPhase: ChipShotPhase;
   if (shotResult.outcome === "scored") {
     newPhase = "scored";
   } else if (shotResult.outcome === "water") {
-    newPhase = "penalty";
+    // Still subject to the stroke cap — a hole doesn't play forever.
+    newPhase = newStrokes >= sec.maxStrokesPerHole ? "scored" : "penalty";
   } else {
     // Ball stopped — check if max strokes reached
     if (newStrokes >= sec.maxStrokesPerHole) {
