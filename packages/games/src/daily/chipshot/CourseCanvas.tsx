@@ -351,6 +351,10 @@ export function CourseCanvas({
 
   const animatedFramesRef = React.useRef<Vec2[] | null>(null);
 
+  // Synchronously compute active frame index to prevent 1-frame flash of final position
+  const isNewShot = Boolean(shotFrames && animatedFramesRef.current !== shotFrames);
+  const activeFrameIndex = isNewShot ? 0 : currentFrameIndex;
+
   // Resize handling & initial draw
   React.useEffect(() => {
     const canvas = canvasRef.current;
@@ -367,11 +371,11 @@ export function CourseCanvas({
 
     const posToDraw =
       shotFrames && shotFrames.length > 0
-        ? shotFrames[currentFrameIndex] ?? ball.pos
+        ? shotFrames[activeFrameIndex] ?? ball.pos
         : ball.pos;
 
     draw(ctx, posToDraw);
-  }, [draw, ball.pos, shotFrames, currentFrameIndex]);
+  }, [draw, ball.pos, shotFrames, activeFrameIndex]);
 
   // Animation handling
   React.useEffect(() => {

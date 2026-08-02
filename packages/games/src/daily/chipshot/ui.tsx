@@ -182,6 +182,42 @@ export function ChipShotPlay(props: DailyPlayProps) {
     }
   }
 
+  const [copied, setCopied] = React.useState<boolean>(false);
+
+  const handleShareResults = () => {
+    buzz(10);
+    const totalStrokes = pub.strokes.reduce((sum, s) => sum + s, 0);
+    const totalPar = pub.pars.reduce((sum, p) => sum + p, 0);
+    const diff = totalStrokes - totalPar;
+    const diffText =
+      diff < 0
+        ? `${Math.abs(diff)} Under Par`
+        : diff === 0
+        ? "Even Par"
+        : `+${diff} Over Par`;
+
+    const holeInOnes = pub.strokes.filter((s) => s === 1).length;
+    const hioHeader = holeInOnes > 0 ? ` • 🎯 ${holeInOnes} Hole-in-One${holeInOnes > 1 ? "s" : ""}!` : "";
+
+    const perHoleBreakdown = pub.strokes
+      .map((s, idx) => {
+        const par = pub.pars[idx] ?? 3;
+        if (s === 1) return `• Hole ${idx + 1}: ⛳ HOLE IN ONE! (1/${par})`;
+        if (s < par) return `• Hole ${idx + 1}: 🎯 Birdie (${s}/${par})`;
+        if (s === par) return `• Hole ${idx + 1}: 🏌️ Par (${s}/${par})`;
+        return `• Hole ${idx + 1}: ❌ ${s} Strokes (${s}/${par})`;
+      })
+      .join("\n");
+
+    const text = `⛳ Merky Box: Chip Shot Results\n🏆 Total: ${totalStrokes} Strokes (Par ${totalPar}) — ${diffText}${hioHeader}\n\n${perHoleBreakdown}\n\nhttps://the-merkive.vercel.app/daily/chipshot`;
+
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    }
+  };
+
   if (pub.phase === "done") {
     const totalStrokes = pub.strokes.reduce((sum, s) => sum + s, 0);
     const totalPar = pub.pars.reduce((sum, p) => sum + p, 0);
@@ -241,7 +277,9 @@ export function ChipShotPlay(props: DailyPlayProps) {
                 >
                   <span className="text-[10px] opacity-80">HOLE {idx + 1} (PAR {par})</span>
                   <div className="flex items-center gap-1 my-0.5">
-                    {isUnderPar ? (
+                    {strokeCount === 1 ? (
+                      <span className="text-[11px] font-black">⛳ HIO!</span>
+                    ) : isUnderPar ? (
                       <GolfFlagIcon className="w-4 h-4" />
                     ) : isPar ? (
                       <GolfBallIcon className="w-4 h-4" />
@@ -255,6 +293,17 @@ export function ChipShotPlay(props: DailyPlayProps) {
             })}
           </div>
         </Card>
+
+        {/* Share Results Button */}
+        <Button
+          variant="primary"
+          size="lg"
+          block
+          onClick={handleShareResults}
+          className="border-[3px] border-black shadow-[var(--mb-shadow-lg)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all font-black uppercase active:translate-y-[4px] active:translate-x-[4px] active:shadow-none min-h-[52px] text-base [font-family:var(--mb-font-display)] flex items-center justify-center gap-2"
+        >
+          {copied ? "COPIED TO CLIPBOARD!" : "SHARE RESULTS"}
+        </Button>
       </div>
     );
   }
