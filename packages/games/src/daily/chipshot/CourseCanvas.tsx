@@ -236,13 +236,12 @@ export function CourseCanvas({
       ctx.arc(ballPos.x - 2, ballPos.y - 2, 2, 0, Math.PI * 2);
       ctx.fill();
 
-      // Draw aim arrow & power vector overlay
+      // Draw aim trajectory line (extends based on power, no landing ball)
       if (aimAngle !== null) {
-        const lineLen = 30 + aimPower * 110;
+        const lineLen = 30 + aimPower * 140;
         const endX = ballPos.x + Math.cos(aimAngle) * lineLen;
         const endY = ballPos.y + Math.sin(aimAngle) * lineLen;
 
-        // Dotted trajectory line
         ctx.strokeStyle = "#ffc53d";
         ctx.lineWidth = 3.5;
         ctx.setLineDash([6, 4]);
@@ -251,21 +250,56 @@ export function CourseCanvas({
         ctx.lineTo(endX, endY);
         ctx.stroke();
         ctx.setLineDash([]);
-
-        // Landing power ring & crosshair
-        ctx.strokeStyle = "#ffc53d";
-        ctx.fillStyle = "rgba(255, 197, 61, 0.35)";
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        ctx.arc(endX, endY, 6 + aimPower * 5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.fillStyle = "#ffc53d";
-        ctx.beginPath();
-        ctx.arc(endX, endY, 3, 0, Math.PI * 2);
-        ctx.fill();
       }
+
+      // Draw Side Canvas Vertical Power HUD Gauge
+      const hudX = CANVAS_SIZE - 28;
+      const hudY = 30;
+      const hudW = 16;
+      const hudH = CANVAS_SIZE - 60;
+
+      // HUD Track Outer Card Container
+      ctx.fillStyle = "rgba(11, 19, 38, 0.88)";
+      ctx.strokeStyle = "#000000";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      if (typeof ctx.roundRect === "function") {
+        ctx.roundRect(hudX - 5, hudY - 22, hudW + 10, hudH + 28, 6);
+      } else {
+        ctx.rect(hudX - 5, hudY - 22, hudW + 10, hudH + 28);
+      }
+      ctx.fill();
+      ctx.stroke();
+
+      // Power readout label header
+      ctx.fillStyle = "#ffc53d";
+      ctx.font = "900 10px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(`${Math.round(aimPower * 100)}%`, hudX + hudW / 2, hudY - 8);
+
+      // HUD Track Inner Slot
+      ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+      ctx.strokeStyle = "#000000";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.rect(hudX, hudY, hudW, hudH);
+      ctx.fill();
+      ctx.stroke();
+
+      // Vertical Power Gauge Fill Bar (fills bottom-up)
+      const fillH = Math.max(2, hudH * aimPower);
+      const fillY = hudY + hudH - fillH;
+
+      const grad = ctx.createLinearGradient(0, hudY + hudH, 0, hudY);
+      grad.addColorStop(0, "#4ae176");
+      grad.addColorStop(0.55, "#ffc53d");
+      grad.addColorStop(1, "#ff5d5d");
+
+      ctx.fillStyle = grad;
+      ctx.strokeStyle = "#000000";
+      ctx.lineWidth = 1;
+      ctx.fillRect(hudX, fillY, hudW, fillH);
+      ctx.strokeRect(hudX, fillY, hudW, fillH);
     },
     [hole, aimAngle, aimPower]
   );

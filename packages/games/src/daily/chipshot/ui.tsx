@@ -283,30 +283,7 @@ export function ChipShotPlay(props: DailyPlayProps) {
           </span>
         </div>
 
-        {/* Visual Segmented Power Bar Gauge */}
-        <div className="w-full h-4 bg-black/60 rounded-lg border-2 border-black p-0.5 flex gap-1 items-center">
-          {Array.from({ length: 10 }).map((_, i) => {
-            const segPct = (i + 1) * 10;
-            const active = power >= segPct;
-            const colorClass =
-              i < 4
-                ? "bg-[var(--mb-accent-2)]"
-                : i < 7
-                ? "bg-[var(--mb-gold)]"
-                : "bg-[var(--mb-danger)]";
-
-            return (
-              <div
-                key={i}
-                className={`flex-1 h-full rounded-xs transition-all border border-black/40 ${
-                  active ? `${colorClass} shadow-[1px_1px_0_0_#000]` : "bg-black/30 opacity-20"
-                }`}
-              />
-            );
-          })}
-        </div>
-
-        {/* Power Preset Buttons */}
+        {/* Power Presets */}
         <div className="grid grid-cols-4 gap-1.5">
           <Button
             size="sm"
@@ -343,6 +320,46 @@ export function ChipShotPlay(props: DailyPlayProps) {
             className="text-[11px] font-black uppercase py-2 min-h-[38px]"
           >
             100%
+          </Button>
+        </div>
+
+        {/* Granular Mobile Power Steppers */}
+        <div className="grid grid-cols-4 gap-1.5">
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={isButtonDisabled || pub.phase !== "aiming" || power <= 10}
+            onClick={() => adjustPower(-5)}
+            className="text-[11px] font-black py-1.5 min-h-[38px] flex items-center justify-center gap-1"
+          >
+            <ChevronDoubleLeftIcon className="w-3.5 h-3.5" /> -5%
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={isButtonDisabled || pub.phase !== "aiming" || power <= 10}
+            onClick={() => adjustPower(-1)}
+            className="text-[11px] font-black py-1.5 min-h-[38px] flex items-center justify-center gap-1"
+          >
+            <ChevronLeftIcon className="w-3.5 h-3.5" /> -1%
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={isButtonDisabled || pub.phase !== "aiming" || power >= 100}
+            onClick={() => adjustPower(1)}
+            className="text-[11px] font-black py-1.5 min-h-[38px] flex items-center justify-center gap-1"
+          >
+            +1% <ChevronRightIcon className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={isButtonDisabled || pub.phase !== "aiming" || power >= 100}
+            onClick={() => adjustPower(5)}
+            className="text-[11px] font-black py-1.5 min-h-[38px] flex items-center justify-center gap-1"
+          >
+            +5% <ChevronDoubleRightIcon className="w-3.5 h-3.5" />
           </Button>
         </div>
       </Card>
