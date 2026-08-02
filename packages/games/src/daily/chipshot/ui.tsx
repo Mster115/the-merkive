@@ -49,6 +49,17 @@ export function ChipShotPlay(props: DailyPlayProps) {
     setIsAnimating(false);
   }, []);
 
+  // Auto-aim towards target cup whenever phase becomes aiming or ball settles at new position
+  React.useEffect(() => {
+    if (currentHole && pub.phase === "aiming" && !isAnimating) {
+      const dx = currentHole.cup.x - pub.ball.pos.x;
+      const dy = currentHole.cup.y - pub.ball.pos.y;
+      let targetRad = Math.atan2(dy, dx);
+      if (targetRad < 0) targetRad += Math.PI * 2;
+      setAim(Math.round(targetRad * 100));
+    }
+  }, [currentHole, pub.ball.pos.x, pub.ball.pos.y, pub.phase, isAnimating]);
+
   const handleShoot = async () => {
     buzz(10);
     setPending(true);

@@ -260,55 +260,86 @@ export function CourseCanvas({
         ctx.setLineDash([]);
       }
 
-      // Draw Side Canvas Vertical Power HUD Gauge (ONLY when actively aiming)
+      // Draw Side Canvas Slanted Neo-Brutalist Power HUD Gauge (ONLY when actively aiming)
       if (isAiming) {
-        const hudX = CANVAS_SIZE - 28;
-        const hudY = 30;
-        const hudW = 16;
-        const hudH = CANVAS_SIZE - 60;
+        const hudX = CANVAS_SIZE - 32;
+        const hudY = 32;
+        const hudW = 20;
+        const hudH = CANVAS_SIZE - 64;
+        const numSegments = 10;
+        const gap = 3;
+        const segH = (hudH - (numSegments - 1) * gap) / numSegments;
+        const pwrPercent = Math.round(aimPower * 100);
 
-        // HUD Track Outer Card Container
-        ctx.fillStyle = "rgba(11, 19, 38, 0.88)";
+        // HUD Outer Neo-Brutalist Frame
+        ctx.fillStyle = "rgba(11, 19, 38, 0.92)";
         ctx.strokeStyle = "#000000";
         ctx.lineWidth = 2.5;
         ctx.beginPath();
         if (typeof ctx.roundRect === "function") {
-          ctx.roundRect(hudX - 5, hudY - 22, hudW + 10, hudH + 28, 6);
+          ctx.roundRect(hudX - 6, hudY - 24, hudW + 12, hudH + 32, 8);
         } else {
-          ctx.rect(hudX - 5, hudY - 22, hudW + 10, hudH + 28);
+          ctx.rect(hudX - 6, hudY - 24, hudW + 12, hudH + 32);
         }
         ctx.fill();
         ctx.stroke();
 
-        // Power readout label header
+        // Power Readout Label Badge
         ctx.fillStyle = "#ffc53d";
         ctx.font = "900 10px sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText(`${Math.round(aimPower * 100)}%`, hudX + hudW / 2, hudY - 8);
+        ctx.fillText(`${pwrPercent}%`, hudX + hudW / 2, hudY - 9);
 
-        // HUD Track Inner Slot
-        ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
-        ctx.strokeStyle = "#000000";
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.rect(hudX, hudY, hudW, hudH);
-        ctx.fill();
-        ctx.stroke();
+        // Draw 10 Slanted Neo-Brutalist Bar Segments (Bottom to Top)
+        const slant = 4; // Slant offset px
+        for (let i = 0; i < numSegments; i++) {
+          const segPct = (i + 1) * 10;
+          const active = pwrPercent >= segPct;
+          const segY = hudY + hudH - (i + 1) * segH - i * gap;
 
-        // Vertical Power Gauge Fill Bar (fills bottom-up)
-        const fillH = Math.max(2, hudH * aimPower);
-        const fillY = hudY + hudH - fillH;
+          const segColor =
+            i < 4 ? "#4ae176" : i < 7 ? "#ffc53d" : "#ff5d5d";
 
-        const grad = ctx.createLinearGradient(0, hudY + hudH, 0, hudY);
-        grad.addColorStop(0, "#4ae176");
-        grad.addColorStop(0.55, "#ffc53d");
-        grad.addColorStop(1, "#ff5d5d");
+          // Slanted Parallelogram Path
+          ctx.beginPath();
+          ctx.moveTo(hudX + slant, segY);
+          ctx.lineTo(hudX + hudW, segY);
+          ctx.lineTo(hudX + hudW - slant, segY + segH);
+          ctx.lineTo(hudX, segY + segH);
+          ctx.closePath();
 
-        ctx.fillStyle = grad;
-        ctx.strokeStyle = "#000000";
-        ctx.lineWidth = 1;
-        ctx.fillRect(hudX, fillY, hudW, fillH);
-        ctx.strokeRect(hudX, fillY, hudW, fillH);
+          if (active) {
+            // Draw active slanted bar segment with slab shadow
+            ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
+            ctx.beginPath();
+            ctx.moveTo(hudX + slant + 1.5, segY + 1.5);
+            ctx.lineTo(hudX + hudW + 1.5, segY + 1.5);
+            ctx.lineTo(hudX + hudW - slant + 1.5, segY + segH + 1.5);
+            ctx.lineTo(hudX + 1.5, segY + segH + 1.5);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = segColor;
+            ctx.beginPath();
+            ctx.moveTo(hudX + slant, segY);
+            ctx.lineTo(hudX + hudW, segY);
+            ctx.lineTo(hudX + hudW - slant, segY + segH);
+            ctx.lineTo(hudX, segY + segH);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.strokeStyle = "#000000";
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          } else {
+            // Inactive segment
+            ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
+            ctx.fill();
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+        }
       }
     },
     [hole, aimAngle, aimPower, isAiming]
