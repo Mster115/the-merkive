@@ -17,6 +17,7 @@ import {
   GolfFlagIcon,
   GolfBallIcon,
   CloseIcon,
+  ConfettiBurst,
 } from "@merky/ui";
 import { CourseCanvas } from "./CourseCanvas";
 
@@ -144,6 +145,7 @@ export function ChipShotPlay(props: DailyPlayProps) {
 
   let feedbackMsg: string | null = null;
   let feedbackClasses = "";
+  const isScored = !isAnimating && pub.phase === "scored";
 
   // Only reveal outcome feedback banner AFTER animation finishes
   if (!isAnimating) {
@@ -168,8 +170,15 @@ export function ChipShotPlay(props: DailyPlayProps) {
     return <div className="text-[var(--mb-text)] font-bold p-4">No course data available.</div>;
   }
 
+  const isAimingState = pub.phase === "aiming" && !isAnimating;
+
   return (
     <div className="flex flex-col w-full gap-3.5 select-none">
+      {/* Confetti celebration for scored hole */}
+      {isScored && (
+        <ConfettiBurst key={`confetti-${pub.holeIndex}-${currentStrokes}`} count={240} />
+      )}
+
       {/* Accessibility live region for phase announcements */}
       <div className="sr-only" aria-live="polite">
         {t(`daily.chipshot.phase_${pub.phase}`)}
@@ -205,6 +214,7 @@ export function ChipShotPlay(props: DailyPlayProps) {
           aimAngle={aim / 100}
           aimPower={power / 100}
           shotFrames={pub.lastShot?.frames ?? null}
+          isAiming={isAimingState}
           onAnimationComplete={handleAnimationComplete}
         />
       </Card>
@@ -218,17 +228,19 @@ export function ChipShotPlay(props: DailyPlayProps) {
         </div>
       )}
 
-      {/* Standalone Aim Control Plate */}
-      <Card className="p-3.5 bg-[var(--mb-surface-2)] rounded-xl border-[3px] border-black shadow-[var(--mb-shadow)] flex flex-col gap-2.5">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-black uppercase text-[var(--mb-text-dim)] tracking-wider [font-family:var(--mb-font-display)] flex items-center gap-1.5">
-            <TargetIcon className="w-4 h-4 text-[var(--mb-gold)]" />
-            {t("daily.chipshot.aim")}
-          </span>
-          <span className="text-xs font-black uppercase text-[var(--mb-gold)] tracking-wider [font-family:var(--mb-font-display)] bg-black/40 px-2.5 py-1 rounded-md border border-black">
-            {aimDeg}° ({getAimCompassName(aimDeg)})
-          </span>
-        </div>
+      {/* Standalone Aim & Power Control Plates (ONLY rendered during active aiming) */}
+      {isAimingState && (
+        <>
+          <Card className="p-3.5 bg-[var(--mb-surface-2)] rounded-xl border-[3px] border-black shadow-[var(--mb-shadow)] flex flex-col gap-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-black uppercase text-[var(--mb-text-dim)] tracking-wider [font-family:var(--mb-font-display)] flex items-center gap-1.5">
+                <TargetIcon className="w-4 h-4 text-[var(--mb-gold)]" />
+                {t("daily.chipshot.aim")}
+              </span>
+              <span className="text-xs font-black uppercase text-[var(--mb-gold)] tracking-wider [font-family:var(--mb-font-display)] bg-black/40 px-2.5 py-1 rounded-md border border-black">
+                {aimDeg}° ({getAimCompassName(aimDeg)})
+              </span>
+            </div>
 
         {/* Streamlined Stepper Nudges */}
         <div className="grid grid-cols-4 gap-1.5">
@@ -363,6 +375,8 @@ export function ChipShotPlay(props: DailyPlayProps) {
           </Button>
         </div>
       </Card>
+        </>
+      )}
 
       {/* Primary Action Button */}
       <Button
