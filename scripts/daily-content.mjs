@@ -44,7 +44,7 @@ import process from "node:process";
 import { requireSecret, resolveSecret, SETUP_HINT, KEYCHAIN_SERVICE } from "./secret.mjs";
 
 const BASE_URL = (process.env.MERKY_BASE_URL ?? "https://the-merkive.vercel.app").replace(/\/$/, "");
-const GAMES = ["nexus", "nutshell", "relay", "waypoint", "detour"];
+const GAMES = ["nexus", "nutshell", "relay", "waypoint", "detour", "chipshot"];
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 // --- date helpers -----------------------------------------------------------

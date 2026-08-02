@@ -48,7 +48,7 @@ import { requireSecret } from "../secret.mjs";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const BASE_URL = (process.env.MERKY_BASE_URL ?? "https://the-merkive.vercel.app").replace(/\/$/, "");
 const LEDGER_PATH = process.env.MERKY_LEDGER ?? join(HERE, ".daily-ledger.json");
-const GAMES = ["nexus", "nutshell", "relay", "waypoint", "detour"];
+const GAMES = ["nexus", "nutshell", "relay", "waypoint", "detour", "chipshot"];
 
 // --- word list + solver, loaded from the game package -----------------------
 

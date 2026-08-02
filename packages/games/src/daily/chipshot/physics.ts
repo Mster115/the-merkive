@@ -58,6 +58,29 @@ function closestPointOnSegment(p: Vec2, a: Vec2, b: Vec2): Vec2 {
   return vec2Add(a, vec2Scale(ab, t));
 }
 
+/** Calculate true perpendicular normal vector of line segment AB pointing towards ballPos. */
+export function wallNormal(p1: Vec2, p2: Vec2, ballPos: Vec2): Vec2 {
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  if (len === 0) return { x: 0, y: 1 };
+
+  let nx = -dy / len;
+  let ny = dx / len;
+
+  const midX = (p1.x + p2.x) / 2;
+  const midY = (p1.y + p2.y) / 2;
+  const toBallX = ballPos.x - midX;
+  const toBallY = ballPos.y - midY;
+
+  if (nx * toBallX + ny * toBallY < 0) {
+    nx = -nx;
+    ny = -ny;
+  }
+
+  return { x: nx, y: ny };
+}
+
 /** Reflect velocity off a wall segment. Returns new velocity or null if no collision. */
 export function wallCollision(
   pos: Vec2,
@@ -73,13 +96,15 @@ export function wallCollision(
   const diff = vec2Sub(pos, closest);
   const dist = vec2Length(diff);
 
-  // Check if ball is hitting the wall
-  if (dist < ballRadius && vec2Dot(vel, diff) < 0) {
-    const normal = dist === 0 ? { x: 0, y: 1 } : vec2Scale(diff, 1 / dist);
+  if (dist < ballRadius) {
+    const normal = wallNormal(p1, p2, pos);
     const dot = vec2Dot(vel, normal);
-    const newVel = vec2Sub(vel, vec2Scale(normal, 2 * dot));
-    const newPos = vec2Add(closest, vec2Scale(normal, ballRadius));
-    return { pos: newPos, vel: vec2Scale(newVel, WALL_DAMPEN) };
+
+    if (dot < 0) {
+      const newVel = vec2Sub(vel, vec2Scale(normal, 2 * dot));
+      const newPos = vec2Add(closest, vec2Scale(normal, ballRadius + 0.5));
+      return { pos: newPos, vel: vec2Scale(newVel, WALL_DAMPEN) };
+    }
   }
   return null;
 }
@@ -97,12 +122,15 @@ export function bumperCollision(
   const dist = vec2Length(diff);
   const minDist = bumperRadius + ballRadius;
 
-  if (dist < minDist && vec2Dot(vel, diff) < 0) {
+  if (dist < minDist) {
     const normal = dist === 0 ? { x: 0, y: 1 } : vec2Scale(diff, 1 / dist);
     const dot = vec2Dot(vel, normal);
-    const newVel = vec2Sub(vel, vec2Scale(normal, 2 * dot));
-    const newPos = vec2Add(bumperCenter, vec2Scale(normal, minDist));
-    return { pos: newPos, vel: vec2Scale(newVel, bounceFactor) };
+
+    if (dot < 0) {
+      const newVel = vec2Sub(vel, vec2Scale(normal, 2 * dot));
+      const newPos = vec2Add(bumperCenter, vec2Scale(normal, minDist + 0.5));
+      return { pos: newPos, vel: vec2Scale(newVel, bounceFactor) };
+    }
   }
   return null;
 }
@@ -123,7 +151,7 @@ export function pointInPolygon(point: Vec2, polygon: Vec2[]): boolean {
   return inside;
 }
 
-/** Simulate an entire shot to completion. Pure + deterministic. */
+/** Simulate an entire shot to completion with sub-stepping for smooth physics. */
 export function simulateShot(
   startPos: Vec2,
   angle: number,
@@ -153,80 +181,86 @@ export function simulateShot(
     }
   }
 
+  const SUB_STEPS = 4;
+  const SUB_DT = (DT * 60) / SUB_STEPS;
+  const SUB_FRICTION = Math.pow(FRICTION, 1 / SUB_STEPS);
+
   for (let tick = 0; tick < MAX_TICKS; tick++) {
-    // a. Apply velocity to position
-    pos = vec2Add(pos, vec2Scale(vel, DT * 60));
+    for (let sub = 0; sub < SUB_STEPS; sub++) {
+      // a. Apply velocity to position
+      pos = vec2Add(pos, vec2Scale(vel, SUB_DT));
 
-    // b. Apply friction
-    vel = vec2Scale(vel, FRICTION);
+      // b. Apply friction
+      vel = vec2Scale(vel, SUB_FRICTION);
 
-    // c. Check wall collisions
-    for (const wall of allWalls) {
-      const result = wallCollision(pos, vel, wall, BALL_RADIUS);
-      if (result) {
-        pos = result.pos;
-        vel = result.vel;
-      }
-    }
-
-    // d. Check bumper collisions
-    for (const bumper of bumpers) {
-      const result = bumperCollision(
-        pos,
-        vel,
-        bumper.center,
-        bumper.radius,
-        bumper.bounce,
-        BALL_RADIUS
-      );
-      if (result) {
-        pos = result.pos;
-        vel = result.vel;
-      }
-    }
-
-    // e, f. Check zone collisions
-    for (const zone of zones) {
-      if (pointInPolygon(pos, zone.points)) {
-        if (zone.kind === "sand") {
-          vel = vec2Scale(vel, SAND_FRICTION);
-        } else if (zone.kind === "water") {
-          frames.push({ ...pos });
-          return {
-            outcome: "water",
-            finalPos: { ...pos },
-            frames,
-          };
+      // c. Check wall collisions
+      for (const wall of allWalls) {
+        const result = wallCollision(pos, vel, wall, BALL_RADIUS);
+        if (result) {
+          pos = result.pos;
+          vel = result.vel;
         }
       }
+
+      // d. Check bumper collisions
+      for (const bumper of bumpers) {
+        const result = bumperCollision(
+          pos,
+          vel,
+          bumper.center,
+          bumper.radius,
+          bumper.bounce,
+          BALL_RADIUS
+        );
+        if (result) {
+          pos = result.pos;
+          vel = result.vel;
+        }
+      }
+
+      // e, f. Check zone collisions
+      for (const zone of zones) {
+        if (pointInPolygon(pos, zone.points)) {
+          if (zone.kind === "sand") {
+            vel = vec2Scale(vel, Math.pow(SAND_FRICTION, 1 / SUB_STEPS));
+          } else if (zone.kind === "water") {
+            frames.push({ ...pos });
+            return {
+              outcome: "water",
+              finalPos: { ...pos },
+              frames,
+            };
+          }
+        }
+      }
+
+      // g. Check cup
+      const cupDiff = vec2Sub(pos, hole.cup);
+      const cupDist = vec2Length(cupDiff);
+      const speed = vec2Length(vel);
+
+      if (cupDist < hole.cupRadius && speed < CUP_SPEED_THRESHOLD) {
+        frames.push({ ...pos });
+        return {
+          outcome: "scored",
+          finalPos: { ...pos },
+          frames,
+        };
+      }
     }
 
-    // g. Check cup
-    const cupDiff = vec2Sub(pos, hole.cup);
-    const cupDist = vec2Length(cupDiff);
+    // Record frame after sub-steps
+    frames.push({ ...pos });
+
     const speed = vec2Length(vel);
-
-    if (cupDist < hole.cupRadius && speed < CUP_SPEED_THRESHOLD) {
-      frames.push({ ...pos });
-      return {
-        outcome: "scored",
-        finalPos: { ...pos },
-        frames,
-      };
-    }
-
     // h. Check stop
     if (speed < MIN_SPEED) {
-      frames.push({ ...pos });
       return {
         outcome: "stopped",
         finalPos: { ...pos },
         frames,
       };
     }
-
-    // Record frame
-    frames.push({ ...pos });
   }
 
   // Max ticks reached

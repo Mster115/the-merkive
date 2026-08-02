@@ -136,24 +136,41 @@ export function CourseCanvas({
       ctx.fill();
       ctx.stroke();
 
-      // Draw aim arrow
-      if (aimAngle !== null && shotFrames === null) {
-        const arrowLength = 20 + aimPower * 60;
-        const endX = ballPos.x + Math.cos(aimAngle) * arrowLength;
-        const endY = ballPos.y + Math.sin(aimAngle) * arrowLength;
+      // Draw aim arrow & power vector overlay
+      if (aimAngle !== null) {
+        const lineLen = 30 + aimPower * 110;
+        const endX = ballPos.x + Math.cos(aimAngle) * lineLen;
+        const endY = ballPos.y + Math.sin(aimAngle) * lineLen;
 
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
-        ctx.lineWidth = 2;
-        ctx.setLineDash([4, 4]);
+        // Dotted trajectory line
+        ctx.strokeStyle = "#ffc53d";
+        ctx.lineWidth = 3;
+        ctx.setLineDash([5, 5]);
         ctx.beginPath();
         ctx.moveTo(ballPos.x, ballPos.y);
         ctx.lineTo(endX, endY);
         ctx.stroke();
         ctx.setLineDash([]);
+
+        // Landing power ring & crosshair
+        ctx.strokeStyle = "#ffc53d";
+        ctx.fillStyle = "rgba(255, 197, 61, 0.35)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(endX, endY, 6 + aimPower * 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = "#ffc53d";
+        ctx.beginPath();
+        ctx.arc(endX, endY, 2.5, 0, Math.PI * 2);
+        ctx.fill();
       }
     },
-    [hole, aimAngle, aimPower, shotFrames]
+    [hole, aimAngle, aimPower]
   );
+
+  const lastAnimatedFramesRef = React.useRef<Vec2[] | null>(null);
 
   // Resize handling & initial draw
   React.useEffect(() => {
@@ -181,8 +198,15 @@ export function CourseCanvas({
   React.useEffect(() => {
     if (!shotFrames || shotFrames.length === 0) {
       setCurrentFrameIndex(0);
+      lastAnimatedFramesRef.current = null;
       return;
     }
+
+    if (lastAnimatedFramesRef.current === shotFrames) {
+      return;
+    }
+
+    lastAnimatedFramesRef.current = shotFrames;
 
     if (isReducedMotion.current) {
       setCurrentFrameIndex(shotFrames.length - 1);
