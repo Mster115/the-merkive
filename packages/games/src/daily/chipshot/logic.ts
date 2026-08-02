@@ -446,16 +446,6 @@ export function summarize(
   const totalPar = pub.pars.reduce((sum, p) => sum + p, 0);
   const diff = totalStrokes - totalPar;
 
-  // Emoji per hole: ⛳ = birdie or better, 🏌️ = par, 🔴 = bogey+
-  const emojiRow = pub.strokes
-    .map((strokes, i) => {
-      const par = pub.pars[i] ?? 3;
-      if (strokes <= par - 1) return "⛳";
-      if (strokes === par) return "🏌️";
-      return "🔴";
-    })
-    .join(" ");
-
   let diffText: string;
   if (diff < 0) {
     diffText = `${Math.abs(diff)} under par`;
@@ -465,9 +455,27 @@ export function summarize(
     diffText = "even par";
   }
 
+  // Hole-in-ones count & badge
+  const holeInOnes = pub.strokes.filter((s) => s === 1).length;
+  const hioBadge =
+    holeInOnes > 0
+      ? ` • 🎯 ${holeInOnes} Hole-in-One${holeInOnes > 1 ? "s" : ""}!`
+      : "";
+
+  // Detailed per-hole breakdown lines
+  const holeDetails = pub.strokes
+    .map((strokes, i) => {
+      const par = pub.pars[i] ?? 3;
+      if (strokes === 1) return `• Hole ${i + 1}: ⛳ HOLE IN ONE! (1/${par})`;
+      if (strokes < par) return `• Hole ${i + 1}: 🎯 Birdie (${strokes}/${par})`;
+      if (strokes === par) return `• Hole ${i + 1}: 🏌️ Par (${strokes}/${par})`;
+      return `• Hole ${i + 1}: 🔴 ${strokes} strokes (${strokes}/${par})`;
+    })
+    .join("\n");
+
   const shareText = isDone
-    ? `Chip Shot · ${emojiRow}\n${totalStrokes} strokes · ${diffText}`
-    : `Chip Shot · in progress`;
+    ? `Chip Shot • ${totalStrokes} strokes (${diffText})${hioBadge}\n${holeDetails}`
+    : `Chip Shot • in progress`;
 
   return {
     status: isDone ? "solved" : "in_progress",
@@ -478,6 +486,8 @@ export function summarize(
       extra: {
         holes: pub.holes.length,
         par: totalPar,
+        holeInOnes,
+        strokes: pub.strokes.join(","),
       },
     },
   };
