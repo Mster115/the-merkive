@@ -290,42 +290,40 @@ export function CourseCanvas({
         ctx.textAlign = "center";
         ctx.fillText(`${pwrPercent}%`, hudX + hudW / 2, hudY - 9);
 
-        // Draw 10 Slanted Neo-Brutalist Bar Segments (Bottom to Top)
-        const slant = 4; // Slant offset px
+        // Draw 10 Alternating Slanted Neo-Brutalist Zigzag Bar Segments (Bottom to Top)
+        const slant = 4.5; // Slant offset px
         for (let i = 0; i < numSegments; i++) {
           const segPct = (i + 1) * 10;
           const active = pwrPercent >= segPct;
           const segY = hudY + hudH - (i + 1) * segH - i * gap;
+          const isEven = i % 2 === 0;
 
           const segColor =
             i < 4 ? "#4ae176" : i < 7 ? "#ffc53d" : "#ff5d5d";
 
-          // Slanted Parallelogram Path
-          ctx.beginPath();
-          ctx.moveTo(hudX + slant, segY);
-          ctx.lineTo(hudX + hudW, segY);
-          ctx.lineTo(hudX + hudW - slant, segY + segH);
-          ctx.lineTo(hudX, segY + segH);
-          ctx.closePath();
+          // Calculate polygon corners based on alternating slant direction
+          const xTopLeft = isEven ? hudX + slant : hudX;
+          const xTopRight = isEven ? hudX + hudW : hudX + hudW - slant;
+          const xBotRight = isEven ? hudX + hudW - slant : hudX + hudW;
+          const xBotLeft = isEven ? hudX : hudX + slant;
+
+          const drawPoly = (c: CanvasRenderingContext2D, offsetX = 0, offsetY = 0) => {
+            c.beginPath();
+            c.moveTo(xTopLeft + offsetX, segY + offsetY);
+            c.lineTo(xTopRight + offsetX, segY + offsetY);
+            c.lineTo(xBotRight + offsetX, segY + segH + offsetY);
+            c.lineTo(xBotLeft + offsetX, segY + segH + offsetY);
+            c.closePath();
+          };
 
           if (active) {
             // Draw active slanted bar segment with slab shadow
             ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
-            ctx.beginPath();
-            ctx.moveTo(hudX + slant + 1.5, segY + 1.5);
-            ctx.lineTo(hudX + hudW + 1.5, segY + 1.5);
-            ctx.lineTo(hudX + hudW - slant + 1.5, segY + segH + 1.5);
-            ctx.lineTo(hudX + 1.5, segY + segH + 1.5);
-            ctx.closePath();
+            drawPoly(ctx, 1.5, 1.5);
             ctx.fill();
 
             ctx.fillStyle = segColor;
-            ctx.beginPath();
-            ctx.moveTo(hudX + slant, segY);
-            ctx.lineTo(hudX + hudW, segY);
-            ctx.lineTo(hudX + hudW - slant, segY + segH);
-            ctx.lineTo(hudX, segY + segH);
-            ctx.closePath();
+            drawPoly(ctx);
             ctx.fill();
 
             ctx.strokeStyle = "#000000";
@@ -334,6 +332,7 @@ export function CourseCanvas({
           } else {
             // Inactive segment
             ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
+            drawPoly(ctx);
             ctx.fill();
             ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
             ctx.lineWidth = 1;

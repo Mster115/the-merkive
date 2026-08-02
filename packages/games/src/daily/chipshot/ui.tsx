@@ -318,14 +318,14 @@ export function ChipShotPlay(props: DailyPlayProps) {
           </div>
         )}
 
-        {/* Floating Bottom-Right On-Canvas Action CTA */}
-        <div className="absolute bottom-3 right-3 z-20">
+        {/* Floating Bottom-Left On-Canvas Action CTA */}
+        <div className="absolute bottom-3 left-3 z-20">
           <Button
             variant="primary"
-            size="md"
+            size="sm"
             disabled={isButtonDisabled}
             onClick={onButtonClick}
-            className="border-[3px] border-black shadow-[var(--mb-shadow-lg)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all font-black uppercase active:translate-y-[4px] active:translate-x-[4px] active:shadow-none px-5 py-2.5 text-base min-h-[48px] rounded-xl [font-family:var(--mb-font-display)] flex items-center gap-2"
+            className="border-[2.5px] border-black shadow-[var(--mb-shadow)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all font-black uppercase active:translate-y-[3px] active:translate-x-[3px] active:shadow-none px-4 py-2 text-sm min-h-[42px] rounded-xl [font-family:var(--mb-font-display)] flex items-center gap-1.5"
           >
             {buttonText}
           </Button>
