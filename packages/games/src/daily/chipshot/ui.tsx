@@ -92,6 +92,27 @@ export function ChipShotPlay(props: DailyPlayProps) {
   const currentPar = pub.pars[pub.holeIndex] ?? 3;
   const currentStrokes = pub.currentHoleStrokes;
 
+  // Visible feedback for the moment a shot just resolved — the sr-only phase
+  // region below covers screen readers, this covers sighted players.
+  let feedbackMsg: string | null = null;
+  let feedbackClasses = "";
+  if (pub.phase === "penalty") {
+    feedbackMsg = t("daily.chipshot.water_hazard");
+    feedbackClasses = "bg-blue-100 text-blue-900";
+  } else if (pub.phase === "scored" && pub.lastShot) {
+    if (pub.lastShot.outcome === "scored") {
+      feedbackMsg =
+        currentStrokes === 1
+          ? t("daily.chipshot.hole_in_one")
+          : t("daily.chipshot.nice_shot");
+      feedbackClasses = "bg-green-100 text-green-900";
+    } else {
+      // Ball is still on the course — the hole ended because strokes ran out.
+      feedbackMsg = t("daily.chipshot.max_strokes");
+      feedbackClasses = "bg-amber-100 text-amber-900";
+    }
+  }
+
   if (!currentHole) {
     return <div>No course data available.</div>;
   }
@@ -109,6 +130,14 @@ export function ChipShotPlay(props: DailyPlayProps) {
           className="p-3 bg-red-100 border-4 border-black rounded-none text-red-900 font-bold mb-4 shadow-[4px_4px_0_0_rgba(0,0,0,1)]"
         >
           {errorMsg}
+        </div>
+      )}
+
+      {feedbackMsg && (
+        <div
+          className={`p-3 border-4 border-black rounded-none font-bold shadow-[4px_4px_0_0_rgba(0,0,0,1)] ${feedbackClasses}`}
+        >
+          {feedbackMsg}
         </div>
       )}
 

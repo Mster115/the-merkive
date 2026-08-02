@@ -74,7 +74,10 @@ export interface ChipShotPublicState {
 
 /**
  * Secret State (server-only — never sent to any client)
- * Holds hidden mechanics or PRNG seeds to ensure pure deterministic simulation.
+ *
+ * `seed` is carried through for record-keeping only — it does not drive
+ * course generation. `maxStrokesPerHole` is kept server-only so a client
+ * can't infer the forced-advance point ahead of time.
  */
 export interface ChipShotSecretState {
   seed: string;
@@ -84,6 +87,13 @@ export interface ChipShotSecretState {
 /**
  * Content pack payload shape (what goes inside DailyContentPack.payload)
  * Settings generated daily.
+ *
+ * `seed` does NOT seed course generation — `generateCourse` only ever reads
+ * `ctx.rng`, which the platform derives from `gameId:puzzleDate` (see
+ * daily/README.md's Determinism section), so every calendar date already
+ * gets a unique course regardless of this field. `seed` exists purely as the
+ * content pipeline's uniqueness/fingerprint token (see fingerprint.ts's
+ * `chipshot` case) — always embed the puzzle date in it.
  */
 export interface ChipShotPayload {
   seed: string;

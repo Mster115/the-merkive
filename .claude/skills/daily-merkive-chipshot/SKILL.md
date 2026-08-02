@@ -2,8 +2,8 @@
 name: daily-merkive-chipshot
 description: >
   Generates and submits Chip Shot daily mini-golf puzzle packs.
-  Chip Shot uses procedural course generation from a seed — content packs
-  are minimal (seed + difficulty parameters).
+  Chip Shot uses procedural course generation keyed on the puzzle date —
+  content packs are minimal (difficulty parameters + a seed uniqueness token).
 ---
 
 # Chip Shot — Daily Content Pipeline Skill
@@ -33,10 +33,17 @@ angle and power — two inputs.
 
 | Field              | Type   | Range | Standard | Description                              |
 | ------------------ | ------ | ----- | -------- | ---------------------------------------- |
-| `seed`             | string | —     | —        | Deterministic seed. Use `"YYYY-MM-DD-chipshot"`. |
+| `seed`             | string | —     | —        | Uniqueness/fingerprint token, not a generation input. Use `"YYYY-MM-DD-chipshot"`. |
 | `holeCount`        | number | 1–9   | 3        | Holes per round.                          |
 | `difficulty`       | number | 1–3   | 2        | 1 = easy, 2 = medium, 3 = hard.          |
 | `maxStrokesPerHole`| number | 3–15  | 8        | Stroke limit before forced hole advance.  |
+
+**`seed` does not generate the course.** The server derives `ctx.rng` from
+`gameId:puzzleDate`, so every date's tile layout, obstacles, and tee/cup
+positions are already unique with zero input from this field. `seed`'s only
+job is the anti-repeat fingerprint (see below) — it still must follow the
+date-embedded format below, or a legitimate new date's submission can collide
+with an old one.
 
 ## Workflow
 
@@ -59,8 +66,10 @@ Always use `"YYYY-MM-DD-chipshot"` format incorporating the puzzle date:
 - `"2026-08-03-chipshot"` for August 3rd
 - `"2026-08-04-chipshot"` for August 4th
 
-This ensures every date gets a unique course. The seed is the fingerprint —
-duplicate seeds are rejected by the platform as repeat puzzles.
+The course is already unique per date regardless of this field — this
+convention exists so the fingerprint (which hashes `seed` alone) never
+collides between two legitimately different dates. Duplicate seeds are
+rejected by the platform as repeat submissions.
 
 ## Auto-Queue Eligibility
 

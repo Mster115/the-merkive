@@ -614,6 +614,13 @@ function puzzleItems(gameId, payload) {
     const candIds = cands.map((c) => norm(c?.id ?? c?.name)).filter(Boolean).sort();
     return [cityName, ...routeIds, ...candIds].filter(Boolean);
   }
+  if (gameId === "chipshot") {
+    // The course is generated from ctx.rng, keyed on puzzleDate — payload.seed
+    // has no effect on the generated geometry. It's purely an authoring/
+    // uniqueness token, so it's what we fingerprint on.
+    const seed = norm(p.seed);
+    return seed ? [seed] : [];
+  }
   return [];
 }
 
