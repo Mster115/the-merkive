@@ -295,7 +295,7 @@ export function ChipShotPlay(props: DailyPlayProps) {
         </Pill>
       </div>
 
-      {/* Standalone Canvas Card with On-Canvas Centered Overlay Banner */}
+      {/* Standalone Canvas Card with On-Canvas Centered Overlay Banner & Bottom-Right Floating CTA */}
       <Card className="relative w-full aspect-square bg-[#131b2e] border-[3px] border-black shadow-[var(--mb-shadow-lg)] rounded-2xl overflow-hidden p-0">
         <CourseCanvas
           hole={currentHole}
@@ -317,6 +317,19 @@ export function ChipShotPlay(props: DailyPlayProps) {
             </div>
           </div>
         )}
+
+        {/* Floating Bottom-Right On-Canvas Action CTA */}
+        <div className="absolute bottom-3 right-3 z-20">
+          <Button
+            variant="primary"
+            size="md"
+            disabled={isButtonDisabled}
+            onClick={onButtonClick}
+            className="border-[3px] border-black shadow-[var(--mb-shadow-lg)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all font-black uppercase active:translate-y-[4px] active:translate-x-[4px] active:shadow-none px-5 py-2.5 text-base min-h-[48px] rounded-xl [font-family:var(--mb-font-display)] flex items-center gap-2"
+          >
+            {buttonText}
+          </Button>
+        </div>
       </Card>
 
       {/* Standalone Aim & Power Control Plates (ONLY rendered during active aiming) */}
@@ -469,17 +482,7 @@ export function ChipShotPlay(props: DailyPlayProps) {
         </>
       )}
 
-      {/* Primary Action Button */}
-      <Button
-        variant="primary"
-        size="lg"
-        block
-        disabled={isButtonDisabled}
-        onClick={onButtonClick}
-        className="border-[3px] border-black shadow-[var(--mb-shadow-lg)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all font-black uppercase active:translate-y-[4px] active:translate-x-[4px] active:shadow-none min-h-[54px] text-lg [font-family:var(--mb-font-display)]"
-      >
-        {buttonText}
-      </Button>
+ 
 
       {/* Standalone Score History Card (No Emojis!) */}
       {pub.strokes && pub.strokes.length > 0 && (
