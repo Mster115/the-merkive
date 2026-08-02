@@ -18,12 +18,18 @@ import {
   GolfBallIcon,
   CloseIcon,
   ConfettiBurst,
+  TrophyIcon,
 } from "@merky/ui";
 import { CourseCanvas } from "./CourseCanvas";
 
 export function ChipShotPlay(props: DailyPlayProps) {
   const pub = props.publicState as ChipShotPublicState;
   const { act, t } = props;
+
+  const currentHole = pub.holes[pub.holeIndex] ?? pub.holes[0];
+  if (!currentHole) {
+    return <div className="text-[var(--mb-text)] font-bold p-4">No course data available.</div>;
+  }
 
   const [aim, setAim] = React.useState<number>(0);
   const [power, setPower] = React.useState<number>(50);
@@ -137,7 +143,6 @@ export function ChipShotPlay(props: DailyPlayProps) {
     isButtonDisabled = true;
   }
 
-  const currentHole = pub.holes[pub.holeIndex] ?? pub.holes[0];
   const holeNumber = (pub.holeIndex ?? 0) + 1;
   const totalHoles = pub.holes.length;
   const currentPar = pub.pars[pub.holeIndex] ?? 3;
@@ -166,8 +171,81 @@ export function ChipShotPlay(props: DailyPlayProps) {
     }
   }
 
-  if (!currentHole) {
-    return <div className="text-[var(--mb-text)] font-bold p-4">No course data available.</div>;
+  if (pub.phase === "done") {
+    const totalStrokes = pub.strokes.reduce((sum, s) => sum + s, 0);
+    const totalPar = pub.pars.reduce((sum, p) => sum + p, 0);
+    const diff = totalStrokes - totalPar;
+    const diffText =
+      diff < 0
+        ? `${Math.abs(diff)} UNDER PAR!`
+        : diff === 0
+        ? "EVEN PAR!"
+        : `+${diff} OVER PAR`;
+    const diffClasses =
+      diff <= 0
+        ? "bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)]"
+        : "bg-[var(--mb-danger)] text-[var(--mb-on-danger)]";
+
+    return (
+      <div className="flex flex-col w-full gap-4 select-none">
+        <ConfettiBurst count={320} durationMs={5000} />
+
+        {/* Hero Endgame Celebration Card */}
+        <Card raised className="flex flex-col items-center gap-3.5 p-6 bg-[var(--mb-surface-2)] border-4 border-black text-center shadow-[var(--mb-shadow-lg)] rounded-2xl">
+          <TrophyIcon className="w-16 h-16 text-[var(--mb-gold)] animate-bounce mb-1" />
+          <h2 className="text-3xl font-black uppercase tracking-wider text-[var(--mb-gold)] [font-family:var(--mb-font-display)]">
+            COURSE COMPLETE!
+          </h2>
+          <div className="flex flex-col gap-1.5 items-center">
+            <span className="text-xl font-black uppercase text-[var(--mb-text)] [font-family:var(--mb-font-display)]">
+              {totalStrokes} STROKES (PAR {totalPar})
+            </span>
+            <span className={`px-4 py-1.5 rounded-xl border-2 border-black font-black uppercase text-sm shadow-[2px_2px_0_0_#000] [font-family:var(--mb-font-display)] ${diffClasses}`}>
+              {diffText}
+            </span>
+          </div>
+        </Card>
+
+        {/* Detailed Scorecard Grid */}
+        <Card className="p-4 border-[3px] border-black shadow-[var(--mb-shadow)] rounded-2xl bg-[var(--mb-surface-2)] flex flex-col gap-3">
+          <h3 className="text-xs font-black uppercase tracking-wider text-[var(--mb-text-dim)] [font-family:var(--mb-font-display)]">
+            SCORECARD BREAKDOWN
+          </h3>
+          <div className="grid grid-cols-3 gap-2">
+            {pub.strokes.map((strokeCount: number, idx: number) => {
+              const par = pub.pars[idx] ?? 3;
+              const isUnderPar = strokeCount <= par - 1;
+              const isPar = strokeCount === par;
+
+              return (
+                <div
+                  key={idx}
+                  className={`flex flex-col items-center justify-center p-2.5 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] font-black uppercase [font-family:var(--mb-font-display)] ${
+                    isUnderPar
+                      ? "bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)]"
+                      : isPar
+                      ? "bg-[var(--mb-gold)] text-[var(--mb-on-gold)]"
+                      : "bg-[var(--mb-danger)] text-[var(--mb-on-danger)]"
+                  }`}
+                >
+                  <span className="text-[10px] opacity-80">HOLE {idx + 1} (PAR {par})</span>
+                  <div className="flex items-center gap-1 my-0.5">
+                    {isUnderPar ? (
+                      <GolfFlagIcon className="w-4 h-4" />
+                    ) : isPar ? (
+                      <GolfBallIcon className="w-4 h-4" />
+                    ) : (
+                      <CloseIcon className="w-4 h-4" />
+                    )}
+                    <span className="text-lg font-black">{strokeCount}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      </div>
+    );
   }
 
   const isAimingState = pub.phase === "aiming" && !isAnimating;
@@ -206,7 +284,7 @@ export function ChipShotPlay(props: DailyPlayProps) {
         </Pill>
       </div>
 
-      {/* Standalone Canvas Card */}
+      {/* Standalone Canvas Card with On-Canvas Centered Overlay Banner */}
       <Card className="relative w-full aspect-square bg-[#131b2e] border-[3px] border-black shadow-[var(--mb-shadow-lg)] rounded-2xl overflow-hidden p-0">
         <CourseCanvas
           hole={currentHole}
@@ -217,16 +295,18 @@ export function ChipShotPlay(props: DailyPlayProps) {
           isAiming={isAimingState}
           onAnimationComplete={handleAnimationComplete}
         />
-      </Card>
 
-      {/* Standalone Feedback Alert (shown post-animation only) */}
-      {feedbackMsg && (
-        <div
-          className={`p-3.5 border-[3px] border-black rounded-xl font-black uppercase tracking-wide [font-family:var(--mb-font-display)] text-center shadow-[var(--mb-shadow)] ${feedbackClasses}`}
-        >
-          {feedbackMsg}
-        </div>
-      )}
+        {/* On-Canvas Feedback Overlay Banner */}
+        {feedbackMsg && (
+          <div className="absolute inset-0 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs z-10 pointer-events-none">
+            <div
+              className={`p-4 border-[4px] border-black rounded-2xl font-black uppercase text-xl shadow-[var(--mb-shadow-lg)] tracking-wider [font-family:var(--mb-font-display)] text-center animate-pop ${feedbackClasses}`}
+            >
+              {feedbackMsg}
+            </div>
+          </div>
+        )}
+      </Card>
 
       {/* Standalone Aim & Power Control Plates (ONLY rendered during active aiming) */}
       {isAimingState && (

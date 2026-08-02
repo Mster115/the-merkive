@@ -217,26 +217,32 @@ export function CourseCanvas({
       ctx.fill();
       ctx.stroke();
 
-      // Draw golf ball shadow
-      ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
-      ctx.beginPath();
-      ctx.arc(ballPos.x + 2, ballPos.y + 2, BALL_RADIUS, 0, Math.PI * 2);
-      ctx.fill();
+      // Check if ball is sunk in cup
+      const distToCup = Math.hypot(ballPos.x - hole.cup.x, ballPos.y - hole.cup.y);
+      const isBallInCup = !isAiming && distToCup < hole.cupRadius;
 
-      // Draw golf ball
-      ctx.fillStyle = "#ffffff";
-      ctx.strokeStyle = "#000000";
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.arc(ballPos.x, ballPos.y, BALL_RADIUS + 1, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
+      if (!isBallInCup) {
+        // Draw golf ball shadow
+        ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
+        ctx.beginPath();
+        ctx.arc(ballPos.x + 2, ballPos.y + 2, BALL_RADIUS, 0, Math.PI * 2);
+        ctx.fill();
 
-      // Ball specular highlight
-      ctx.fillStyle = "#f8fafc";
-      ctx.beginPath();
-      ctx.arc(ballPos.x - 2, ballPos.y - 2, 2, 0, Math.PI * 2);
-      ctx.fill();
+        // Draw golf ball
+        ctx.fillStyle = "#ffffff";
+        ctx.strokeStyle = "#000000";
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(ballPos.x, ballPos.y, BALL_RADIUS + 1, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Ball specular highlight
+        ctx.fillStyle = "#f8fafc";
+        ctx.beginPath();
+        ctx.arc(ballPos.x - 2, ballPos.y - 2, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
 
       // Draw aim trajectory line (ONLY when actively aiming, extends based on power)
       if (isAiming && aimAngle !== null) {
