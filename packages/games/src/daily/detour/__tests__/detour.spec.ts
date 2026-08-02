@@ -88,7 +88,7 @@ describe("detour daily game module", () => {
     expect(summary.stats.completed).toBe(true);
   });
 
-  it("escalates clues through all 4 tiers and rejects further hint requests", () => {
+  it("escalates clues through all 4 tiers (Tier 1 stranger, Tier 2 vector) and rejects further hint requests", () => {
     const pack = {
       gameId: "detour",
       puzzleDate: "2026-08-01",
@@ -103,12 +103,14 @@ describe("detour daily game module", () => {
 
     let pub = run.state.publicState as DetourPublicState;
     expect(pub.currentClueTier).toBe(1);
+    // Tier 1 is stranger narrative
+    expect(pub.currentClue).toContain("Market Street");
 
-    // Tier 1 -> Tier 2 (Stranger narrative for Hop 0)
+    // Tier 1 -> Tier 2 (Vector distance/direction hint)
     act(run, "reveal_clue");
     pub = run.state.publicState as DetourPublicState;
     expect(pub.currentClueTier).toBe(2);
-    expect(pub.currentClue).toContain("Market Street");
+    expect(pub.currentClue).toContain("1.6 km");
 
     // Tier 2 -> Tier 3 (Category / Architectural tag)
     act(run, "reveal_clue");

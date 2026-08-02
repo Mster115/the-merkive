@@ -437,13 +437,13 @@ describe("detour empirical challenger test suite", () => {
 
       let pub = run.state.publicState as DetourPublicState;
       expect(pub.currentClueTier).toBe(1);
-      expect(pub.currentClue).toBe(samplePack().route[0]!.clues.tier1_vector);
+      expect(pub.currentClue).toBe(samplePack().route[0]!.clues.tier2_stranger);
 
-      // Tier 2
+      // Tier 2 (Vector distance hint)
       act(run, "reveal_clue");
       pub = run.state.publicState as DetourPublicState;
       expect(pub.currentClueTier).toBe(2);
-      expect(pub.currentClue).toContain("Market Street");
+      expect(pub.currentClue).toBe(samplePack().route[0]!.clues.tier1_vector);
       expect(pub.score.cluesRevealed).toBe(1);
 
       // Tier 3
@@ -487,10 +487,10 @@ describe("detour empirical challenger test suite", () => {
       act(run, "guess_hop", { poiId: "phl_city_hall" });
       pub = run.state.publicState as DetourPublicState;
 
-      // Hop index is now 1, tier resets to 1, clue updates to Hop 1 tier 1 vector
+      // Hop index is now 1, tier resets to 1, clue updates to Hop 1 tier 1 stranger directions
       expect(pub.currentHopIndex).toBe(1);
       expect(pub.currentClueTier).toBe(1);
-      expect(pub.currentClue).toBe(samplePack().route[1]!.clues.tier1_vector);
+      expect(pub.currentClue).toBe(samplePack().route[1]!.clues.tier2_stranger);
       expect(pub.hopsSubmitted[0]?.cluesUsed).toBe(2); // Tier 3 clue used => 3 - 1 = 2 clues used
     });
 

@@ -6,7 +6,7 @@ import { Button, Card, Panel, Pill, cn } from "@merky/ui";
 import type { MerkadePrivateState, MerkadePublicState } from "./types";
 import { DoodleGrid, COLOR_PALETTE, createEmptyGrid } from "./DoodleGrid";
 
-export function MerkadeController({ seat, match, privateState, act, t }: ControllerProps) {
+export function MerkadeController({ room, seat, match, privateState, act, t }: ControllerProps) {
   const pub = match.publicState as MerkadePublicState | null;
   const priv = (privateState ?? {}) as MerkadePrivateState;
 
@@ -404,15 +404,175 @@ export function MerkadeController({ seat, match, privateState, act, t }: Control
           </Panel>
         )}
 
-        {/* --- REVEAL PHASES WAIT STATES --- */}
-        {(match.phase === "fib_reveal" || match.phase === "doodle_reveal_one" || match.phase === "majority_reveal") && (
-          <Panel className="p-6 rounded-xl bg-[var(--mb-surface-2)] border-[3px] border-black text-center flex flex-col gap-2">
-            <h3 className="text-xl font-black text-[var(--mb-gold)] uppercase [font-family:var(--mb-font-display)]">
-              {t("games.merkade.ui.look_at_tv")}
-            </h3>
-            <p className="text-xs font-bold text-[var(--mb-text-dim)]">
-              {t("games.merkade.ui.results_revealing")}
-            </p>
+        {/* --- FIB REVEAL --- */}
+        {match.phase === "fib_reveal" && pub.fibReveal && (
+          <div className="flex flex-col gap-3">
+            <Panel className="p-4 rounded-xl bg-[var(--mb-surface-2)] border-[3px] border-black text-center">
+              <Pill tone="gold" className="text-[0.65rem] px-2 py-0.5 font-black uppercase mb-1 [font-family:var(--mb-font-display)]">
+                {t("games.merkade.ui.the_truth")}
+              </Pill>
+              <h3 className="text-xl font-black text-[var(--mb-accent)] uppercase tracking-tight [font-family:var(--mb-font-display)]">
+                {pub.fibReveal.options[pub.fibReveal.truthIndex]}
+              </h3>
+            </Panel>
+
+            <div className="flex flex-col gap-2">
+              {pub.fibReveal.options.map((opt, idx) => {
+                const isTruth = idx === pub.fibReveal!.truthIndex;
+                const votes = pub.fibReveal!.voteCounts[idx] ?? 0;
+                const authorSeat = Object.entries(pub.fibReveal!.authorsBySeat).find(
+                  ([_, optionIdx]) => optionIdx === idx
+                )?.[0];
+                const authorPlayer = authorSeat !== undefined ? room.seats.find((s) => s.seatIndex === Number(authorSeat)) : null;
+
+                return (
+                  <Card
+                    key={idx}
+                    className={cn(
+                      "p-3 rounded-xl border-2 border-black flex items-center justify-between gap-3 text-left",
+                      isTruth
+                        ? "bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)] font-black"
+                        : "bg-[var(--mb-surface-2)] text-white"
+                    )}
+                  >
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-black text-sm uppercase tracking-wider [font-family:var(--mb-font-display)] break-words">
+                        {opt}
+                      </span>
+                      {isTruth && (
+                        <span className="text-[0.65rem] font-black uppercase tracking-wider text-[var(--mb-on-accent-2)]">
+                          {t("games.merkade.ui.truth_badge")}
+                        </span>
+                      )}
+                      {authorPlayer && (
+                        <span className="text-[0.65rem] font-bold opacity-80 truncate">
+                          {t("games.merkade.ui.fooled_by", { name: authorPlayer.displayName })}
+                        </span>
+                      )}
+                    </div>
+                    <span className="font-black text-xs [font-family:var(--mb-font-display)] shrink-0">
+                      {t(votes === 1 ? "games.merkade.ui.vote_singular" : "games.merkade.ui.votes_plural", { count: votes })}
+                    </span>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* --- DOODLE REVEAL ONE --- */}
+        {match.phase === "doodle_reveal_one" && pub.doodleReveal && (
+          <div className="flex flex-col gap-3">
+            <Panel className="p-3 rounded-xl bg-[var(--mb-surface-2)] border-[3px] border-black text-center flex flex-col items-center gap-2">
+              <Pill tone="gold" className="text-[0.65rem] px-2 py-0.5 font-black uppercase [font-family:var(--mb-font-display)]">
+                {t("games.merkade.ui.real_prompt")}
+              </Pill>
+              <h3 className="text-xl font-black text-[var(--mb-gold)] uppercase [font-family:var(--mb-font-display)]">
+                {pub.doodleReveal.options[pub.doodleReveal.truthIndex]}
+              </h3>
+              {pub.doodleCurrentGrid && (
+                <DoodleGrid grid={pub.doodleCurrentGrid} readOnly className="w-full max-w-[180px]" />
+              )}
+            </Panel>
+
+            <div className="flex flex-col gap-2">
+              {pub.doodleReveal.options.map((opt, idx) => {
+                const isTruth = idx === pub.doodleReveal!.truthIndex;
+                const votes = pub.doodleReveal!.voteCounts[idx] ?? 0;
+                const authorSeat = Object.entries(pub.doodleReveal!.authorsBySeat).find(
+                  ([_, optionIdx]) => optionIdx === idx
+                )?.[0];
+                const authorPlayer = authorSeat !== undefined ? room.seats.find((s) => s.seatIndex === Number(authorSeat)) : null;
+
+                return (
+                  <Card
+                    key={idx}
+                    className={cn(
+                      "p-3 rounded-xl border-2 border-black flex items-center justify-between gap-3 text-left",
+                      isTruth
+                        ? "bg-[var(--mb-gold)] text-black font-black"
+                        : "bg-[var(--mb-surface-2)] text-white"
+                    )}
+                  >
+                    <div className="min-w-0">
+                      <p className="font-black text-sm uppercase tracking-wider [font-family:var(--mb-font-display)] break-words">
+                        {opt}
+                      </p>
+                      {authorPlayer && (
+                        <span className="text-[0.65rem] font-bold opacity-80 truncate">
+                          {t("games.merkade.ui.authored_by", { name: authorPlayer.displayName })}
+                        </span>
+                      )}
+                    </div>
+                    <span className="font-black text-xs [font-family:var(--mb-font-display)] shrink-0">
+                      {t(votes === 1 ? "games.merkade.ui.vote_singular" : "games.merkade.ui.votes_plural", { count: votes })}
+                    </span>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* --- MAJORITY REVEAL --- */}
+        {match.phase === "majority_reveal" && pub.majorityReveal && (
+          <div className="flex flex-col gap-3">
+            <Panel className="p-4 rounded-xl bg-[var(--mb-surface-2)] border-[3px] border-black text-center flex flex-col items-center gap-2">
+              <Pill tone="gold" className="text-[0.65rem] px-2 py-0.5 font-black uppercase [font-family:var(--mb-font-display)]">
+                {t("games.merkade.ui.majority_winner")}
+              </Pill>
+              <h3 className="text-2xl font-black text-[var(--mb-gold)] uppercase tracking-tight [font-family:var(--mb-font-display)]">
+                {pub.majorityOptions ? pub.majorityOptions[pub.majorityReveal.majorityOptionIndex] : ""}
+              </h3>
+            </Panel>
+
+            <div className="grid grid-cols-2 gap-2 w-full">
+              {(pub.majorityOptions ?? ["A", "B"]).map((opt, idx) => {
+                const count = pub.majorityReveal!.counts[idx as 0 | 1];
+                const isWinner = idx === pub.majorityReveal!.majorityOptionIndex;
+                return (
+                  <Card
+                    key={idx}
+                    className={cn(
+                      "p-3 rounded-xl border-2 border-black flex flex-col items-center justify-center gap-1 text-center",
+                      isWinner
+                        ? "bg-[var(--mb-gold)] text-black font-black"
+                        : "bg-[var(--mb-surface-2)] text-white"
+                    )}
+                  >
+                    <span className="font-black text-sm uppercase [font-family:var(--mb-font-display)] break-words">
+                      {opt}
+                    </span>
+                    <span className="font-black text-xl [font-family:var(--mb-font-display)]">
+                      {t(count === 1 ? "games.merkade.ui.vote_singular" : "games.merkade.ui.votes_plural", { count })}
+                    </span>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* --- LIVE SCORE TRACKER ON CONTROLLER --- */}
+        {(match.phase === "fib_reveal" || match.phase === "doodle_reveal_one" || match.phase === "majority_reveal") && match.scores && (
+          <Panel className="p-3 rounded-xl bg-[var(--mb-surface-2)] border-2 border-black flex flex-col gap-2">
+            <span className="text-[0.65rem] font-black uppercase text-[var(--mb-gold)] tracking-wider text-center [font-family:var(--mb-font-display)]">
+              {t("games.merkade.ui.scores_header")}
+            </span>
+            <div className="flex flex-wrap items-center justify-center gap-1.5">
+              {room.seats.map((s) => {
+                const score = match.scores?.[s.seatIndex] ?? 0;
+                return (
+                  <span
+                    key={s.seatIndex}
+                    className="px-2 py-1 rounded-lg bg-[var(--mb-surface-3)] text-white border border-black text-xs font-bold flex items-center gap-1"
+                  >
+                    <span>{s.displayName}:</span>
+                    <span className="font-black text-[var(--mb-accent-2)]">{score}</span>
+                  </span>
+                );
+              })}
+            </div>
           </Panel>
         )}
       </div>

@@ -422,7 +422,7 @@ export const Play: React.FC<DailyPlayProps> = ({
 
       {/* End state notifications */}
       {phase === "solved" && (
-        <Card className="w-full mb-3 p-3 bg-[var(--mb-accent-2)] border-2 border-black text-center">
+        <Card className="w-full mb-3 p-3 !bg-[var(--mb-accent-2)] border-2 border-black text-center">
           <h3 className="flex items-center justify-center gap-2 text-lg font-bold text-[var(--mb-on-accent-2)]">
             <TrophyIcon className="w-5 h-5" />
             {t("daily.nutshell.solved")}
@@ -431,7 +431,7 @@ export const Play: React.FC<DailyPlayProps> = ({
       )}
 
       {phase === "failed" && (
-        <Card className="w-full mb-3 p-3 bg-[var(--mb-danger)] border-2 border-black text-center">
+        <Card className="w-full mb-3 p-3 !bg-[var(--mb-danger)] border-2 border-black text-center">
           <h3 className="text-lg font-bold text-[var(--mb-on-danger)]">
             {t("daily.nutshell.failed")}
           </h3>

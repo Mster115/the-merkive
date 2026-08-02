@@ -245,6 +245,28 @@ export function DetourMap({
             );
           })}
 
+          {/* City Geography: Secondary Grid Streets */}
+          {cityGeo.polylines.map((poly, idx) => {
+            if (poly.type !== "secondary") return null;
+            const pathD = poly.points
+              .map((pt, i) => {
+                const p = project(pt);
+                return `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`;
+              })
+              .join(" ");
+            return (
+              <path
+                key={`sec-road-${idx}`}
+                d={pathD}
+                fill="none"
+                stroke="var(--mb-line-dim)"
+                strokeWidth="1.2"
+                strokeDasharray="3 3"
+                opacity="0.25"
+              />
+            );
+          })}
+
           {/* City Geography: Ring Roads & Major Arterials */}
           {cityGeo.polylines.map((poly, idx) => {
             if (poly.type !== "ring_road" && poly.type !== "arterial") return null;
@@ -267,6 +289,30 @@ export function DetourMap({
                 strokeLinecap="round"
                 opacity={isRing ? "0.45" : "0.3"}
               />
+            );
+          })}
+
+          {/* City Geographic Feature Labels */}
+          {cityGeo.labels?.map((lbl, idx) => {
+            const p = project(lbl.coordinates);
+            if (p.x < 15 || p.x > VIEW_W - 15 || p.y < 15 || p.y > VIEW_H - 15) return null;
+            const isWater = lbl.kind === "water";
+            const isPark = lbl.kind === "park";
+            return (
+              <text
+                key={`lbl-${idx}`}
+                x={p.x}
+                y={p.y}
+                textAnchor="middle"
+                fill={isWater ? "#3867d6" : isPark ? "#26de81" : "var(--mb-text-dim)"}
+                fontSize="10"
+                fontWeight="900"
+                fontStyle={isWater ? "italic" : "normal"}
+                opacity="0.45"
+                className="select-none pointer-events-none uppercase tracking-wider"
+              >
+                {lbl.name}
+              </text>
             );
           })}
 

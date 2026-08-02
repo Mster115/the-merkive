@@ -19,20 +19,64 @@ export function DetourPlay({ publicState, act, t }: DailyPlayProps) {
   const state = publicState as DetourPublicState;
   const [searchTerm, setSearchTerm] = React.useState("");
   const [selectedPoiId, setSelectedPoiId] = React.useState<string | null>(null);
+  const [selectedDistrict, setSelectedDistrict] = React.useState<string | null>(null);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [confirmGiveUp, setConfirmGiveUp] = React.useState(false);
 
-  const filteredCandidates = React.useMemo(() => {
-    if (!searchTerm.trim()) return state.candidatePois || [];
-    const term = searchTerm.toLowerCase();
+  const visitedPoiIds = React.useMemo(() => {
+    const ids = new Set<string>();
+    if (state.startPoi?.id) ids.add(state.startPoi.id);
+    for (const h of state.hopsSubmitted || []) {
+      if (h.poiId) ids.add(h.poiId);
+    }
+    return ids;
+  }, [state.startPoi?.id, state.hopsSubmitted]);
+
+  const unvisitedCandidates = React.useMemo(() => {
     return (state.candidatePois || []).filter(
+      (p: DetourPoiPublic) => !visitedPoiIds.has(p.id)
+    );
+  }, [state.candidatePois, visitedPoiIds]);
+
+  const availableDistricts = React.useMemo(() => {
+    const set = new Set<string>();
+    unvisitedCandidates.forEach((p) => set.add(p.district));
+    return Array.from(set);
+  }, [unvisitedCandidates]);
+
+  const filteredCandidates = React.useMemo(() => {
+    let pool = unvisitedCandidates;
+    if (selectedDistrict) {
+      pool = pool.filter((p) => p.district === selectedDistrict);
+    }
+    if (!searchTerm.trim()) return pool;
+    const term = searchTerm.toLowerCase();
+    return pool.filter(
       (p: DetourPoiPublic) =>
         p.name.toLowerCase().includes(term) ||
         p.district.toLowerCase().includes(term) ||
         p.category.toLowerCase().includes(term)
     );
-  }, [state.candidatePois, searchTerm]);
+  }, [unvisitedCandidates, selectedDistrict, searchTerm]);
+
+  React.useEffect(() => {
+    if (selectedPoiId && visitedPoiIds.has(selectedPoiId)) {
+      setSelectedPoiId(null);
+    }
+  }, [selectedPoiId, visitedPoiIds]);
+
+  const currentPoiName =
+    state.hopsSubmitted.length > 0
+      ? state.hopsSubmitted[state.hopsSubmitted.length - 1]!.poiName
+      : state.startPoi.name;
+
+  const currentDistrict =
+    state.hopsSubmitted.length > 0
+      ? state.candidatePois.find(
+          (p) => p.id === state.hopsSubmitted[state.hopsSubmitted.length - 1]!.poiId
+        )?.district || state.startPoi.district
+      : state.startPoi.district;
 
   const isGameOver = state.phase === "solved" || state.phase === "failed";
 
@@ -136,6 +180,24 @@ export function DetourPlay({ publicState, act, t }: DailyPlayProps) {
         </div>
       </Card>
 
+      {/* Current Position Banner */}
+      <div className="flex items-center gap-3 rounded-xl border-2 border-black bg-[var(--mb-bg-2)] p-3 shadow-[4px_4px_0_0_#000]">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 border-black bg-[var(--mb-accent)] text-sm font-black text-[var(--mb-on-accent)]">
+          📍
+        </div>
+        <div className="min-w-0 flex-1">
+          <span className="block text-[10px] font-black uppercase tracking-wider text-[var(--mb-text-dim)]">
+            Current Position
+          </span>
+          <span className="truncate text-base font-black">
+            {currentPoiName}{" "}
+            <span className="font-bold text-[var(--mb-text-dim)]">
+              ({currentDistrict})
+            </span>
+          </span>
+        </div>
+      </div>
+
       {/* Stranger's directions */}
       <Card raised className="bg-[var(--mb-surface)]">
         <div className="flex flex-col gap-2 p-3 sm:p-4">
@@ -231,32 +293,87 @@ export function DetourPlay({ publicState, act, t }: DailyPlayProps) {
 
       {!isGameOver ? (
         <form onSubmit={handleGuess} className="flex flex-col gap-3">
-          <label
-            htmlFor="detour-search-input"
-            className="text-xs font-black uppercase tracking-wider text-[var(--mb-text-dim)]"
-          >
-            {t("daily.detour.selectPrompt")}
-          </label>
+          <div className="flex flex-col gap-1.5">
+            <label
+              htmlFor="detour-search-input"
+              className="text-xs font-black uppercase tracking-wider text-[var(--mb-text-dim)]"
+            >
+              {t("daily.detour.selectPrompt")}
+            </label>
 
-          <input
-            id="detour-search-input"
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder={t("daily.detour.inputPlaceholder")}
-            className="min-h-12 w-full rounded-md border-2 border-black bg-[var(--mb-surface)] px-3 font-bold text-[var(--mb-text)] focus:outline-none focus:ring-2 focus:ring-[var(--mb-line-bright)]"
-          />
+            {/* Quick District Filter Pills */}
+            {availableDistricts.length > 1 && (
+              <div className="flex flex-wrap items-center gap-1.5 pb-1">
+                <span className="text-[10px] font-black uppercase tracking-wider text-[var(--mb-text-dim)]">
+                  District:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedDistrict(null)}
+                  className={`rounded-md border-2 border-black px-2.5 py-1 text-xs font-bold transition-all shadow-[1px_1px_0_0_#000] ${
+                    selectedDistrict === null
+                      ? "bg-[var(--mb-accent)] text-[var(--mb-on-accent)]"
+                      : "bg-[var(--mb-surface)] text-[var(--mb-text-dim)] hover:text-[var(--mb-text)]"
+                  }`}
+                >
+                  All ({unvisitedCandidates.length})
+                </button>
+                {availableDistricts.map((d) => {
+                  const count = unvisitedCandidates.filter((c) => c.district === d).length;
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() =>
+                        setSelectedDistrict(selectedDistrict === d ? null : d)
+                      }
+                      className={`rounded-md border-2 border-black px-2.5 py-1 text-xs font-bold transition-all shadow-[1px_1px_0_0_#000] ${
+                        selectedDistrict === d
+                          ? "bg-[var(--mb-accent)] text-[var(--mb-on-accent)]"
+                          : "bg-[var(--mb-surface)] text-[var(--mb-text-dim)] hover:text-[var(--mb-text)]"
+                      }`}
+                    >
+                      {d} ({count})
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            <input
+              id="detour-search-input"
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder={t("daily.detour.inputPlaceholder")}
+              className="min-h-12 w-full rounded-md border-2 border-black bg-[var(--mb-surface)] px-3 font-bold text-[var(--mb-text)] focus:outline-none focus:ring-2 focus:ring-[var(--mb-line-bright)] shadow-[2px_2px_0_0_#000]"
+            />
+          </div>
 
           {/* Tapping selects; only the commit button spends a hop. */}
           <div
             role="radiogroup"
             aria-label={t("daily.detour.selectPrompt")}
-            className="grid max-h-64 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2"
+            className="grid max-h-72 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2 p-1"
           >
             {filteredCandidates.length === 0 ? (
-              <p className="p-3 text-center text-xs font-bold text-[var(--mb-text-dim)]">
-                {t("daily.detour.noMatchingLocations")}
-              </p>
+              <div className="col-span-full flex flex-col items-center justify-center rounded-lg border-2 border-black bg-[var(--mb-surface)] p-6 text-center shadow-[2px_2px_0_0_#000]">
+                <p className="text-xs font-bold text-[var(--mb-text-dim)]">
+                  {t("daily.detour.noMatchingLocations")}
+                </p>
+                {(searchTerm || selectedDistrict) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchTerm("");
+                      setSelectedDistrict(null);
+                    }}
+                    className="mt-2 text-xs font-black uppercase tracking-wider text-[var(--mb-accent)] underline"
+                  >
+                    Clear Filters
+                  </button>
+                )}
+              </div>
             ) : (
               filteredCandidates.map((poi: DetourPoiPublic) => {
                 const active = selectedPoiId === poi.id;
@@ -268,18 +385,42 @@ export function DetourPlay({ publicState, act, t }: DailyPlayProps) {
                     aria-checked={active}
                     disabled={isSubmitting}
                     onClick={() => setSelectedPoiId(poi.id)}
-                    className={`flex min-h-14 flex-col justify-center rounded-md border-2 border-black px-3 py-2 text-left shadow-[2px_2px_0_0_#000] transition-colors ${
+                    className={`group flex min-h-16 flex-col justify-between rounded-lg border-2 border-black p-3 text-left shadow-[2px_2px_0_0_#000] transition-all hover:-translate-y-0.5 active:translate-y-0 ${
                       active
-                        ? "bg-[var(--mb-accent)] text-[var(--mb-on-accent)]"
-                        : "bg-[var(--mb-surface)] text-[var(--mb-text)]"
+                        ? "bg-[var(--mb-accent)] text-[var(--mb-on-accent)] shadow-[4px_4px_0_0_#000]"
+                        : "bg-[var(--mb-surface)] text-[var(--mb-text)] hover:bg-[var(--mb-bg-2)]"
                     }`}
                   >
-                    <span className="text-sm font-bold leading-tight">
-                      {poi.name}
-                    </span>
-                    <span className="text-[10px] font-black uppercase tracking-wider opacity-70">
-                      {poi.district}
-                    </span>
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-sm font-black leading-tight">
+                        {poi.name}
+                      </span>
+                      {active && (
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-black bg-[var(--mb-on-accent)] text-[var(--mb-accent)]">
+                          <CheckIcon className="h-3.5 w-3.5" />
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px]">
+                      <span
+                        className={`rounded border border-black/30 px-1.5 py-0.5 font-black uppercase tracking-wider ${
+                          active
+                            ? "bg-black/20 text-current"
+                            : "bg-[var(--mb-bg-2)] text-[var(--mb-text-dim)]"
+                        }`}
+                      >
+                        {poi.district}
+                      </span>
+                      <span
+                        className={`truncate rounded px-1.5 py-0.5 font-bold ${
+                          active
+                            ? "bg-black/10 text-current"
+                            : "bg-[var(--mb-bg-2)] text-[var(--mb-text-dim)]"
+                        }`}
+                      >
+                        {poi.category}
+                      </span>
+                    </div>
                   </button>
                 );
               })

@@ -96,7 +96,33 @@ export function MerkissionerController({ room, match, seat, privateState, act, t
       </div>
 
       {!isGameOver && !isBanished && phase !== "huddle" && (
-        <RoleStrip priv={priv} onOpen={() => setRoleModalOpen(true)} t={t} />
+        <>
+          <Card className="p-3 border-2 border-black bg-[var(--mb-surface-2)] shadow-[var(--mb-shadow)] flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-2 text-xs font-bold">
+              <span className="font-black uppercase text-[var(--mb-text-dim)] [font-family:var(--mb-font-display)]">
+                {t("games.merkissioner.ui.round_number", { number: pub.roundNumber })}
+              </span>
+              <div className="flex items-center gap-2 text-[0.7rem]">
+                <span className="px-2 py-0.5 rounded bg-[var(--mb-accent-2)] text-[var(--mb-on-accent-2)] font-black">
+                  Merkizen: {pub.merkizenEnacted}/5
+                </span>
+                <span className="px-2 py-0.5 rounded bg-[var(--mb-danger)] text-[var(--mb-on-danger)] font-black">
+                  Merkite: {pub.merkiteEnacted}/6
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-2 text-[0.7rem] pt-1.5 border-t border-black/30 text-[var(--mb-text-dim)]">
+              <span>Gridlock: <strong className="text-white font-black">{pub.gridlock}/3</strong></span>
+              {pub.chairSeat !== null && (
+                <span>
+                  Chair: <strong className="text-white font-black">{seatName(room, pub.chairSeat)}</strong>
+                </span>
+              )}
+            </div>
+          </Card>
+          <RoleStrip priv={priv} onOpen={() => setRoleModalOpen(true)} t={t} />
+        </>
       )}
 
       {errorMsg && (

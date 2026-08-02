@@ -453,41 +453,46 @@ export const Controller: React.FC<ControllerProps> = ({
 
       {/* Player's Rack */}
       <div className="bg-[var(--mb-surface-2)] border-[3px] border-black shadow-[var(--mb-shadow)] rounded-2xl p-4 space-y-3 -rotate-[0.3deg]">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <span className="text-xs font-black uppercase text-[var(--mb-text-dim)] tracking-wider [font-family:var(--mb-font-display)] flex items-center gap-1.5">
-            <BackpackIcon className="w-4 h-4" /> {t("games.tiletangle.yourRack")} ({localRack.length})
-          </span>
-          {/* Wraps: selecting a tile adds Left/Right, and four buttons do not
-              fit beside the label on a 360px phone — they used to push the
-              whole page into horizontal scroll. */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            {selectedTile?.source === "rack" && (
-              <>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  disabled={selectedTile.tileIndex === 0}
-                  onClick={() => handleMoveRackTile("left")}
-                >
-                  {t("games.tiletangle.moveLeft")}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  disabled={selectedTile.tileIndex === localRack.length - 1}
-                  onClick={() => handleMoveRackTile("right")}
-                >
-                  {t("games.tiletangle.moveRight")}
-                </Button>
-              </>
-            )}
-            <Button size="sm" variant="ghost" onClick={handleSort789}>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-black uppercase text-[var(--mb-text-dim)] tracking-wider [font-family:var(--mb-font-display)] flex items-center gap-1.5">
+              <BackpackIcon className="w-4 h-4" /> {t("games.tiletangle.yourRack")} ({localRack.length})
+            </span>
+          </div>
+
+          {/* Sort controls — live on their own row and fill space evenly */}
+          <div className="grid grid-cols-2 gap-2">
+            <Button size="sm" variant="ghost" block onClick={handleSort789}>
               {t("games.tiletangle.sort789")}
             </Button>
-            <Button size="sm" variant="ghost" onClick={handleSortColor}>
+            <Button size="sm" variant="ghost" block onClick={handleSortColor}>
               <PaletteIcon className="w-4 h-4" /> {t("games.tiletangle.sortColor")}
             </Button>
           </div>
+
+          {/* Move controls — live on their own row and fill full width when a tile is selected */}
+          {selectedTile?.source === "rack" && (
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                block
+                disabled={selectedTile.tileIndex === 0}
+                onClick={() => handleMoveRackTile("left")}
+              >
+                {t("games.tiletangle.moveLeft")}
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                block
+                disabled={selectedTile.tileIndex === localRack.length - 1}
+                onClick={() => handleMoveRackTile("right")}
+              >
+                {t("games.tiletangle.moveRight")}
+              </Button>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-wrap gap-2 p-3 bg-[var(--mb-surface-3)] rounded-xl border-2 border-black min-h-[80px] items-center">

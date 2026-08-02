@@ -237,7 +237,7 @@ export function init(
   };
 
   const firstHopClue =
-    route[0]?.clues.tier1_vector || "Follow the directions to your destination.";
+    route[0]?.clues.tier2_stranger || "Follow the directions to your destination.";
 
   const publicState: DetourPublicState = {
     phase: "in_progress",
@@ -322,7 +322,7 @@ export function reduce(
 
     let nextClue = "";
     if (nextTier === 2) {
-      nextClue = currentTarget.clues.tier2_stranger;
+      nextClue = currentTarget.clues.tier1_vector;
     } else if (nextTier === 3) {
       nextClue = currentTarget.clues.tier3_category;
     } else if (nextTier === 4) {
@@ -401,7 +401,7 @@ export function reduce(
 
       const nextClue = isWon
         ? "Destination Reached!"
-        : sec.solutionRoute[nextHopIdx]!.clues.tier1_vector;
+        : sec.solutionRoute[nextHopIdx]!.clues.tier2_stranger;
 
       const finalDestinationHop = sec.solutionRoute[sec.solutionRoute.length - 1]!;
 

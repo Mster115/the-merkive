@@ -61,7 +61,7 @@ export const en: Record<string, string> = {
   "daily.detour.howto.diagramHop": "Hop 1",
   "daily.detour.howto.diagramTarget": "Target",
   "daily.detour.howto.step1":
-    "Read the stranger's directions for where you are now. Stuck? Ask for a hint — each one tells you more, and the last one opens up the district on your map.",
+    "Read the stranger's directions for where you are now. Stuck? Ask for a hint — the first reveals distance and direction, and the last opens up the district on your map.",
   "daily.detour.howto.step2":
     "Pick the landmark you think they are describing from the list, then commit it.",
   "daily.detour.howto.step3":

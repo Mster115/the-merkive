@@ -30,13 +30,10 @@ Clue discipline — this is what decides whether the puzzle is any good:
    looking for.
 
    The four tiers must genuinely escalate:
-   - tier1_vector: geometry only — approximate distance in km and a compass
-     direction. No proper nouns.
-   - tier2_stranger: the route as a stranger would tell it — streets, transit
-     lines, things you pass. Names the *way*, never the *destination*.
-   - tier3_category: what kind of place it is, plus the district.
-   - tier4_radiusBounds: [minLat, minLng, maxLat, maxLng]. This is the only
-     tier that unshrouds the district on the map.
+   - tier2_stranger: Tier 1 (Default Start Clue) — the route as a stranger would tell it (streets, transit lines, things you pass). Names the *way*, never the *destination*.
+   - tier1_vector: Tier 2 (First Hint) — geometry vector (approximate distance in km and compass direction). No proper nouns.
+   - tier3_category: Tier 3 (Second Hint) — what kind of place it is, plus the district.
+   - tier4_radiusBounds: Tier 4 (Third Hint) — [minLat, minLng, maxLat, maxLng]. This is the only tier that unshrouds the district on the map.
 
 Bank shape:
    Each hop the player must find needs at least one DECOY landmark in the same

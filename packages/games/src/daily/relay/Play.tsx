@@ -265,32 +265,9 @@ export function Play({
         </div>
       </Panel>
 
-      {/* Give up sits above the action bar and stays a plain ghost control.
-          As a full-width red bar it was the loudest thing on the screen and
-          the easiest to hit by accident while reaching for Submit. */}
+      {/* Action & Secondary Controls — pinned to the bottom of the viewport on a phone. */}
       {!isOver && (
-        <div className="flex justify-center">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleGiveUp}
-            className="min-h-[44px] text-xs text-[var(--mb-text-dim)] hover:text-[var(--mb-danger)]"
-          >
-            {t("daily.relay.giveUp") || "Give Up"}
-          </Button>
-        </div>
-      )}
-
-      {/* Action Controls — pinned to the bottom of the viewport on a phone.
-          The bank is the tall element on this screen, and Undo in particular
-          is used constantly mid-chain; leaving it below the bank meant a
-          scroll after every tap. Reverts to normal flow from sm up, where the
-          whole board already fits. */}
-      {/* Dropped entirely once the puzzle is over: two permanently disabled
-          buttons pinned over the result banner and share card is the last
-          thing a finished player needs. */}
-      {!isOver && (
-        <div className="sticky bottom-0 z-10 -mx-4 border-t-2 border-black bg-[var(--mb-bg)] px-4 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0">
+        <div className="sticky bottom-0 z-10 -mx-4 border-t-2 border-black bg-[var(--mb-bg)] px-4 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 space-y-2">
           <div className="grid grid-cols-2 gap-2">
             <Button
               variant="ghost"
@@ -313,6 +290,16 @@ export function Play({
               {t("daily.relay.submit") || "Submit Chain"}
             </Button>
           </div>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            block
+            onClick={handleGiveUp}
+            className="min-h-[44px] text-xs text-[var(--mb-text-dim)] hover:text-[var(--mb-danger)] w-full"
+          >
+            {t("daily.relay.giveUp") || "Give Up"}
+          </Button>
         </div>
       )}
 

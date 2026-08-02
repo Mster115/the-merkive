@@ -8,7 +8,7 @@ export interface GeoPolyline {
   name?: string;
   points: Array<[number, number]>; // [lat, lng]
   width?: number; // width factor
-  type: "river" | "coastline" | "arterial" | "ring_road" | "boundary";
+  type: "river" | "coastline" | "arterial" | "secondary" | "ring_road" | "boundary";
 }
 
 export interface GeoPolygon {
@@ -17,11 +17,18 @@ export interface GeoPolygon {
   type: "water" | "park" | "district";
 }
 
+export interface GeoFeatureLabel {
+  name: string;
+  coordinates: [number, number]; // [lat, lng]
+  kind: "water" | "park" | "district";
+}
+
 export interface CityGeography {
   cityName: string;
   cityCode: string;
   polylines: GeoPolyline[];
   polygons?: GeoPolygon[];
+  labels?: GeoFeatureLabel[];
 }
 
 /**
@@ -263,6 +270,34 @@ const CITY_PRESETS: Record<string, CityGeography> = {
           [39.950, -75.140], // Penn's Landing
         ],
       },
+      // Secondary Grid Avenues
+      {
+        name: "Chestnut Street",
+        type: "secondary",
+        width: 1.5,
+        points: [
+          [39.951, -75.195],
+          [39.950, -75.140],
+        ],
+      },
+      {
+        name: "Walnut Street",
+        type: "secondary",
+        width: 1.5,
+        points: [
+          [39.949, -75.195],
+          [39.948, -75.140],
+        ],
+      },
+      {
+        name: "JFK Boulevard",
+        type: "secondary",
+        width: 1.5,
+        points: [
+          [39.954, -75.182],
+          [39.954, -75.163],
+        ],
+      },
     ],
     polygons: [
       // Fairmount Park
@@ -276,6 +311,14 @@ const CITY_PRESETS: Record<string, CityGeography> = {
           [39.965, -75.200],
         ],
       },
+    ],
+    labels: [
+      { name: "Delaware River", coordinates: [39.955, -75.138], kind: "water" },
+      { name: "Schuylkill River", coordinates: [39.955, -75.182], kind: "water" },
+      { name: "Fairmount Park", coordinates: [39.975, -75.195], kind: "park" },
+      { name: "Center City", coordinates: [39.952, -75.163], kind: "district" },
+      { name: "University City", coordinates: [39.956, -75.190], kind: "district" },
+      { name: "Sports Complex", coordinates: [39.902, -75.168], kind: "district" },
     ],
   },
 
@@ -596,6 +639,30 @@ export function generateProceduralGeography(
     [parkLat - 0.010, parkLng - 0.012],
   ];
 
+  // Generate secondary grid lines
+  const secondaryLines: GeoPolyline[] = [];
+  for (let offset = -0.03; offset <= 0.03; offset += 0.015) {
+    if (Math.abs(offset) < 0.003) continue;
+    secondaryLines.push({
+      name: "Secondary St",
+      type: "secondary",
+      width: 1.5,
+      points: [
+        [centerLat + offset, centerLng - lngSpan * 0.5],
+        [centerLat + offset, centerLng + lngSpan * 0.5],
+      ],
+    });
+    secondaryLines.push({
+      name: "Secondary Ave",
+      type: "secondary",
+      width: 1.5,
+      points: [
+        [centerLat - latSpan * 0.5, centerLng + offset],
+        [centerLat + latSpan * 0.5, centerLng + offset],
+      ],
+    });
+  }
+
   return {
     cityName,
     cityCode: cityName.slice(0, 3).toUpperCase(),
@@ -624,12 +691,25 @@ export function generateProceduralGeography(
         width: 3,
         points: mainArterialNS,
       },
+      ...secondaryLines,
     ],
     polygons: [
       {
         name: "City Park",
         type: "park",
         points: parkPoints,
+      },
+    ],
+    labels: [
+      {
+        name: `${cityName} River`,
+        coordinates: riverPoints[Math.floor(numRiverPoints / 2)]!,
+        kind: "water",
+      },
+      {
+        name: "City Park",
+        coordinates: [parkLat, parkLng],
+        kind: "park",
       },
     ],
   };
