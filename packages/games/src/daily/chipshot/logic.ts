@@ -462,19 +462,31 @@ export function summarize(
       ? ` • 🎯 ${holeInOnes} Hole-in-One${holeInOnes > 1 ? "s" : ""}!`
       : "";
 
+  // Per-hole emojis: 🎯 = Hole in One, ⛳ = Birdie/Under Par, 🏌️ = Par, 🔴 = Bogey/Over Par
+  const emojiRow = pub.strokes
+    .map((strokes, i) => {
+      const par = pub.pars[i] ?? 3;
+      if (strokes === 1) return "🎯";
+      if (strokes < par) return "⛳";
+      if (strokes === par) return "🏌️";
+      return "🔴";
+    })
+    .join(" ");
+
   // Detailed per-hole breakdown lines
   const holeDetails = pub.strokes
     .map((strokes, i) => {
       const par = pub.pars[i] ?? 3;
-      if (strokes === 1) return `• Hole ${i + 1}: ⛳ HOLE IN ONE! (1/${par})`;
-      if (strokes < par) return `• Hole ${i + 1}: 🎯 Birdie (${strokes}/${par})`;
-      if (strokes === par) return `• Hole ${i + 1}: 🏌️ Par (${strokes}/${par})`;
-      return `• Hole ${i + 1}: 🔴 ${strokes} strokes (${strokes}/${par})`;
+      const emoji = strokes === 1 ? "🎯" : strokes < par ? "⛳" : strokes === par ? "🏌️" : "🔴";
+      if (strokes === 1) return `${emoji} Hole ${i + 1}: 1 stroke (Par ${par}) - HOLE IN ONE!`;
+      if (strokes < par) return `${emoji} Hole ${i + 1}: ${strokes} strokes (Par ${par})`;
+      if (strokes === par) return `${emoji} Hole ${i + 1}: ${strokes} strokes (Par ${par})`;
+      return `${emoji} Hole ${i + 1}: ${strokes} strokes (Par ${par})`;
     })
     .join("\n");
 
   const shareText = isDone
-    ? `Chip Shot • ${totalStrokes} strokes (${diffText})${hioBadge}\n${holeDetails}`
+    ? `Chip Shot • ${emojiRow}\n${totalStrokes} strokes • ${diffText}${hioBadge}\n\n${holeDetails}`
     : `Chip Shot • in progress`;
 
   return {

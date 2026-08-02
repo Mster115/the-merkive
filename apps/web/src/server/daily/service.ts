@@ -147,7 +147,7 @@ export async function getOrCreateAttempt(
     meta: game.meta,
     attemptOver: isOver,
     status: attempt.status,
-    shareText: attempt.share_text,
+    shareText: summary?.shareText ?? attempt.share_text,
     summary,
     howToSeen,
   };
