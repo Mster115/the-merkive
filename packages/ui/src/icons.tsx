@@ -430,6 +430,22 @@ export function DetourIcon({ className = "w-6 h-6" }: { className?: string }) {
   );
 }
 
+export function ChipShotIcon({ className = "w-6 h-6" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      {/* Golf green / cup */}
+      <ellipse cx="12" cy="18" rx="7" ry="3" fill="var(--mb-accent-2, #2d6b3e)" stroke="currentColor" strokeWidth="2" />
+      <circle cx="13" cy="17.5" r="1.8" fill="var(--mb-ink, #1a1a1a)" stroke="none" />
+      {/* Flag pole */}
+      <line x1="13" y1="17" x2="13" y2="5" strokeWidth="2" />
+      {/* Flag */}
+      <path d="M 13 5 L 20 7.5 L 13 10 Z" fill="var(--mb-pink, #f472b6)" stroke="currentColor" strokeWidth="1.5" />
+      {/* Golf ball */}
+      <circle cx="6.5" cy="16" r="2.5" fill="white" stroke="currentColor" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
 export function GameIcon({ gameId, className }: { gameId: string; className?: string }) {
   switch (gameId) {
     case "zaplash":
@@ -455,6 +471,8 @@ export function GameIcon({ gameId, className }: { gameId: string; className?: st
       return <RelayIcon className={className} />;
     case "waypoint":
       return <WaypointIcon className={className} />;
+    case "chipshot":
+      return <ChipShotIcon className={className} />;
     default:
       return <PuzzleIcon className={className} />;
   }

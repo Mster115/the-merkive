@@ -4,6 +4,7 @@ import { nexus } from "./nexus";
 import { nutshell } from "./nutshell";
 import { relay, relayContentWarnings } from "./relay";
 import { waypoint } from "./waypoint";
+import { chipshot } from "./chipshot";
 
 export const dailyGameRegistry: Record<string, DailyGameModule> = {
   "detour": detour,
@@ -11,6 +12,7 @@ export const dailyGameRegistry: Record<string, DailyGameModule> = {
   "nutshell": nutshell,
   "relay": relay,
   "waypoint": waypoint,
+  "chipshot": chipshot,
 };
 export const dailyGameList: DailyGameModule[] = Object.values(dailyGameRegistry);
 export function getDailyGame(id: string): DailyGameModule | undefined {

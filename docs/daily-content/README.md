@@ -15,6 +15,7 @@ the code wins and this document is a bug.
 | [nexus.md](nexus.md) | Nexus payload schema + trivia-specific rules (the game with real fact-check exposure) |
 | [nutshell.md](nutshell.md) | Nutshell candidate-pool schema + what the grid solver can actually fill |
 | [relay.md](relay.md) | Relay word-chain schema + solver constraints |
+| [chipshot.md](chipshot.md) | Chip Shot payload schema + procedural generation seed rules |
 | [mcp-server.md](mcp-server.md) | **The `merkive-daily` MCP server** — tools, selective disclosure, never-repeat enforcement, setup |
 | [scheduled-tasks.md](scheduled-tasks.md) | **How the fill actually runs** — the three per-game skills, timing, why it is split |
 
