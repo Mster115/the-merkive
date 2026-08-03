@@ -242,7 +242,10 @@ export function ChipShotPlay(props: DailyPlayProps) {
                   <span className="text-[10px] opacity-80">HOLE {idx + 1} (PAR {par})</span>
                   <div className="flex items-center gap-1 my-0.5">
                     {strokeCount === 1 ? (
-                      <span className="text-[11px] font-black">⛳ HIO!</span>
+                      <>
+                        <TargetIcon className="w-4 h-4" />
+                        <span className="text-[11px] font-black tracking-tight">HIO!</span>
+                      </>
                     ) : isUnderPar ? (
                       <GolfFlagIcon className="w-4 h-4" />
                     ) : isPar ? (
@@ -506,7 +509,9 @@ export function ChipShotPlay(props: DailyPlayProps) {
                       : "bg-[var(--mb-danger)] text-[var(--mb-on-danger)]"
                   }`}
                 >
-                  {isUnderPar ? (
+                  {strokeCount === 1 ? (
+                    <TargetIcon className="w-4 h-4" />
+                  ) : isUnderPar ? (
                     <GolfFlagIcon className="w-4 h-4" />
                   ) : isPar ? (
                     <GolfBallIcon className="w-4 h-4" />
